@@ -1,0 +1,84 @@
+HAL Virtual Memory Layout (Ultra-Pico)                          Index in PTE
+
+|=======================| <- 4GB                = 100000000
+|   Reserved for PDE    |                                       1023
+|-----------------------| <- 4GB - 4KB          = 
+|                       |
+|   Reserved for PDE    |
+|                       |
+|=======================| <- 4GB - 36KB          = 
+|     IO Permission     |                                       1003
+|        Bitmap         |                                       1002
+|-----------------------| <- 4GB - 44KB
+|                       |                                       
+|   IO APIC (8 Pages)   |                                        
+|                       |                                       
+|-----------------------| <- 4GB - 76KB         = 
+|      Local APIC       |
+|=======================| <- 4GB - 80KB         = 
+|                       |
+|          ...          |
+|                       |
+|  Global Memory Pool   |
+|                       |                                       End of ELF + 1
+|=======================|
+|                       |                                       End of ELF
+| Text and Static Data  |                                        |
+|                       |                                        8
+|-----------------------| <- 4GB - 512KB + 4KB  = 
+|      Init Stack       |
+|=======================| <- 4GB - 512KB        = 
+|                       |
+|   Kernel Text and     |
+|     Static Data       |
+|                       |
+|=======================| <- 4GB - 1MB
+|                       |
+|          ...          |
+|                       |
+|     Per-CPU Data      |
+|   2 Pages * (CPU-1)   |
+|    Up to 256 CPUs     |
+|                       |
+|          ...          |
+|                       |
+| ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ |
+| Per-CPU Private Data  |                                       1007
+|-----------------------| <- 4GB - 4MB + 4KB   =
+|     Per-CPU Stack     |                                       1004
+|=======================| <- 4GB - 4MB   =
+
+
+
+
+Physical Memory Layout
+|=======================| <- End of Physical Memory
+|                       |
+|     Dynamic Data      |
+|                       |
+|=======================| <- 1MB + 512KB + Kernel Loaded Size + 8KB * Number CPUs
+|                       |
+| Per-CPU Data & Stack  |
+|                       |
+|=======================| <- 1MB + 512KB + Kernel Loaded Size
+|                       |
+|    Kernel Text and    |
+|      Static Data      |
+|                       |
+|=======================| <- 1MB + 512KB
+|       Kernel PDE      |
+|-----------------------| <- 1MB + 512KB - 4KB
+|                       |
+|  Initial Kernel PTE   |
+|    Pool (8 Pages)     |
+|                       |
+|=======================| <- 1MB + 512KB - 36KB
+|                       |
+| HAL Text, Static Data,|
+|    and Memory Pool    |
+|                       |
+|=======================| <- 1MB
+|          ...          |
+|  Reserved 256 Pages   |
+|          ...          |
+|=======================| <- 0

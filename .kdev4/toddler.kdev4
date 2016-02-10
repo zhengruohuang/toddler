@@ -1,0 +1,11 @@
+[Defines And Includes][Compiler]
+Name=GCC
+Path=gcc
+Type=GCC
+
+[MakeBuilder]
+Number Of Jobs=1
+Su Command=2
+
+[Project]
+VersionControlSupport=kdevgit

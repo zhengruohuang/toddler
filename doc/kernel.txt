@@ -1,0 +1,292 @@
+Kernel Virtual Memory Layout                                   PDE Index : PTE Index
+
+|=======================| <- 4GB                = 0x100000000
+|                       |                                       1023    : 1023
+|    HAL and Kernel     |                                                  |
+|    Code and Data      |
+|     Per-CPU Data      |
+|                       |                                       1023    :  0
+|=======================| <- 4GB - 4MB          = 0xFFC00000
+|                       |
+|                       |
+|        Kernel         |
+|      Extensions       |
+|                       |
+|                       |
+|=======================| <- 4GB - 128MB        = 0xF8000000
+|                       |
+|                       |
+|        Kernel         |
+|  Direct Mapping Area  |
+|                       |
+|                       |
+|=======================| <- 0                  = 0x0
+
+
+Direct Mapping Area Layout
+
+|=======================| <- 4GB - 512MB        = 0xE0000000
+|                       |
+|   Memory Allocation   |
+|      Normal Zone      |
+|                       |
+|-----------------------| <- pMB + 32KB * 8 * Processor Count
+|                       |
+|  Initial Worker Pool  |
+|          For          |
+| Address Space Manager |
+|   8 Workers Per CPU   |
+|                       |
+|-----------------------| <- pMB, Depends on Memory Size
+|                       |
+|      PFN Database     |
+|                       |                                       7168
+|-----------------------| <- 28MB               = 0x1C00000
+|                       |                                       7167
+| Address Space Manager |                                        |
+|    Execution Area     |                                        |
+|                       |                                       6144
+|-----------------------| <- 24MB               = 0x1800000
+|                       |                                       6143
+| Address Space Manager |                                        |
+|       Page Table      |                                        |
+|                       |                                       5120
+|-----------------------| <- 20MB               = 0x1400000
+|                       |                                       5119
+|          HAL          |
+|    Execution Area     |
+|                       |                                       4096
+|=======================| <- 16MB               = 0x1000000
+|                       |                                       4095
+|   Memory Allocation   |                                        |
+|        DMA Zone       |                                        |
+|                       |                                       1024
+|-----------------------| <- 4MB                = 0x400000
+|                       |                                       1023
+|        Used By        |                                        |
+|     HAL Page Table    |                                        |
+|          And          |                                        |
+|      Kernel Image     |                                        |
+|                       |                                       256
+|=======================| <- 1MB                = 0x100000
+|                       |                                       255
+|      Reserved For     |                                        |
+|       Real Mode       |                                        |
+|                       |                                        0
+|=======================| <- 0                  = 0
+
+
+Kernel Thread Memory Layout
+
+|=======================| <- 16KB
+|         Stack         |
+|      Read/Write       |
+|-----------------------| <- 12KB
+|  IPC Receive Window   |
+|       Read Only       |
+|-----------------------| <- 8KB
+|   IPC Send Window     |
+|      Read/Write       |
+|-----------------------| <- 4KB
+|   Thread-Local Data   |
+|      Read/Write       |
+|=======================| <- 0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ASMgr Virtual Memory Layout                                     PDE Index : PTE Index
+
+|=======================| <- 4GB                = 100000000
+|                       |                                       1023    : 1023
+|          HAL          |
+|                       |                                       1023    : 512
+|=======================| <- 4GB - 2MB          = 0xFFE00000
+| Reserved: Not Present |                                       1023    : 511
+|-----------------------| <- 4GB - 2MB - 4KB    = 0xFFDFF000
+|                       |                                       1023    : 510
+|  ASMgr Code and Data  |                                                  |
+|         2024KB        |                                                  |
+|                       |                                       1023    :  5
+|-----------------------| <- 4GB - 4MB + 20KB   = 0xFFC05000
+| Reserved: Not Present |                                       1023    :  4
+|-----------------------| <- 4GB - 4MB + 16KB   = 0xFFC04000
+| Reserved: ASMgr Stack |                                       1023    :  3    In fact, this is not the real stack, but the physical memory it represents is the place where the real stack goes, which means that stack below will be mapped here
+|-----------------------| <- 4GB - 4MB + 12KB   = 0xFFC03000
+| Reserved: Not Present |                                       1023    :  2
+|-----------------------| <- 4GB - 4MB + 8KB    = 0xFFC02000
+|   Page Zero Window    |                                       1023    :  1    Don't need a static allocated page
+|-----------------------| <- 4GB - 4MB + 4KB    = 0xFFC01000
+| Reserved: Not Present |                                       1023    :  0
+|=======================| <- 4GB - 4MB          = 0xFFC00000
+|  IPC Receive Window   |                                       1022    : 1023  Don't need a static allocated page
+|-----------------------| <- 4GB - 4MB - 4KB    = 0xFFBFF000
+|   IPC Send Window     |                                       1022    : 1022  Allocate a static page frame from Zone I to Effective Send Window
+|-----------------------| <- 4GB - 4MB - 8KB    = 0xFFBFE000
+| Reserved: Not Present |                                       1022    : 1021
+|-----------------------| <- 4GB - 4MB - 12KB   = 0xFFBFD000
+|                       |                                       1022    : 1020  Allocate two static page frames from Zone I to ASMgr Stack
+|      ASMgr Stack      |                                                  |
+|                       |                                       1022    :  0
+|=======================| <- 4GB - 8MB          = 0xFF800000
+|                       |                                       1021    : 1023
+|          ...          |
+|                       |
+| Reserved: Not Present |
+|                       |
+|          ...          |
+|                       |
+|-----------------------| <- Grow up dynamically
+|                       |
+|      ASMgr Heap       |
+|                       |
+|  Allocatable Zone I   |
+|                       |
+|-----------------------|
+| Reserved: Not Present |
+|-----------------------| <- Lower than 16MB + 8MB
+|                       |
+|      PFN Database     |
+|                       |                                       5       :  0
+|=======================| <- 16MB               = 0x1000000
+|                       |                                       3       : 1023
+| Usable to ISA Devices |                                                  |
+|                       |                                                  |
+|  Allocatable Zone II  |                                                  |
+|                       |                                       2       :  0
+|=======================| <- 8MB                = 0x800000
+|                       |                                       1       : 1023
+|          Used         |                                                  |
+|                       |                                       0       : 256
+|=======================| <- 1MB                = 0x100000
+| Reserved for RealMode |                                       0       : 255
+|-----------------------| <- 1MB - 4KB          = 0xFF000
+|                       |                                       0       : 254
+|     Usable to All     |                                                  |
+|                       |                                                  |
+| Allocatable Zone III  |                                                  |
+|                       |                                       0       :  1
+|-----------------------| <- 4KB                = 0x1000
+| Reserved for RealMode |                                       0       :  0
+|=======================| <- 0                  = 0
+
+
+
+Physical Memory Layout                                                          Physical PFN
+
+|=======================| <- 0
+| Reserved for RealMode |                                                        0
+|-----------------------|
+|                       |                                                        1
+|       159 Pages       |                                                        |
+|                       |                                                        |
+| Allocatable Zone III  |                                                        |
+|                       |                                                       159
+|-----------------------| <- 640KB
+|                       |                                                       160
+| Reserved for RealMode |                                                        |
+|                       |                                                       255
+|=======================| <- 1MB
+|                       |                                                       256
+|          Used         |                                                        |
+|                       |                                                       2047
+|=======================| <- 8MB
+|                       |                                                       2048
+| Usable to ISA Devices |                                                        |
+|                       |                                                        |
+|  Allocatable Zone II  |                                                        |
+|                       |                                                       4095
+|=======================| <- 16MB
+|                       |                                                       4096
+|      PFN Database     |
+|                       |
+|-----------------------| <- Lower than 16MB + 8MB
+| Reserved: Not Present |
+|-----------------------|
+|                       |
+|   First Free Page     |
+|      Comes Here       |
+|                       |
+|  Allocatable Zone I   |
+|                       |
+|          ...          |
+|                       |
+|-----------------------|
+|       Reserved        |
+|=======================| <- End of Physical Memory
+
+
+
+Normal Task Virtual Memory Layout                             PDE Index : PTE Index
+
+|=======================| <- 4GB                = 100000000
+|                       |                                       1023    : 1023
+|          HAL          |                                                  |
+|                       |                                       1023    : 512
+|=======================| <- 4GB - 2MB          = 0xFFE00000
+|                       |                                       1023    : 511
+|         ASMgr         |                                                  |
+|                       |                                       1023    :  0
+|=======================| <- 4GB - 4MB          = 0xFFC00000
+|                       |                                       1021    : 1023
+|  Task Code and Data   |                                        |         |
+|                       |                                       768     :  0
+|=======================| <- 3GB                = 0xBFFFF000
+|  IPC Receive Window   |                                       767     : 1023  Don't need a static allocated page
+|-----------------------| <- 3GB - 4KB          = 0xBFFFE000
+|   IPC Send Window     |                                       767     : 1022  Allocate a static page frame from Zone I to Effective Send Window
+|-----------------------| <- 3GB - 8KB          = 0xBFFFD000
+| Reserved: Not Present |                                       767     : 1021
+|-----------------------| <- 3GB - 12KB         = 0xBFFFC000
+|                       |                                       767     : 1020  Allocate two static page frames from Zone I to stack
+|         Stack         |                                                  |
+|                       |                                       767     :  0
+|=======================| <- 3GB - 4MB          = 0xBFBFF000
+|                       |                                       766     : 1023
+|          ...          |
+|                       |
+| Reserved: Not Present |
+|                       |
+|          ...          |
+|                       |
+|-----------------------| <- Grow up dynamically
+|                       |
+|         Heap          |
+|                       |                                        0      : 256
+|=======================| <- 1MB                = 0x100000
+|                       |                                        0      : 255
+| Reserved: Not Present |                                                  |
+|                       |                                        0      :  0
+|=======================| <- 0                  = 0

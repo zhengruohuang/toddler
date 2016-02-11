@@ -1,0 +1,29 @@
+Interposer Virtual Memory Layout                              PDE Index : PTE Index
+
+|=======================| <- 4GB                = 0x100000000
+|                       |                                       1023    : 1023
+|    HAL and Kernel     |                                                  |
+|    Code and Data      |
+|     Per-CPU Data      |
+|                       |                                       1023    :  0
+|=======================| <- 4GB - 4MB          = 0xFFC00000
+|                       |
+|                       |
+|   Subsystem Kernel    |
+|                       |
+|                       |
+|=======================| <- 3GB/2GB
+|                       |
+|                       |
+| Fake Physical Memory  |
+|                       |
+| The interposer        ||
+| thinks this is the    |
+| physical memory.      |
+|                       |
+| However, the actual   |
+| mapping is controlled |
+| by Toddler kernel     |
+|                       |
+|                       |
+|=======================| <- 0                  = 0x0

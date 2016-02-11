@@ -30,43 +30,19 @@ Direct Mapping Area Layout
 |   Memory Allocation   |
 |      Normal Zone      |
 |                       |
-|-----------------------| <- pMB + 32KB * 8 * Processor Count
-|                       |
-|  Initial Worker Pool  |
-|          For          |
-| Address Space Manager |
-|   8 Workers Per CPU   |
-|                       |
-|-----------------------| <- pMB, Depends on Memory Size
+|=======================| <- pMB, Depends on Memory Size
 |                       |
 |      PFN Database     |
 |                       |                                       7168
 |-----------------------| <- 28MB               = 0x1C00000
 |                       |                                       7167
-| Address Space Manager |                                        |
-|    Execution Area     |                                        |
+| PTEs for PFN Database |                                        |
 |                       |                                       6144
-|-----------------------| <- 24MB               = 0x1800000
-|                       |                                       6143
-| Address Space Manager |                                        |
-|       Page Table      |                                        |
-|                       |                                       5120
-|-----------------------| <- 20MB               = 0x1400000
-|                       |                                       5119
-|          HAL          |
-|    Execution Area     |
-|                       |                                       4096
 |=======================| <- 16MB               = 0x1000000
-|                       |                                       4095
-|   Memory Allocation   |                                        |
-|        DMA Zone       |                                        |
-|                       |                                       1024
-|-----------------------| <- 4MB                = 0x400000
 |                       |                                       1023
-|        Used By        |                                        |
-|     HAL Page Table    |                                        |
-|          And          |                                        |
-|      Kernel Image     |                                        |
+| HAL & Kernel Code and |
+|   Static Data, and    |
+|     Per-CPU Data      |                                        |
 |                       |                                       256
 |=======================| <- 1MB                = 0x100000
 |                       |                                       255
@@ -76,14 +52,14 @@ Direct Mapping Area Layout
 |=======================| <- 0                  = 0
 
 
-Kernel Thread Memory Layout
+Kernel Thread Block Memory Layout
 
 |=======================| <- 16KB
 |         Stack         |
 |      Read/Write       |
 |-----------------------| <- 12KB
 |  IPC Receive Window   |
-|       Read Only       |
+|       Read Only       | <- Also serves as a stack guard
 |-----------------------| <- 8KB
 |   IPC Send Window     |
 |      Read/Write       |

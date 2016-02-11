@@ -1,1 +1,82 @@
-test
+User Process Virtual Memory Layout                            PDE Index : PTE Index
+
+|=======================| <- 4GB                = 0x100000000
+|                       |                                       1023    : 1023
+|    HAL and Kernel     |                                                  |
+|    Code and Data      |
+|     Per-CPU Data      |
+|                       |                                       1023    :  0
+|=======================| <- 4GB - 4MB          = 
+|                       |
+|                       |
+|       Reserved        |
+|                       |
+|                       |
+|=======================| <- 4GB - 128MB        = 
+|                       |
+|          /\           |
+|         /||\          |
+|          ||           |
+|                       |
+|  Shared Libraries I   |
+|                       |
+| All processes see the |
+|       same map        |
+|                       |
+|=======================| <- 3GB
+|                       |
+| Thread Block          |
+|   - IPC Recv/Send     |
+|   - Thread-Local Data |
+|   - Stack             |
+|                       |
+| Memory mapped data    |
+|   - mmap              |
+|   - Files             |
+|                       |
+| Shared Libraries II   |
+|   - Diff. proc. see   |
+|     diff. map         |
+|                       |
+|          ||           |
+|         \||/          |
+|          \/           |
+|                       |
+|~~~~~~~~~~~~~~~~~~~~~~~|
+|                       |
+|          /\           |
+|         /||\          |
+|          ||           |
+|                       |
+|         Heap          |
+|                       |
+|=======================| <- 4MB + Loaded Program Size
+|                       |
+|     Program Image     |
+|                       |
+|=======================| <- 4MB
+|                       |
+|       Reserved        |
+|                       |
+|=======================| <- 0
+
+
+User Thread Block Memory Layout
+
+|=======================| <- Thread-Local Size + 8KB + Stack Size (Typical: 64KB)
+|         Stack         |
+|      Read/Write       |
+|-----------------------| <- Thread-Local Size + 8KB
+|  IPC Receive Window   |
+|       Read Only       | <- Also serves as a stack guard
+|-----------------------| <- Thread-Local Size + 4KB
+|   IPC Send Window     |
+|      Read/Write       |
+|-----------------------| <- Thread-Local Data Size (Typical: 16KB)
+|   Thread-Local Data   |
+|      Read/Write       |
+|=======================| <- 0
+
+
+
+

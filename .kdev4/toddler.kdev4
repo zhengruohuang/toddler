@@ -12,7 +12,7 @@ Path=gcc
 Type=GCC
 
 [Filters]
-size=25
+size=17
 
 [Filters][0]
 inclusive=0
@@ -46,62 +46,22 @@ targets=1
 
 [Filters][14]
 inclusive=0
-pattern=moc_*.cpp
+pattern=*.pyc
 targets=1
 
 [Filters][15]
 inclusive=0
-pattern=*.moc
+pattern=*.pyo
 targets=1
 
 [Filters][16]
 inclusive=0
-pattern=ui_*.h
-targets=1
-
-[Filters][17]
-inclusive=0
-pattern=qrc_*.cpp
-targets=1
-
-[Filters][18]
-inclusive=0
-pattern=*~
-targets=1
-
-[Filters][19]
-inclusive=0
-pattern=*.orig
-targets=1
+pattern=/target
+targets=2
 
 [Filters][2]
 inclusive=0
 pattern=CVS
-targets=2
-
-[Filters][20]
-inclusive=0
-pattern=.*.kate-swp
-targets=1
-
-[Filters][21]
-inclusive=0
-pattern=.*.swp
-targets=1
-
-[Filters][22]
-inclusive=0
-pattern=*.pyc
-targets=1
-
-[Filters][23]
-inclusive=0
-pattern=*.pyo
-targets=1
-
-[Filters][24]
-inclusive=0
-pattern=/target
 targets=2
 
 [Filters][3]

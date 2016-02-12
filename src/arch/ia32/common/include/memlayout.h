@@ -1,0 +1,8 @@
+#ifndef __ARCH_IA32_COMMON_INCLUDE_MEMLAYOUT__
+#define __ARCH_IA32_COMMON_INCLUDE_MEMLAYOUT__
+
+
+
+
+
+#endif

@@ -14,8 +14,8 @@ asm ("jmp main");
 #define FAT_SLAVE_BUFFER_SEGMENT    0
 #define FAT_SLAVE_BUFFER_OFFSET     BOOT_SECTOR_BUFFER_OFFSET_2
 
-#define TODDLER_LOADER_FILE_NAME    "tdlrldr.bin"
-#define TODDLER_KERNEL_FILE_NAME    "tdlrkrnl.img"
+#define LOADER_FILE_NAME    "tdlrldr.bin"
+#define COREIMG_FILE_NAME   "tdlrcore.img"
 
 #define FAT_MASTER      ((struct floppy_fat_master *)FAT_MASTER_BUFFER_OFFSET)
 #define FAT_SLAVE       ((struct floppy_fat_slave *)FAT_SLAVE_BUFFER_OFFSET)
@@ -208,10 +208,10 @@ void jump_to_loader()
         "movl   $0, (%%di);"
         "jmpl   %0, %1;"
         :
-        : "n" (BOOT_LOADER_LOAD_SEGMENT), "n" (BOOT_LOADER_LOAD_OFFSET),
-     "a" (BOOT_LOADER_LOAD_SEGMENT),
-     "S" (LOADER_PARAM_ADDRESS_OFFSET),    /* Loader Parameter: Device Type */
-     "D" (LOADER_PARAM_ADDRESS_OFFSET + 4) /* Loader Parameter: Device Info */
+        : "n" (LOADER_LOAD_SEGMENT), "n" (LOADER_LOAD_OFFSET),
+          "a" (LOADER_LOAD_SEGMENT),
+          "S" (LOADER_PARAM_ADDRESS_OFFSET),    /* Loader Parameter: Device Type */
+          "D" (LOADER_PARAM_ADDRESS_OFFSET + 4) /* Loader Parameter: Device Info */
     );
 }
 
@@ -231,7 +231,7 @@ u32 parse_master_fat()
     print_new_line();
 }
 
-u32 find_and_load_file(u8* file_name, u16 segment, u16 offset)
+int find_and_load_file(u8* file_name, u16 segment, u16 offset)
 {
     u16 fat_count = 0;
     u16 file_count = 0;
@@ -242,7 +242,7 @@ u32 find_and_load_file(u8* file_name, u16 segment, u16 offset)
     u16 entry_count;
     u32 i;
     
-    s_boot_floppy_fat_entry* current_entry;
+    struct floppy_fat_entry *current_entry;
     
     fat_count = FAT_MASTER->header.fat_count;
     file_count = FAT_MASTER->header.file_count;
@@ -303,10 +303,10 @@ void main()
     parse_master_fat();
     
     /* Find and load OS Loader */
-    u32 loader = find_and_load_file(TODDLER_LOADER_FILE_NAME, BOOT_LOADER_LOAD_SEGMENT, BOOT_LOADER_LOAD_OFFSET);
+    int loader = find_and_load_file(LOADER_FILE_NAME, LOADER_LOAD_SEGMENT, LOADER_LOAD_OFFSET);
     
     /* Find and load kernel image */
-    u32 kernel = find_and_load_file(TODDLER_KERNEL_FILE_NAME, BOOT_KERNEL_LOAD_SEGMENT, BOOT_KERNEL_LOAD_OFFSET);
+    int kernel = find_and_load_file(COREIMG_FILE_NAME, COREIMG_LOAD_SEGMENT, COREIMG_LOAD_OFFSET);
     
     /* If both loader and kernel are loaded, jump to loader */
     if (loader && kernel) {

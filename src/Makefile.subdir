@@ -1,0 +1,37 @@
+################################################################################
+#                                                                              #
+# Template Usage                                                               #
+#     * Just include this template at the end of your Makefile                 #
+#     * Two variables are reserved: SUBMAKEFILES and SUBDIRS,                  #
+#       you should not use them in your Makefile                               #
+#                                                                              #
+################################################################################
+
+# Find all usable Makefiles
+SUBMAKEFILES	= $(wildcard */Makefile)
+SUBDIRS		= $(SUBMAKEFILES:/Makefile=/)
+
+# Exports and Unexports
+unexport SUBDIRS
+unexport SUBMAKEFILES
+
+# Phony targets
+.PHONY: all_subdir clean_subdir
+
+# Get into the subdirectories and make
+all_subdir:
+	@for entry in $(SUBDIRS);				\
+	do							\
+		cd $$entry;					\
+		$(MAKE) --print-directory MAKEFLAGS= all;	\
+		cd ../;						\
+	done
+
+# Get into the subdirectories and clean
+clean_subdir:
+	@for entry in $(SUBDIRS);				\
+	do							\
+		cd $$entry;					\
+		$(MAKE) --print-directory MAKEFLAGS= clean;	\
+		cd ../;						\
+	done

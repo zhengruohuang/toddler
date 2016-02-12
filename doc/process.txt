@@ -63,20 +63,21 @@ User Process Virtual Memory Layout                            PDE Index : PTE In
 
 User Thread Block Memory Layout
 
-|=======================| <- Thread-Local Size + 8KB + Stack Size (Typical: 64KB)
+|=======================| <- Top - Typical: 4MB
+|         Guard         |
+|-----------------------| <- Top - 4KB
 |         Stack         |
 |      Read/Write       |
-|-----------------------| <- Thread-Local Size + 8KB
-|  IPC Receive Window   |
-|       Read Only       | <- Also serves as a stack guard
-|-----------------------| <- Thread-Local Size + 4KB
-|   IPC Send Window     |
-|      Read/Write       |
-|-----------------------| <- Thread-Local Data Size (Typical: 16KB)
+|-----------------------| <- Stack Bottom
+|         Guard         |
+|-----------------------| <- Stack Bottom - 4KB
 |   Thread-Local Data   |
 |      Read/Write       |
+|=======================| <- 8KB
+|  IPC Receive Window   |
+|       Read Only       |
+|-----------------------| <- 4KB
+|   IPC Send Window     |
+|      Read/Write       |
 |=======================| <- 0
-
-
-
 

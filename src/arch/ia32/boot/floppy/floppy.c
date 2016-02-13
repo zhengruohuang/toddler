@@ -7,21 +7,21 @@ asm ("jmp main");
 #include "common/include/memlayout.h"
 
 
-#define MASTER_FAT_LBA          16
-
 #define FAT_MASTER_BUFFER_SEGMENT   0
 #define FAT_MASTER_BUFFER_OFFSET    BOOT_SECTOR_BUFFER_OFFSET_1
 #define FAT_SLAVE_BUFFER_SEGMENT    0
 #define FAT_SLAVE_BUFFER_OFFSET     BOOT_SECTOR_BUFFER_OFFSET_2
 
-#define LOADER_FILE_NAME    "tdlrldr.bin"
-#define COREIMG_FILE_NAME   "tdlrcore.img"
+#define LOADER_FILE_NAME    ((u8 *)"tdlrldr.bin")
+#define COREIMG_FILE_NAME   ((u8 *)"tdlrcore.img")
 
-#define FAT_MASTER      ((struct floppy_fat_master *)FAT_MASTER_BUFFER_OFFSET)
-#define FAT_SLAVE       ((struct floppy_fat_slave *)FAT_SLAVE_BUFFER_OFFSET)
+#define MASTER_FAT_LBA      16
+
+#define FAT_MASTER          ((struct floppy_fat_master *)FAT_MASTER_BUFFER_OFFSET)
+#define FAT_SLAVE           ((struct floppy_fat_slave *)FAT_SLAVE_BUFFER_OFFSET)
 
 
-void print_char(u8 ch)
+void print_char(char ch)
 {
     __asm__ __volatile__
     (
@@ -33,7 +33,7 @@ void print_char(u8 ch)
     );
 }
 
-void print_string(u8* str)
+void print_string(char *str)
 {
     while (*str) {
         print_char(*str);
@@ -139,20 +139,19 @@ void read_sector(u32 lba, u16 segment, u16 offset)
     (
         "movw   %%ax, %%es;"
         
-        "_try_again:"
+        //"_try_again:"
         "movb   $0x2, %%ah;"
         "movb   $0x1, %%al;"
         "int    $0x13;"
         
-        "jc     _try_again;"
+        //"jc     _try_again;"
         :
         : "a" (es), "b" (ebx), "c" (ecx), "d" (edx)
     );
 }
 
-#define read_to_fat_master_buffer(lba) read_sector(lba, FAT_MASTER_BUFFER_SEGMENT, FAT_MASTER_BUFFER_OFFSET);
-
-#define read_to_fat_slave_buffer(lba) read_sector(lba, FAT_SLAVE_BUFFER_SEGMENT, FAT_SLAVE_BUFFER_OFFSET);
+#define load_to_fat_master_buffer(lba) read_sector(lba, FAT_MASTER_BUFFER_SEGMENT, FAT_MASTER_BUFFER_OFFSET);
+#define load_to_fat_slave_buffer(lba) read_sector(lba, FAT_SLAVE_BUFFER_SEGMENT, FAT_SLAVE_BUFFER_OFFSET);
 
 void load_file(u16 start_sector, u16 sector_count, u16 segment, u16 offset)
 {
@@ -215,12 +214,12 @@ void jump_to_loader()
     );
 }
 
-u32 parse_master_fat()
+void parse_master_fat()
 {
     print_string("Master FAT: ");
     
     /* Read the master FAT */
-    read_to_fat_master_buffer(MASTER_FAT_LBA);
+    load_to_fat_master_buffer(MASTER_FAT_LBA);
     
     print_string("FAT Count ");
     print_hex(FAT_MASTER->header.fat_count);
@@ -251,7 +250,7 @@ int find_and_load_file(u8* file_name, u16 segment, u16 offset)
     for (current_fat = 0; current_fat < fat_count; current_fat++) {
         /* If this is a slave FAT, load it */
         if (current_fat) {
-            read_to_fat_slave_buffer(MASTER_FAT_LBA + current_fat);
+            load_to_fat_slave_buffer(MASTER_FAT_LBA + current_fat);
         }
         
         /* Master FAT has 31 entries, each slave FAT has 32 entries */
@@ -277,7 +276,7 @@ int find_and_load_file(u8* file_name, u16 segment, u16 offset)
             
             /* Compare file name */
             if (!compare_file_name(current_entry->file_name, file_name, 12)) {
-                print_string(file_name);
+                print_string((char *)file_name);
                 
                 /* Load the file */
                 load_file(current_entry->start_sector, current_entry->sector_count,
@@ -297,7 +296,7 @@ int find_and_load_file(u8* file_name, u16 segment, u16 offset)
     return 0;
 }
 
-void main()
+int main()
 {
     /* First we parse master FAT */
     parse_master_fat();
@@ -313,6 +312,9 @@ void main()
         jump_to_loader();
     }
     
-    /* Stop */
+    // Stop
     stop();
+    
+    // Just to make GCC happy
+    return 0;
 }

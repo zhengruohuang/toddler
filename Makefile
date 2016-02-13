@@ -67,15 +67,16 @@ build_tools:
 	@mkdir -p $(TARGETDIR)/tools;			\
 	cd $(TOOLSDIR);					\
 	$(MAKE) --print-directory MAKEFLAGS= all;	\
-	cd $(PROJDIR);
+	cd ../;
 
 # Build OS
 build_os:
 	@mkdir -p $(TARGETDIR)/bin;			\
+	mkdir -p $(TARGETDIR)/bin/boot;			\
 	mkdir -p $(TARGETDIR)/img;			\
 	cd $(SRCDIR);					\
 	$(MAKE) --print-directory MAKEFLAGS= all;	\
-	cd $(PROJDIR);
+	cd ../;
 
 # Clean
 clean:
@@ -117,3 +118,7 @@ vbox: build
 	@VBoxManage startvm Toddler
 
 startemu: qemu
+
+src_lines:
+	@echo Total number of lines:
+	@find $(SRCDIR) -type f -exec cat {} + | wc -l

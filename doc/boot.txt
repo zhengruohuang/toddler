@@ -10,9 +10,9 @@ Boot Memory Layout
 |   Loader Variables    |               4 KB
 |-----------------------| <- 0000:f000
 |                       |
-|       Loader          |               12 KB
+|        Loader         |               12 KB
 |                       |
-|-----------------------| <- 0000:c000                                          Aligned to 4KB in order to start the application processors
+|-----------------------| <- 0000:c000                                          Aligned to 4KB in order to start application processors
 |     Loader Stack      |
 |-----------------------|               4 KB
 |   Loader Parameters   |
@@ -23,6 +23,8 @@ Boot Memory Layout
 |         Boot          |
 |                       |
 |-----------------------| <- 0000:7c00
+|    Boot Variables     |
+|-----------------------| <- 0000:7bf0
 |      Boot Stack       |
 |=======================| <- 0000:7000  -> HAL Start Parameters
 |     Disk Sector 2     |

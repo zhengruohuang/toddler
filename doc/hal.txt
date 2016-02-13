@@ -4,7 +4,7 @@ HAL Virtual Memory Layout (Ultra-Pico)                          Index in PTE
 |   Reserved for PDE    |                                       1023
 |-----------------------| <- 4GB - 4KB          = 
 |                       |
-|   Reserved for PDE    |
+|   Reserved for PTEs   |
 |                       |
 |=======================| <- 4GB - 36KB          = 
 |     IO Permission     |                                       1003

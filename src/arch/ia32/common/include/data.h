@@ -6,6 +6,11 @@
 #define packedstruct __attribute__((packed))
 #endif
 
+#ifndef real_mode
+#define real_mode   __attribute__((noinline)) __attribute__((regparm(3)))
+#endif
+
+
 typedef signed char         s8;
 typedef signed short        s16;
 typedef signed int          s32;

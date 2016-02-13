@@ -72,13 +72,13 @@ Start:
     mov     dx, 0000h
     int     10h
 
-; Setup the stack protector
-    mov     ebx, BootStackProtectorStartOffset
-    mov     ecx, BootStackProtectorCount
-.StackProtector:
-    mov     [ebx], ecx
-    add     ebx, 4
-    loop    .StackProtector
+; ; Setup the stack protector
+;     mov     ebx, BootStackProtectorStartOffset
+;     mov     ecx, BootStackProtectorCount
+; .StackProtector:
+;     mov     [ebx], ecx
+;     add     ebx, 4
+;     loop    .StackProtector
 
 ; Show welcome message
     mov     dx, WelcomeMessage

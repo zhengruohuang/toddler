@@ -23,9 +23,9 @@ Boot Memory Layout
 |         Boot          |
 |                       |
 |-----------------------| <- 0000:7c00
-|    Boot Variables     |
-|-----------------------| <- 0000:7bf0
 |      Boot Stack       |
+|-----------------------|
+|    Boot Variables     |
 |=======================| <- 0000:7000  -> HAL Start Parameters
 |     Disk Sector 2     |
 |-----------------------| <- 0000:6000  -> BIOS Invoker Registers

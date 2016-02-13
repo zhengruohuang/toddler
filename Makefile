@@ -28,7 +28,9 @@ LDFLAGS		=
 DASM		= ndisasm
 DASMFLAGS	=
 
-# Generate files for debugging
+GENBIN		= objcopy
+GENBINFLAGS	= -O binary
+
 GENMAP		= objcopy
 GENMAPFLAGS	= --only-keep-debug
 

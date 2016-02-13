@@ -25,11 +25,11 @@ $(TARGETDIR)/bin/boot/tdlrldr.bin : start.asm \
 	$(ASMBOOT) $(ASMINC) $(ASMBOOTFLAGS) -o $@.start start.asm
 	$(CC) $(CFLAGS) $(CINC) -fno-tree-loop-optimize -c -o $@.real.o real.c
 	$(LD) $(LDFLAGS) -s -T real.ld -o $@.real.elf $@.real.o
-	objcopy -O binary $@.real.elf $@.real
+	$(GENBIN) $(GENBINFLAGS) $@.real.elf $@.real
 	rm $@.real.elf $@.real.o
 	$(CC) $(CFLAGS) $(CINC) -fno-tree-loop-optimize -c -o $@.protected.o protected.c
 	$(LD) $(LDFLAGS) -s -T protected.ld -o $@.protected.elf $@.protected.o
-	objcopy -O binary $@.protected.elf $@.protected
+	$(GENBIN) $(GENBINFLAGS) $@.protected.elf $@.protected
 	rm $@.protected.elf $@.protected.o
 	cat $@.start $@.real $@.protected > $@
 	rm $@.start $@.real $@.protected

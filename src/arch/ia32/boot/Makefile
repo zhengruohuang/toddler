@@ -27,7 +27,7 @@ $(TARGETDIR)/bin/boot/tdlrboot.fp : floppy/floppy.c \
 	$(ASMBOOT) $(ASMINC) $(ASMBOOTFLAGS) -o $@.boot floppy/boot.asm
 	$(CC) $(CFLAGS) $(CINC) -fno-tree-loop-optimize -c -o $@.o $<
 	$(LD) $(LDFLAGS) -s -T floppy/floppy.ld -o $@.elf $@.o
-	objcopy -O binary $@.elf $@.floppy
+	$(GENBIN) $(GENBINFLAGS) $@.elf $@.floppy
 	rm $@.elf $@.o
 	cat $@.boot $@.floppy > $@
 	rm $@.boot $@.floppy
@@ -41,7 +41,7 @@ $(TARGETDIR)/bin/boot/tdlrboot.hd : hd/hd.c \
 	$(ASMBOOT) $(ASMINC) $(ASMBOOTFLAGS) -o $@.boot hd/boot.asm
 	$(CC) $(CFLAGS) $(CINC) -fno-tree-loop-optimize -c -o $@.o $<
 	$(LD) $(LDFLAGS) -s -T hd/hd.ld -o $@.elf $@.o
-	objcopy -O binary $@.elf $@.hd
+	$(GENBIN) $(GENBINFLAGS) $@.elf $@.hd
 	rm $@.elf $@.o
 	cat $@.boot $@.hd > $@
 	rm $@.boot $@.hd
@@ -52,7 +52,7 @@ $(TARGETDIR)/bin/boot/tdlrboot.cd : cd/cd.c \
 	$(ASMBOOT) $(ASMINC) $(ASMBOOTFLAGS) -o $@.boot cd/boot.asm
 	$(CC) $(CFLAGS) $(CINC) -fno-tree-loop-optimize -c -o $@.o $<
 	$(LD) $(LDFLAGS) -s -T cd/cd.ld -o $@.elf $@.o
-	objcopy -O binary $@.elf $@.cd
+	$(GENBIN) $(GENBINFLAGS) $@.elf $@.cd
 	rm $@.elf $@.o
 	cat $@.boot $@.cd > $@
 	rm $@.boot $@.cd

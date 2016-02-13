@@ -161,7 +161,7 @@ START:
 ;     mov     ds, dx
 ;     jmp     .JumpToC
 
-.JumpToC:
+.JumpToRealModeC:
 ;Call functions in C
     mov     edi, LoaderVariableStartOffset
     mov     dword [edi], .RealModeReturn
@@ -278,9 +278,9 @@ BIOS_INVOKER_ENTRY:
 ; This is an int instruction
 .BiosInvokerIntInstruction:
     ; Opcode
-    Opcode  db      0xcd
+    Opcode  db  0xcd
     ; Interrupt Number
-    IntVec  db      0
+    IntVec  db  0
 
     ; Save the result of interrupt
     pushad

@@ -14,7 +14,7 @@ SECTIONS
 
     .sig : AT(0xcffe)
     {
-        SHORT(0x1ffe);
+        SHORT(0xcffe);
     }
 
     /DISCARD/ :

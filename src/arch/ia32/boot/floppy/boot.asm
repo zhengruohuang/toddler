@@ -49,7 +49,7 @@ Initialize:
 ; Strings
 ;===============================================================================
 WelcomeMessage      db      "Welcome to Toddler!", 0
-LoadMessage         db      "Loading Boot Program ...", 0
+LoadMessage         db      "Loading boot program ...", 0
 ErrorMessage        db      "Unable to boot Toddler!", 0
 DoneMessage         db      " Done!", 0
 ;===============================================================================
@@ -62,9 +62,9 @@ Start:
 ; Clear the screen
     mov     ax, 0600h       ; ah = 6,  al = 0h
     mov     bx, 0700h       ; Backcolor: Black, Forecolor: White (BL = 07h)
-    mov     cx, 0       ; (Left, Top): (0, 0)
+    mov     cx, 0           ; (Left, Top): (0, 0)
     mov     dx, 184fh       ; (Right, Bottom): (25, 80)
-    int     10h         ; Call int 10h to clear the screen
+    int     10h             ; Call int 10h to clear the screen
 
 ; Set the position of the cursor
     mov     ah, 02h

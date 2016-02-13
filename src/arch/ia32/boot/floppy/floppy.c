@@ -5,6 +5,7 @@ asm ("jmp main");
 #include "common/include/data.h"
 #include "common/include/floppyimg.h"
 #include "common/include/memlayout.h"
+#include "common/include/bootparam.h"
 
 
 #define FAT_MASTER_BUFFER_SEGMENT   0
@@ -21,7 +22,7 @@ asm ("jmp main");
 #define FAT_SLAVE           ((struct floppy_fat_slave *)FAT_SLAVE_BUFFER_OFFSET)
 
 
-void print_char(char ch)
+static void real_mode print_char(char ch)
 {
     __asm__ __volatile__
     (
@@ -33,7 +34,7 @@ void print_char(char ch)
     );
 }
 
-void print_string(char *str)
+static void real_mode print_string(char *str)
 {
     while (*str) {
         print_char(*str);
@@ -41,7 +42,7 @@ void print_string(char *str)
     }
 }
 
-void print_hex(u32 n)
+static void real_mode print_hex(u32 n)
 {
     u32 i, value;
     
@@ -56,7 +57,7 @@ void print_hex(u32 n)
     print_char('h');
 }
 
-void print_new_line()
+static void real_mode print_new_line()
 {
     __asm__ __volatile__
     (
@@ -79,7 +80,7 @@ void print_new_line()
  *      0 = Same
  *      1 = Different
  */
-u32 compare_file_name(u8* src, u8* dest, u8 length)
+static int real_mode compare(u8* src, u8* dest, u8 length)
 {
     u32 i;
     
@@ -92,7 +93,7 @@ u32 compare_file_name(u8* src, u8* dest, u8 length)
     return 0;
 }
 
-void read_sector(u32 lba, u16 segment, u16 offset)
+static void real_mode read_sector(u32 lba, u16 segment, u16 offset)
 {
     u32 sector = (lba % 18) + 1;
     u32 head = (lba / 18) % 2;
@@ -139,12 +140,12 @@ void read_sector(u32 lba, u16 segment, u16 offset)
     (
         "movw   %%ax, %%es;"
         
-        //"_try_again:"
+        "_try_again:"
         "movb   $0x2, %%ah;"
         "movb   $0x1, %%al;"
         "int    $0x13;"
         
-        //"jc     _try_again;"
+        "jc     _try_again;"
         :
         : "a" (es), "b" (ebx), "c" (ecx), "d" (edx)
     );
@@ -153,7 +154,7 @@ void read_sector(u32 lba, u16 segment, u16 offset)
 #define load_to_fat_master_buffer(lba) read_sector(lba, FAT_MASTER_BUFFER_SEGMENT, FAT_MASTER_BUFFER_OFFSET);
 #define load_to_fat_slave_buffer(lba) read_sector(lba, FAT_SLAVE_BUFFER_SEGMENT, FAT_SLAVE_BUFFER_OFFSET);
 
-void load_file(u16 start_sector, u16 sector_count, u16 segment, u16 offset)
+static void real_mode load_file(u16 start_sector, u16 sector_count, u16 segment, u16 offset)
 {
     u32 current_segment = segment;
     u32 current_offset = offset;
@@ -166,7 +167,7 @@ void load_file(u16 start_sector, u16 sector_count, u16 segment, u16 offset)
         
         current_lba = start_sector + i;
         
-        /* Check whether we need to move to the next segment */
+        // Check whether we need to move to the next segment
         if (current_offset >= 65536) {
             print_char('|');
             
@@ -180,7 +181,7 @@ void load_file(u16 start_sector, u16 sector_count, u16 segment, u16 offset)
     }
 }
 
-void stop()
+static void real_mode stop()
 {
     print_new_line();
     print_string("Unable to load Toddler!");
@@ -196,41 +197,45 @@ void stop()
     } while (1);
 }
 
-void jump_to_loader()
+static void real_mode setup_bootdev()
+{
+    struct boot_param *bp = (struct boot_param *)BOOT_PARAM_ADDRESS_OFFSET;
+    
+    bp->boot_dev = 1;
+    bp->boot_dev_info = 0;
+}
+
+static void real_mode jump_to_loader()
 {
     print_string("Starting OS Loader ...");
     
     __asm__ __volatile__
     (
         "movw   %%ax, %%ds;"
-        "movl   $1, (%%si);"
-        "movl   $0, (%%di);"
         "jmpl   %0, %1;"
         :
         : "n" (LOADER_LOAD_SEGMENT), "n" (LOADER_LOAD_OFFSET),
           "a" (LOADER_LOAD_SEGMENT),
-          "S" (LOADER_PARAM_ADDRESS_OFFSET),    /* Loader Parameter: Device Type */
-          "D" (LOADER_PARAM_ADDRESS_OFFSET + 4) /* Loader Parameter: Device Info */
     );
 }
 
-void parse_master_fat()
+static void real_mode parse_master_fat()
 {
-    print_string("Master FAT: ");
+    print_string("Loading Master FAT ... ");
     
-    /* Read the master FAT */
+    // Read the master FAT
     load_to_fat_master_buffer(MASTER_FAT_LBA);
     
-    print_string("FAT Count ");
+    print_string("FAT Count: ");
     print_hex(FAT_MASTER->header.fat_count);
     
-    print_string(", File Count ");
+    print_string(", File Count: ");
     print_hex(FAT_MASTER->header.file_count);
     
     print_new_line();
 }
 
-int find_and_load_file(u8* file_name, u16 segment, u16 offset)
+static int real_mode find_and_load_file(u8* file_name, u16 segment, u16 offset)
 {
     u16 fat_count = 0;
     u16 file_count = 0;
@@ -246,69 +251,70 @@ int find_and_load_file(u8* file_name, u16 segment, u16 offset)
     fat_count = FAT_MASTER->header.fat_count;
     file_count = FAT_MASTER->header.file_count;
     
-    /* For every slave FAT */
+    // For every slave FAT
     for (current_fat = 0; current_fat < fat_count; current_fat++) {
-        /* If this is a slave FAT, load it */
+        // If this is a slave FAT, load it
         if (current_fat) {
             load_to_fat_slave_buffer(MASTER_FAT_LBA + current_fat);
         }
         
-        /* Master FAT has 31 entries, each slave FAT has 32 entries */
+        // Master FAT has 31 entries, each slave FAT has 32 entries
         if (current_fat) {
             entry_count = 32;
         } else {
             entry_count = 31;
         }
         
-        /* For every entry in this FAT */
+        // For every entry in this FAT
         for (i = 0; i < entry_count; i++) {
-            /* Check whether there is no more file */
+            // Check whether there is no more file
             if (current_file >= file_count) {
                 break;
             }
             
-            /* Get current entry */
+            // Get current entry
             if (current_fat) {
                 current_entry = &(FAT_SLAVE->entries[i]);
             } else {
                 current_entry = &(FAT_MASTER->entries[i]);
             }
             
-            /* Compare file name */
-            if (!compare_file_name(current_entry->file_name, file_name, 12)) {
+            // Compare file name
+            if (!compare(current_entry->file_name, file_name, 12)) {
                 print_string((char *)file_name);
                 
-                /* Load the file */
-                load_file(current_entry->start_sector, current_entry->sector_count,
-                          segment, offset);
+                // Load the file
+                load_file(current_entry->start_sector, current_entry->sector_count, segment, offset);
                 
                 print_new_line();
                 
                 return 1;
             }
             
-            /* Did not find */
+            // Did not find
             current_file++;
         }
     }
     
-    /* Did not find the file */
+    // Did not find the file
     return 0;
 }
 
+#define find_and_load_loader()  find_and_load_file(LOADER_FILE_NAME, LOADER_LOAD_SEGMENT, LOADER_LOAD_OFFSET)
+#define find_and_load_core()    find_and_load_file(COREIMG_FILE_NAME, COREIMG_LOAD_SEGMENT, COREIMG_LOAD_OFFSET)
+
 int main()
 {
-    /* First we parse master FAT */
+    // First we parse master FAT
     parse_master_fat();
     
-    /* Find and load OS Loader */
-    int loader = find_and_load_file(LOADER_FILE_NAME, LOADER_LOAD_SEGMENT, LOADER_LOAD_OFFSET);
+    // Find and load loader and core image
+    int loader = find_and_load_loader();
+    int core = find_and_load_core();
     
-    /* Find and load kernel image */
-    int kernel = find_and_load_file(COREIMG_FILE_NAME, COREIMG_LOAD_SEGMENT, COREIMG_LOAD_OFFSET);
-    
-    /* If both loader and kernel are loaded, jump to loader */
-    if (loader && kernel) {
+    // If both loader and kernel are loaded, jump to loader
+    if (loader && core) {
+        setup_bootdev();
         jump_to_loader();
     }
     

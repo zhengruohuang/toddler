@@ -2,13 +2,12 @@ asm (".code16gcc");
 asm ("jmp main");
 
 
-#include "loader.h"
+#include "loader/loader.h"
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
 
 
 static struct loader_variables *loader_var;
-static struct loader_parameters *loader_param;
 
 
 void real_mode set_cursor_pos(u32 row, u32 col)
@@ -161,7 +160,7 @@ void real_mode print_failed()
     stop();
 }
 
-void real_mode initialize_cursor_position()
+void real_mode init_cursor_pos()
 {
     u32     edx;
     
@@ -173,6 +172,7 @@ void real_mode initialize_cursor_position()
         "int    $0x10"
         : "=d" (edx)
         :
+        : "%%eax", "%%ebx"
     );
     
     loader_var->cursor_row = ((edx << 16) >> 24);
@@ -405,9 +405,8 @@ void real_mode enter_protected_mode()
 int real_mode main()
 {
     loader_var = (struct loader_variables *)LOADER_VARIABLES_ADDRESS_OFFSET;
-    loader_param = (struct loader_parameters *)LOADER_PARAM_ADDRESS_OFFSET;
     
-    initialize_cursor_position();
+    init_cursor_pos();
     initialize_hardware();
     detect_memory_e820();
     enable_a20();

@@ -162,7 +162,7 @@ START:
 ;     jmp     .JumpToC
 
 .JumpToRealModeC:
-;Call functions in C
+; Call functions in C
     mov     edi, LoaderVariableStartOffset
     mov     dword [edi], .RealModeReturn
 
@@ -170,7 +170,7 @@ START:
     jmp     ebx
 
 .RealModeReturn:
-;Move to protected mode
+; Move to protected mode
     xor     eax, eax
     xor     edx, edx
 
@@ -188,7 +188,7 @@ START:
     or      eax, 1
     mov     cr0, eax
 
-    ; Jump to 32bits program
+    ; Jump to 32-bit program
     jmp     dword SelectorRun : (LoaderBase + START_32)
 
     ; 16-bit code will stop here, and the program will continue at START_32
@@ -213,7 +213,7 @@ STOP:
 ; Application processor 16-bit entry point
 ;===============================================================================
 AP_STARTUP_ENTRY:
-; 16bits Code: move to protected mode
+; 16-bit code: move to protected mode
     cli
 
     lgdt    [GdtAddress]
@@ -223,7 +223,7 @@ AP_STARTUP_ENTRY:
     or      eax, 1
     mov     cr0, eax
 
-    ; Jump to 32bits program
+    ; Jump to 32-bit program
     jmp     dword SelectorRun : (LoaderBase + AP_STARTUP_ENTRY_32)
 ;===============================================================================
 
@@ -234,7 +234,7 @@ AP_STARTUP_ENTRY:
 ALIGN   32
 
 ;-------------------------------------------------------------------------------
-; This is 16-bit Protected Mode, We Will Move to 16-bit Real Mode
+; This is in 16-bit protected mode, we will move to 16-bit real mode
 ;-------------------------------------------------------------------------------
 BIOS_INVOKER_ENTRY_16:
     ; Move back to real mode
@@ -300,7 +300,7 @@ BIOS_INVOKER_ENTRY:
     or      eax, 1
     mov     cr0, eax
 
-    ; Jump to 32bits program
+    ; Jump to 32-bit program
     jmp     dword SelectorRun : (LoaderBase + BIOS_INVOKER_RETURN_32)
 ;-------------------------------------------------------------------------------
 ;===============================================================================
@@ -315,7 +315,7 @@ ALIGN      32
 ;===============================================================================
 ; 32-bit Program
 ;===============================================================================
-; 32bits protected code starts here
+; 32-bit protected code starts here
 START_32:
 ; Initialize segment registers
     mov     ax, SelectorRW
@@ -352,14 +352,20 @@ START_32:
     mov     edi, LoaderBase + LoaderVariableStartOffset + 20
     mov     dword [edi], LoaderBase + BIOS_INVOKER_ENTRY_32
 
-    ; Jump to the C entry
+    ; Jump to C entry
     mov     ebx, LoaderProtectedSetupEntry
     jmp     ebx
 
 .ProtectedModeReturn:
 ; Move to kernel, that is, jump to the entry of HAL
     mov     ebx, [HalEntry32]
-    call    ebx                     ; Jump to HAL, and the Loader should finish its task now
+    call    ebx     ; Jump to HAL, and the Loader should finish its task now
+    
+; Stop
+    jmp     STOP_32
+    
+; Should never reach here
+    jmp     $
 ;===============================================================================
 
 

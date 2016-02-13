@@ -12,20 +12,16 @@ Boot Memory Layout
 |                       |
 |        Loader         |               12 KB
 |                       |
-|-----------------------| <- 0000:c000                                          Aligned to 4KB in order to start application processors
-|     Loader Stack      |
-|-----------------------|               4 KB
-|   Loader Parameters   |
+|-----------------------| <- 0000:c000 - Aligned to 4KB in order to start application processors
+|     Loader Stack      |               4 KB
 |=======================| <- 0000:b000
 |      Boot Param       |               4 KB
 |-----------------------| <- 0000:a000
 |                       |
-|         Boot          |
+|         Boot          |               9 KB
 |                       |
 |-----------------------| <- 0000:7c00
 |      Boot Stack       |
-|-----------------------|
-|    Boot Variables     |
 |=======================| <- 0000:7000  -> HAL Start Parameters
 |     Disk Sector 2     |
 |-----------------------| <- 0000:6000  -> BIOS Invoker Registers

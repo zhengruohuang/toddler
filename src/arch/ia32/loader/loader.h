@@ -54,12 +54,6 @@ struct loader_variables {
     };
 } packedstruct;
 
-struct loader_parameters {
-    u32 boot_device;
-    u32 boot_device_param;
-} packedstruct;
-
-
 
 static inline void io_out_u8(u8 value, u16 port)
 {

@@ -1,17 +1,16 @@
 asm ("jmp main");
 
 
-#include "loader.h"
+#include "loader/loader.h"
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
-#include "common/include/kernelimg.h"
+#include "common/include/coreimg.h"
+#include "common/include/bootparam.h"
 #include "common/include/elf32.h"
-#include "hal/include/bootparam.h"
 #include "hal/include/init.h"
 
 
 static struct loader_variables *loader_var;
-static struct loader_parameters *loader_param;
 
 
 void set_cursor_pos(u32 line, u32 column)
@@ -40,6 +39,7 @@ void set_cursor_pos(u32 line, u32 column)
         "outb   %%al, %%dx"            /* Low part of cursor position */
         :
         : "c" (position)
+        : "%%eax", "%%ecx", "%%edx"
     );
 }
 
@@ -203,45 +203,21 @@ void build_bootparam()
 {
     print_string("Building Boot Parameters ...");
     
-    s_boot_param_loader_header* bootparam_header = (s_boot_param_loader_header*)HAL_BOOT_PARAM_LOADER_LOCATION_ADDRESS;
-    s_boot_param_loader_item* bootparam_items = (s_boot_param_loader_item*)(HAL_BOOT_PARAM_LOADER_LOCATION_ADDRESS + HAL_BOOT_PARAM_LOADER_ITEM_SIZE);
+    struct boot_param *bp = (struct boot_param *)BOOT_PARAM_PADDR;
     
-    /* First set item count to 0 */
-    bootparam_header->item_count = 0;
-    
-    /*
-     * Tag 0: Boot Device
-     *      0 = Floppy
-     *      1 = Hard Drive
-     */
-    bootparam_items[bootparam_header->item_count].tag = HAL_BOOT_PARAM_LOADER_TAG_BOOT_DEVICE;
-    bootparam_items[bootparam_header->item_count].index = 0;
-    bootparam_items[bootparam_header->item_count].value_boot_device.device_type = loader_param->boot_device;
-    bootparam_items[bootparam_header->item_count].value_boot_device.device_info = loader_param->boot_device_parameter;
-    bootparam_header->item_count++;
+    // Video
+    bp->video_mode = 0;
     print_string("|.");
     
-    /*
-     * Tag 1: Video Mode
-     *      0 = 80 x 25
-     */
-    bootparam_items[bootparam_header->item_count].tag = HAL_BOOT_PARAM_LOADER_TAG_VIDEO_MODE;
-    bootparam_items[bootparam_header->item_count].index = 0;
-    bootparam_items[bootparam_header->item_count].value_video_mode = 0;
-    bootparam_header->item_count++;
-    print_string("|.");
-    
-    /*
-     * Tag 2: Memory Map
-     */
+    // Memory map
     u64 memory_size = 0;
-    u32 effective_index = 0;
     u32 i, j;
     u64 current_base_address = 0;
     u64 current_length = 0xffffffff;
     u32 current_type = 0;
     u64 previous_end_address = 0;
     u32 previous_type = 0;
+    u32 zone_count = 0;
     print_char('|');
     
     do {
@@ -253,15 +229,15 @@ void build_bootparam()
         current_length = 0xffffffff;
         current_type = 0xffffffff;
         
-        for (i = 0; i < loader_var->memory_part_count; i++) {
+        for (i = 0; i < loader_var->mem_part_count; i++) {
             if (
-                loader_var->memory_e820_map[i].base_address >= current_base_address &&
-                loader_var->memory_e820_map[i].base_address < current_base_address_find
+                loader_var->e820_map[i].base_addr >= current_base_address &&
+                loader_var->e820_map[i].base_addr < current_base_address_find
             ) {
-                current_base_address_find = loader_var->memory_e820_map[i].base_address;
+                current_base_address_find = loader_var->e820_map[i].base_addr;
                 first_block_index = i;
-                current_length = loader_var->memory_e820_map[i].length;
-                current_type = loader_var->memory_e820_map[i].type;
+                current_length = loader_var->e820_map[i].len;
+                current_type = loader_var->e820_map[i].type;
             }
         }
         
@@ -272,15 +248,15 @@ void build_bootparam()
         
         /* Then we combine all contiguious blocks */
         current_base_address = current_base_address_find;
-        for (i = 0; i < loader_var->memory_part_count; i++) {
-            for (j = 0; j < loader_var->memory_part_count; j++) {
+        for (i = 0; i < loader_var->mem_part_count; i++) {
+            for (j = 0; j < loader_var->mem_part_count; j++) {
                 if (
-                    loader_var->memory_e820_map[j].base_address >= current_base_address &&
-                    loader_var->memory_e820_map[j].base_address <= current_base_address + current_length &&
-                    loader_var->memory_e820_map[j].base_address + loader_var->memory_e820_map[j].length > current_base_address + current_length &&
-                    loader_var->memory_e820_map[j].type == current_type
+                    loader_var->e820_map[j].base_addr >= current_base_address &&
+                    loader_var->e820_map[j].base_addr <= current_base_address + current_length &&
+                    loader_var->e820_map[j].base_addr + loader_var->e820_map[j].len > current_base_address + current_length &&
+                    loader_var->e820_map[j].type == current_type
                 ) {
-                    current_length = loader_var->memory_e820_map[j].base_address + loader_var->memory_e820_map[j].length - current_base_address;
+                    current_length = loader_var->e820_map[j].base_addr + loader_var->e820_map[j].len - current_base_address;
                 }
             }
         }
@@ -300,12 +276,10 @@ void build_bootparam()
         
         /* Add to boot param list */
         if (1 == current_type || 3 == current_type) {
-            bootparam_items[bootparam_header->item_count].tag = HAL_BOOT_PARAM_LOADER_TAG_MEMORY_LAYOUT;
-            bootparam_items[bootparam_header->item_count].index = effective_index++;
-            bootparam_items[bootparam_header->item_count].value_memory_zone.start_address_physical = current_base_address;
-            bootparam_items[bootparam_header->item_count].value_memory_zone.length = current_length;
-            bootparam_items[bootparam_header->item_count].value_memory_zone.zone_type = current_type;
-            bootparam_header->item_count++;
+            bp->mem_zones[zone_count].start_paddr = current_base_address;
+            bp->mem_zones[zone_count].len = current_length;
+            bp->mem_zones[zone_count].type = current_type;
+            bp->mem_zone_count = ++zone_count;
         }
         
         /* Move to next block */
@@ -314,30 +288,19 @@ void build_bootparam()
         print_char('.');
     } while (1);
     
-    /*
-     * Tag 3: Memory Size
-     */
-    /* Align to 1MB */
+    // Memory size
     if (memory_size % (1024 * 1024)) {
         memory_size = memory_size >> 20;
         memory_size++;
         memory_size = memory_size << 20;
     }
-    bootparam_items[bootparam_header->item_count].tag = HAL_BOOT_PARAM_LOADER_TAG_MEMORY_SIZE;
-    bootparam_items[bootparam_header->item_count].index = 0;
-    bootparam_items[bootparam_header->item_count].value_memory_size = memory_size;
-    bootparam_header->item_count++;
+    bp->mem_size = memory_size;
     print_string("|.");
     
-    /*
-     * Tag 4: Loader Functions
-     */
-    bootparam_items[bootparam_header->item_count].tag = HAL_BOOT_PARAM_LOADER_TAG_LOADER_FUNC;
-    bootparam_items[bootparam_header->item_count].index = 0;
-    bootparam_items[bootparam_header->item_count].value_loader_func.what_to_load_address = loader_var->what_to_load_address;
-    bootparam_items[bootparam_header->item_count].value_loader_func.ap_entry_address = loader_var->ap_entry_address;
-    bootparam_items[bootparam_header->item_count].value_loader_func.ap_page_dir_pfn_address = loader_var->ap_page_dir_pfn_address;
-    bootparam_header->item_count++;
+    // Loader functions
+    bp->what_to_load_addr = loader_var->what_to_load_addr;
+    bp->ap_entry_addr = loader_var->ap_entry_addr;
+    bp->ap_page_dir_pfn_addr = loader_var->ap_page_dir_pfn_addr;
     print_string("|.");
     
     print_done();
@@ -419,22 +382,22 @@ void setup_paging()
 
 u32 layout_hal()
 {
-    print_string("Expanding Kernel ...");
+    print_string("Expanding HAL ...");
     
     print_new_line();
     
     //stop();
-    s_kernel_image_file_record* hal_file_record = (s_kernel_image_file_record*)(HAL_KRNLIMG_LOADED_BY_LOADER_ADDRESS_PHYSICAL + 32);
-    s_elf32_elf_header* hal_elf_header = (s_elf32_elf_header*)(hal_file_record->start_offset + HAL_KRNLIMG_LOADED_BY_LOADER_ADDRESS_PHYSICAL);
-    s_elf32_program_header* header;
+    struct coreimg_record *hal_file_record = (struct coreimg_record *)(HAL_KRNLIMG_LOADED_BY_LOADER_ADDRESS_PHYSICAL + 32);
+    struct elf32_elf_header *elf_header = (struct elf32_elf_header *)(hal_file_record->start_offset + HAL_KRNLIMG_LOADED_BY_LOADER_ADDRESS_PHYSICAL);
+    struct s_elf32_program_header *header;
     
     loader_var->hal_vaddr_end = 0;
     
     /* For every segment, map and load them */
     u32 i;
-    for (i = 0; i < hal_elf_header->elf_phnum; i++) {
+    for (i = 0; i < elf_header->elf_phnum; i++) {
         /* Get header */
-        header = (s_elf32_program_header*)((u32)hal_elf_header + hal_elf_header->elf_phoff + hal_elf_header->elf_phentsize * i);
+        header = (s_elf32_program_header*)((u32)elf_header + elf_header->elf_phoff + elf_header->elf_phentsize * i);
         
         //print_string("  Program #");
         //print_hex(i);
@@ -453,16 +416,16 @@ u32 layout_hal()
         
         //print_new_line();
         
-        /* Copy the program data */
+        // Copy the program data
         if (header->program_filesz) {
             memcpy(
-                (void*)(header->program_offset + (u32)hal_elf_header),
+                (void*)(header->program_offset + (u32)elf_header),
                    (void*)header->program_vaddr,
                    header->program_filesz
             );
         }
         
-        /* Get the end of virtual address of HAL */
+        // Get the end of virtual address of HAL
         if (header->program_vaddr + header->program_memsz > loader_var->hal_vaddr_end) {
             loader_var->hal_vaddr_end = header->program_vaddr + header->program_memsz;
         }
@@ -478,10 +441,10 @@ u32 layout_hal()
     
     //stop();
     
-    /* Set HAL Entry */
-    *((u32*)loader_var->hal_entry_address) = hal_elf_header->elf_entry;
-    * 
-    *       /* HAL Virtual Address End: Align to 4KB */
+    // Set HAL Entry
+    *((u32 *)loader_var->hal_entry_addr) = elf_header->elf_entry;
+    
+    // HAL Virtual Address End: Align to 4KB
     if (loader_var->hal_vaddr_end % 4096) {
         loader_var->hal_vaddr_end = loader_var->hal_vaddr_end >> 12;
         loader_var->hal_vaddr_end++;
@@ -514,10 +477,8 @@ void jump_to_hal()
 int main()
 {
     loader_var = (s_boot_loader_variables*)(LOADER_ADDRESS_32_BASE + LOADER_VARIABLES_ADDRESS_OFFSET);
-    loader_param = (s_boot_loader_parameters*)(LOADER_ADDRESS_32_BASE + LOADER_PARAM_ADDRESS_OFFSET);
     
     enter_protected_mode();
-    
     initialize_hardware();
     build_bootparam();
     setup_paging();

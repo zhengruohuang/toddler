@@ -6,6 +6,10 @@
 #define packedstruct __attribute__((packed))
 #endif
 
+#ifndef no_inline
+#define no_inline   __attribute__((noinline))
+#endif
+
 #ifndef real_mode
 #define real_mode   __attribute__((noinline)) __attribute__((regparm(3)))
 #endif

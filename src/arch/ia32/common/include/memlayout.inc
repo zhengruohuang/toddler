@@ -4,9 +4,7 @@
 BootBaseSeg                     equ     0
 BootEntry                       equ     07c00h
 
-BootStackTop                    equ     07bf0h
-
-BootVariableStart               equ     BootStackTop
+BootStackTop                    equ     07c00h
 
 BootSectorBufferOffset1         equ     05000h
 BootSectorBufferOffset2         equ     06000h
@@ -21,7 +19,7 @@ LoaderBaseSeg                   equ     00000h
 LoaderOffsetSeg                 equ     0c000h
 
 ; The position of Loader.bin should be loaded in linear format
-LoaderBase                      equ     LoaderBaseSeg * 010h            ; The base of the position that Loader.bin should be loaded
+LoaderBase                      equ     LoaderBaseSeg * 010h
 
 LoaderStackTop                  equ     0c000h
 LoaderStackTop32                equ     LoaderBase + LoaderStackTop
@@ -29,7 +27,6 @@ LoaderStackTop32                equ     LoaderBase + LoaderStackTop
 LoaderRealSetupEntry            equ     0c400h
 LoaderProtectedSetupEntry       equ     LoaderBase + 02000h
 
-LoaderParamStartOffset          equ     0
 LoaderVariableStartOffset       equ     0f000h
 ;-------------------------------------------------------------------------------
 

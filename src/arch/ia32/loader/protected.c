@@ -1,77 +1,101 @@
 asm ("jmp main");
 
 
-#include "loader/loader.h"
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
 #include "common/include/coreimg.h"
 #include "common/include/bootparam.h"
+#include "common/include/memory.h"
 #include "common/include/elf32.h"
-#include "hal/include/init.h"
+
+#include "loader/loader.h"
+#include "loader/font.h"
 
 
 static struct loader_variables *loader_var;
 
 
-void set_cursor_pos(u32 line, u32 column)
+static void no_inline memcpy(void* src, void* dest, u32 length)
 {
-    u32 position = line * 80 + column;
+    u8* current_src = (u8*)src;
+    u8* current_dest = (u8*)dest;
     
-    __asm__ __volatile__
-    (
-        "xorl   %%eax, %%eax;"
-        
-        "movb   $0xf, %%al;"
-        "movw   $0x3d4, %%dx;"          /* Port 0x3d4 */
-        "outb   %%al, %%dx;"
-        
-        "movw   %%cx, %%ax;"
-        "movw   $0x3d5, %%dx;"          /* Port 0x3d5 */
-        "outb   %%al, %%dx;"            /* Low part of cursor position */
-        
-        "movb   $0xe, %%al;"
-        "movw   $0x3d4, %%dx;"          /* Port 0x3d4 */
-        "outb   %%al, %%dx;"
-        
-        "movw   %%cx, %%ax;"
-        "movb   %%ah, %%al;"
-        "movw   $0x3d5, %%dx;"          /* Port 0x3d5 */
-        "outb   %%al, %%dx"            /* Low part of cursor position */
-        :
-        : "c" (position)
-        : "%%eax", "%%ecx", "%%edx"
-    );
-}
-
-void print_new_line()
-{
-    loader_var->cursor_row++;
-    loader_var->cursor_col = 0;
-    set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
-}
-
-void print_char(char ch)
-{
-    /* Calculate cursor position */
-    u32 position = (loader_var->cursor_row * 80 + loader_var->cursor_col) * 2;
+    u32 i;
     
-    __asm__ __volatile__
-    (
-        "movb   $0x7, %%ah;"
-        "movw   %%ax, %%ds:(%%edi)"
-        :
-        : "D" (LOADER_VIDEO_MEMORY_ADDRESS + position), "a" (ch)
-    );
-    
-    loader_var->cursor_col++;
-    if (80 == loader_var->cursor_col) {
-        print_new_line();
-    } else {
-        set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
+    for (i = 0; i < length; i++) {
+        current_dest[i] = current_src[i];
     }
 }
 
-void print_string(char *str)
+
+static void no_inline print_new_line()
+{
+    int i, j;
+    u32 fb = loader_var->framebuffer_paddr;
+    u32 bytes = loader_var->bytes_per_line;
+    
+    loader_var->cursor_row++;
+    loader_var->cursor_col = 0;
+    
+    if (loader_var->res_y / 16 == loader_var->cursor_row) {
+        for (i = 16; i < loader_var->res_y; i++) {
+            memcpy((void *)(fb + bytes * i), (void *)(fb + bytes * (i - 16)), bytes);
+        }
+        
+        for (i = loader_var->res_y - 16; i < loader_var->res_y; i++) {
+            for (j = 0; j < bytes; j++) {
+                *((u8 *)fb + bytes * i + j) = 0x0;
+            }
+        }
+        
+        loader_var->cursor_row--;
+    }
+}
+
+static void no_inline draw_char(u8 ch, u32 line, u32 col)
+{
+    u32 bytes = loader_var->bytes_per_line;
+    u32 bits = loader_var->bits_per_pixel;
+    u32 offset = 16 * line * bytes + 8 * col * bits / 8;
+    u32 offset_x;
+    
+    u8 *font = vga_font[ch < 0x20 ? 0 : ch - 0x20];
+    u8 cur_map;
+    u8 *fb = (u8 *)loader_var->framebuffer_paddr;
+    
+    int i, j;
+    for (i = 0; i < 16; i++) {
+        cur_map = font[i];
+        offset_x = offset;
+        for (j = 0; j < 8; j++) {
+            if (cur_map & (0x1 << (7 - j))) {
+                fb[offset_x + 0] = 0xc0;
+                fb[offset_x + 1] = 0xc0;
+                fb[offset_x + 2] = 0xc0;
+            } else {
+                fb[offset_x + 0] = 0;
+                fb[offset_x + 1] = 0;
+                fb[offset_x + 2] = 0;
+            }
+            
+            offset_x += bits / 8;
+        }
+        
+        offset += bytes;
+    }
+}
+
+static void no_inline print_char(char ch)
+{
+    draw_char(ch, loader_var->cursor_row, loader_var->cursor_col);
+    
+    loader_var->cursor_col++;
+    if (loader_var->res_x / 8 == loader_var->cursor_col) {
+        print_new_line();
+    }
+}
+
+static void no_inline print_string(char *str)
 {
     while (*str) {
         switch (*str) {
@@ -87,8 +111,6 @@ void print_string(char *str)
             loader_var->cursor_col = (loader_var->cursor_col + 1) * 8;
             if (loader_var->cursor_col >= 80) {
                 print_new_line();
-            } else {
-                set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
             }
             break;
         default:
@@ -100,22 +122,22 @@ void print_string(char *str)
     }
 }
 
-void print_bin(u32 n)
-{
-    u32 i, value;
-    
-    for (i = 0; i < sizeof(u32) * 8; i++) {
-        value = n;
-        value = value << i;
-        value = value >> sizeof(u32) * 8 - 1;
-        
-        print_char(value ? '1' : '0');
-    }
-    
-    print_char('b');
-}
+// static void no_inline print_bin(u32 n)
+// {
+//     u32 i, value;
+//     
+//     for (i = 0; i < sizeof(u32) * 8; i++) {
+//         value = n;
+//         value = value << i;
+//         value = value >> sizeof(u32) * 8 - 1;
+//         
+//         print_char(value ? '1' : '0');
+//     }
+//     
+//     print_char('b');
+// }
 
-void print_dec(u32 n)
+static void no_inline print_dec(u32 n)
 {
     u32 i;
     u8 s[12];
@@ -136,7 +158,7 @@ void print_dec(u32 n)
     }
 }
 
-void print_hex(u32 n)
+static void no_inline print_hex(u32 n)
 {
     u32 i, value;
     
@@ -151,7 +173,7 @@ void print_hex(u32 n)
     print_char('h');
 }
 
-void stop()
+static void no_inline stop()
 {
     print_string("\nUnable to start Toddler!\n");
     
@@ -165,41 +187,44 @@ void stop()
     } while (1);
 }
 
-void print_done()
+static void no_inline print_done()
 {
     print_string(" Done!\n");
 }
 
-void print_failed()
+// static void no_inline print_failed()
+// {
+//     print_string(" Failed!\n");
+//     stop();
+// }
+
+static void no_inline enter_protected_mode()
 {
-    print_string(" Failed!\n");
-    stop();
+    print_string("We are now in protected mode!\n");
 }
 
-void memcpy(void* src, void* dest, u32 length)
+static void no_inline setup_video()
 {
-    u8* current_src = (u8*)src;
-    u8* current_dest = (u8*)dest;
-    
-    u32 i;
-    
-    for (i = 0; i < length; i++) {
-        current_dest[i] = current_src[i];
-    }
+    print_string("Video Mode: ");
+    print_dec(loader_var->res_x);
+    print_string("x");
+    print_dec(loader_var->res_y);
+    print_string(" @ ");
+    print_dec(loader_var->bits_per_pixel);
+    print_string(", FB Address: ");
+    print_hex(loader_var->framebuffer_paddr);
+    print_string(", Bytes per Line: ");
+    print_dec(loader_var->bytes_per_line);
+    print_new_line();
 }
 
-void enter_protected_mode()
-{
-    print_done();
-}
-
-void initialize_hardware()
+static void no_inline init_hardware()
 {
     print_string("Initializing Hardwares ...");
     print_done();
 }
 
-void build_bootparam()
+static void no_inline build_bootparam()
 {
     print_string("Building Boot Parameters ...");
     
@@ -215,8 +240,6 @@ void build_bootparam()
     u64 current_base_address = 0;
     u64 current_length = 0xffffffff;
     u32 current_type = 0;
-    u64 previous_end_address = 0;
-    u32 previous_type = 0;
     u32 zone_count = 0;
     print_char('|');
     
@@ -224,8 +247,6 @@ void build_bootparam()
         /* We find the first block */
         u64 current_base_address_find = -1;
         u32 first_block_index = 0xffffffff;
-        previous_end_address = current_base_address;
-        previous_type = current_type;
         current_length = 0xffffffff;
         current_type = 0xffffffff;
         
@@ -306,41 +327,41 @@ void build_bootparam()
     print_done();
 }
 
-void setup_paging()
+static void no_inline setup_paging()
 {
     print_string("Setting up Paging ...");
     
     /* Get the page directory */
-    s_page_frame* page_frame = (s_page_frame*)HAL_PDE_ADDRESS_PHYSICAL;
+    struct page_frame *pf = (struct page_frame *)KERNEL_PDE_PADDR;
     
     u32 i, j;
     for (i = 1; i < 1023; i++) {
-        page_frame->value_u32[i] = 0;       /* Empty entries */
+        pf->value_u32[i] = 0;       /* Empty entries */
     }
     
     /* First and last entry in page directory should not be empty */
-    page_frame->value_pde[0].pfn = HAL_PTE_LOW_4MB_PFN;
-    page_frame->value_pde[0].present = 1;
-    page_frame->value_pde[0].read_write = 1;
-    page_frame->value_pde[0].user_supervisor = 0;                           /* Ring 0: Supervisor */
+    pf->value_pde[0].pfn = KERNEL_PTE_LO4_PFN;
+    pf->value_pde[0].present = 1;
+    pf->value_pde[0].rw = 1;
+    pf->value_pde[0].user = 0;
     
-    page_frame->value_pde[1023].pfn = HAL_PTE_HIGH_4MB_PFN;
-    page_frame->value_pde[1023].present = 1;
-    page_frame->value_pde[1023].read_write = 1;
-    page_frame->value_pde[1023].user_supervisor = 0;                        /* Ring 0: Supervisor */
+    pf->value_pde[1023].pfn = KERNEL_PTE_HI4_PFN;
+    pf->value_pde[1023].present = 1;
+    pf->value_pde[1023].rw = 1;
+    pf->value_pde[1023].user = 0;
     
     /*
      * Page table for low 4MB: Direct map.
      * But the first page should be reserved so that a null pointer could be detected easily.
      * Note: Actually we map the first page, because it is required by BIOS Invoker
      */
-    page_frame = (s_page_frame*)HAL_PTE_LOW_4MB_ADDRESS_PHYSICAL;
-    page_frame->value_u32[0] = 0;
+    pf = (struct page_frame *)KERNEL_PTE_LO4_PADDR;
+    pf->value_u32[0] = 0;
     for (i = 0; i < 1024; i++) {
-        page_frame->value_pte[i].pfn = i;
-        page_frame->value_pte[i].present = 1;
-        page_frame->value_pte[i].read_write = 1;
-        page_frame->value_pte[i].user_supervisor = 0;                   /* Ring 0: Supervisor */
+        pf->value_pte[i].pfn = i;
+        pf->value_pte[i].present = 1;
+        pf->value_pte[i].rw = 1;
+        pf->value_pte[i].user = 0;
     }
     //page_frame->value_u32[0] = 0;
     
@@ -348,14 +369,14 @@ void setup_paging()
      * Page table for high 4MB: Last 4MB <-> HAL Loading Location.
      * But the last page should be reserved so that a some errors could be detected easily.
      */
-    page_frame = (s_page_frame*)HAL_PTE_HIGH_4MB_ADDRESS_PHYSICAL;
+    pf = (struct page_frame *)KERNEL_PTE_HI4_PADDR;
     for (i = 0; i < 1024; i++) {
-        page_frame->value_pte[i].pfn = HAL_EXECUTE_START_PFN + i;
-        page_frame->value_pte[i].present = 1;
-        page_frame->value_pte[i].read_write = 1;
-        page_frame->value_pte[i].user_supervisor = 1;                   /* Ring 0: Supervisor */
+        pf->value_pte[i].pfn = HAL_EXEC_START_PFN + i;
+        pf->value_pte[i].present = 1;
+        pf->value_pte[i].rw = 1;
+        pf->value_pte[i].user = 0;
     }
-    page_frame->value_u32[1023] = 0;
+    pf->value_u32[1023] = 0;
     
     /* Enable paging */
     __asm__ __volatile__
@@ -367,29 +388,29 @@ void setup_paging()
         "jmp   _enable_;"
         "_enable_: nop"
         :
-        : "a" (HAL_PDE_PFN << 12)
+        : "a" (KERNEL_PDE_PFN << 12)
     );
     
     /* Zero memory at the highest 4MB */
     for (i = 0; i < 1023; i++) {
         for (j = 0; j < 1024; j++) {
-            *((u32*)(HAL_VIRTUAL_MEMORY_START_ADDRESS + i * j)) = 0;
+            *((u32 *)(HI4_START_VADDR + i * j)) = 0;
         }
     }
     
     print_done();
 }
 
-u32 layout_hal()
+static void no_inline layout_hal()
 {
     print_string("Expanding HAL ...");
     
     print_new_line();
     
     //stop();
-    struct coreimg_record *hal_file_record = (struct coreimg_record *)(HAL_KRNLIMG_LOADED_BY_LOADER_ADDRESS_PHYSICAL + 32);
-    struct elf32_elf_header *elf_header = (struct elf32_elf_header *)(hal_file_record->start_offset + HAL_KRNLIMG_LOADED_BY_LOADER_ADDRESS_PHYSICAL);
-    struct s_elf32_program_header *header;
+    struct coreimg_record *hal_file_record = (struct coreimg_record *)(COREIMG_LOAD_PADDR + 32);
+    struct elf32_elf_header *elf_header = (struct elf32_elf_header *)(hal_file_record->start_offset + COREIMG_LOAD_PADDR);
+    struct elf32_program_header *header;
     
     loader_var->hal_vaddr_end = 0;
     
@@ -397,7 +418,7 @@ u32 layout_hal()
     u32 i;
     for (i = 0; i < elf_header->elf_phnum; i++) {
         /* Get header */
-        header = (s_elf32_program_header*)((u32)elf_header + elf_header->elf_phoff + elf_header->elf_phentsize * i);
+        header = (struct elf32_program_header *)((u32)elf_header + elf_header->elf_phoff + elf_header->elf_phentsize * i);
         
         //print_string("  Program #");
         //print_hex(i);
@@ -454,32 +475,33 @@ u32 layout_hal()
     print_done();
 }
 
-void jump_to_hal()
+static void no_inline jump_to_hal()
 {
     print_string("Starting HAL ... ");
     
     /* Construct start parameters */
-    s_hal_start_param* hal_start_param = (s_hal_start_param*)HAL_START_PARAM_ADDRESS;
-    hal_start_param->param_type = 0;
-    hal_start_param->cursor_row = loader_var->cursor_row;
-    hal_start_param->cursor_col = loader_var->cursor_col;
-    hal_start_param->hal_vaddr_end = loader_var->hal_vaddr_end;
+//     s_hal_start_param* hal_start_param = (s_hal_start_param*)HAL_START_PARAM_ADDRESS;
+//     hal_start_param->param_type = 0;
+//     hal_start_param->cursor_row = loader_var->cursor_row;
+//     hal_start_param->cursor_col = loader_var->cursor_col;
+//     hal_start_param->hal_vaddr_end = loader_var->hal_vaddr_end;
     
     /* Jump to the assembly */
     __asm__ __volatile__
     (
         "jmp    *%%ebx"
         :
-        : "b"(loader_var->return_address)
+        : "b"(loader_var->return_addr)
     );
 }
 
 int main()
 {
-    loader_var = (s_boot_loader_variables*)(LOADER_ADDRESS_32_BASE + LOADER_VARIABLES_ADDRESS_OFFSET);
+    loader_var = (struct loader_variables *)(LOADER_BASE_PADDR + LOADER_VARIABLES_ADDR_OFFSET);
     
     enter_protected_mode();
-    initialize_hardware();
+    setup_video();
+    init_hardware();
     build_bootparam();
     setup_paging();
     layout_hal();

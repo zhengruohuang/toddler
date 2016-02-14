@@ -215,7 +215,7 @@ static void real_mode jump_to_loader()
         "jmpl   %0, %1;"
         :
         : "n" (LOADER_LOAD_SEGMENT), "n" (LOADER_LOAD_OFFSET),
-          "a" (LOADER_LOAD_SEGMENT),
+          "a" (LOADER_LOAD_SEGMENT)
     );
 }
 

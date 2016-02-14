@@ -10,7 +10,7 @@ asm ("jmp main");
 static struct loader_variables *loader_var;
 
 
-void real_mode set_cursor_pos(u32 row, u32 col)
+static void real_mode set_cursor_pos(u32 row, u32 col)
 {
     u32 edx = (row << 8) + col;
     
@@ -28,14 +28,14 @@ void real_mode set_cursor_pos(u32 row, u32 col)
     );
 }
 
-void real_mode print_new_line()
+static void real_mode print_new_line()
 {
     loader_var->cursor_row++;
     loader_var->cursor_col = 0;
     set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
 }
 
-void real_mode print_char(char ch)
+static void real_mode print_char(char ch)
 {
     __asm__ __volatile__
     (
@@ -55,7 +55,7 @@ void real_mode print_char(char ch)
     }
 }
 
-void real_mode print_string(char *str)
+static void real_mode print_string(char *str)
 {
     while (*str) {
         switch (*str) {
@@ -84,22 +84,22 @@ void real_mode print_string(char *str)
     }
 }
 
-void real_mode print_bin(u32 n)
-{
-    u32 i, value;
-    
-    for (i = 0; i < sizeof(u32) * 8; i++) {
-        value = n;
-        value = value << i;
-        value = value >> sizeof(u32) * 8 - 1;
-        
-        print_char(value ? '1' : '0');
-    }
-    
-    print_char('b');
-}
+// static void real_mode print_bin(u32 n)
+// {
+//     u32 i, value;
+//     
+//     for (i = 0; i < sizeof(u32) * 8; i++) {
+//         value = n;
+//         value = value << i;
+//         value = value >> sizeof(u32) * 8 - 1;
+//         
+//         print_char(value ? '1' : '0');
+//     }
+//     
+//     print_char('b');
+// }
 
-void real_mode print_dec(u32 n)
+static void real_mode print_dec(u32 n)
 {
     u32 i;
     u8 s[12];
@@ -120,7 +120,7 @@ void real_mode print_dec(u32 n)
     }
 }
 
-void real_mode print_hex(u32 n)
+static void real_mode print_hex(u32 n)
 {
     u32 i, value;
     
@@ -135,7 +135,7 @@ void real_mode print_hex(u32 n)
     print_char('h');
 }
 
-void real_mode stop()
+static void real_mode stop()
 {
     print_string("\nUnable to start Toddler!\n");
     
@@ -149,18 +149,18 @@ void real_mode stop()
     } while (1);
 }
 
-void real_mode print_done()
+static void real_mode print_done()
 {
     print_string(" Done!\n");
 }
 
-void real_mode print_failed()
+static void real_mode print_failed()
 {
     print_string(" Failed!\n");
     stop();
 }
 
-void real_mode init_cursor_pos()
+static void real_mode init_cursor_pos()
 {
     u32     edx;
     
@@ -172,7 +172,6 @@ void real_mode init_cursor_pos()
         "int    $0x10"
         : "=d" (edx)
         :
-        : "%%eax", "%%ebx"
     );
     
     loader_var->cursor_row = ((edx << 16) >> 24);
@@ -181,13 +180,144 @@ void real_mode init_cursor_pos()
     print_string(" OS Loader is now running!\n");
 }
 
-void real_mode initialize_hardware()
+static void real_mode init_vesa()
+{
+    struct vesa_info vesa_info;
+    struct vesa_mode_info mode_info;
+    u32 ax;
+    
+    // Zero the info buffer
+    
+    // Invoke BIOS
+    print_string("Getting VESA Controller Info ...");
+    __asm__ __volatile__
+    (
+        "pushw  %%es;"
+        "movw   $0x1000, %%ax;"
+        "movw   %%ax, %%es;"
+        "movw   $0x4f00, %%ax;"
+        "int    $0x10;"
+        "popw   %%es;"
+        :
+        : "D" (&vesa_info)
+    );
+    print_char(vesa_info.VESASignature[0]);
+    print_char(vesa_info.VESASignature[1]);
+    print_char(vesa_info.VESASignature[2]);
+    print_char(vesa_info.VESASignature[3]);
+    print_done();
+    
+    // quit if there was an error
+    if (ax >> 8) {
+        print_failed();
+        return;
+    }
+    
+    // Get all mode numbers
+    u32 mode_ds = vesa_info.VideoModePtr >> 16;
+    u32 mode_si = vesa_info.VideoModePtr & 0xffff;
+    u32 number_of_modes = 0;
+    u32 cur_mode;
+    u16 modes[64];
+    
+    print_string("Getting Mode List ... ");
+    while (1) {
+        __asm__ __volatile__
+        (
+            "pushw  %%ds;"
+            "movw   %%ax, %%ds;"
+            "movw   (%%si), %%ax;"
+            "popw   %%ds;"
+            : "=a" (cur_mode)
+            : "a" (mode_ds), "S" (mode_si)
+        );
+        
+        if (cur_mode == 0xFFFF) {
+            break;
+        }
+        
+        print_dec(cur_mode);
+        print_char(' ');
+        
+        modes[number_of_modes] = cur_mode;
+        number_of_modes++;
+        mode_si += 0x2;
+    }
+    print_done();
+    
+    // Go through all modes and find the best mode for this card
+    int i;
+    u32 best_num, best_x, best_y, best_bits, bytes_per_line, fb_paddr;
+    u32 big = 0;
+    for (i = 0; i < number_of_modes; i++) {
+        // Get mode info
+        __asm__ __volatile__
+        (
+            "movw   $0x1000, %%ax;"
+            "movw   %%ax, %%es;"
+            "movw   $0x4F01, %%ax;"
+            "int    $0x10;"
+            :
+            : "c" (modes[i]), "D" (&mode_info)
+        );
+        
+        u32 mul = mode_info.XResolution * mode_info.YResolution;
+        if (mul > big && mode_info.BitsPerPixel >= 24) {
+            best_num = modes[i];
+            best_x = mode_info.XResolution;
+            best_y = mode_info.YResolution;
+            best_bits = mode_info.BitsPerPixel;
+            bytes_per_line = mode_info.BytesPerScanLine;
+            fb_paddr = mode_info.PhysBasePtr;
+            big = mul;
+        }
+    }
+    
+    // Tell the user about the VESA info
+    print_string("Best VESA Mode #");
+    print_dec(best_num);
+    print_string(", ");
+    print_dec(best_x);
+    print_string("x");
+    print_dec(best_y);
+    print_string(" @ ");
+    print_dec(best_bits);
+    print_string(", Bytes per Line: ");
+    print_dec(bytes_per_line);
+    print_string(", Framebuffer: ");
+    print_hex(fb_paddr);
+    print_new_line();
+    
+    // Set loader variables
+    loader_var->video_type = 1;
+    loader_var->res_x = best_x;
+    loader_var->res_y = best_y;
+    loader_var->bits_per_pixel = best_bits;
+    loader_var->framebuffer_paddr = fb_paddr;
+    loader_var->bytes_per_line = bytes_per_line;
+    
+    // Set the best mode
+    print_string("Setting VESA Mode ...");
+    unsigned int bx = 0x4000 | best_num;
+    __asm__ __volatile__
+    (
+        "movw   $0x4f02, %%ax;"
+        "int    $0x10;"
+        :
+        : "b" (bx)
+    );
+    print_done();
+    
+    //stop();
+}
+
+static void real_mode init_hardware()
 {
     print_string("Initializing Hardwares ...");
     print_done();
 }
 
-void real_mode detect_memory_e820()
+static void real_mode detect_memory_e820()
 {
     print_string("Detecting Memory Map By E820 ...");
     
@@ -228,7 +358,7 @@ failed:
     return;
 }
 
-int real_mode empty_8042()
+static int real_mode empty_8042()
 {
     u8 status;
     u32 loops = 10;
@@ -257,7 +387,7 @@ int real_mode empty_8042()
     return 1;
 }
 
-int real_mode check_a20_enabled()
+static int real_mode check_a20_enabled()
 {
     u16 addr_low_seg = 0;
     u16 addr_low_offset = 0;
@@ -301,7 +431,7 @@ failed:
     return 0;
 }
 
-void real_mode enable_a20()
+static void real_mode enable_a20()
 {
     print_string("Enabling A20 ...");
     
@@ -382,7 +512,7 @@ void real_mode enable_a20()
         print_char('.');
     }
     
-failed:
+    // Failed
     print_failed();
     return;
     
@@ -390,7 +520,7 @@ succeed:
     print_done();
 }
 
-void real_mode enter_protected_mode()
+static void real_mode enter_protected_mode()
 {
     print_string("Entering Protected Mode ...");
     
@@ -398,16 +528,17 @@ void real_mode enter_protected_mode()
     (
         "jmp    *%%ebx"
         :
-        : "b"(loader_var->return_address)
+        : "b"(loader_var->return_addr)
     );
 }
 
 int real_mode main()
 {
-    loader_var = (struct loader_variables *)LOADER_VARIABLES_ADDRESS_OFFSET;
+    loader_var = (struct loader_variables *)LOADER_VARIABLES_ADDR_OFFSET;
     
     init_cursor_pos();
-    initialize_hardware();
+    init_vesa();
+    init_hardware();
     detect_memory_e820();
     enable_a20();
     enter_protected_mode();

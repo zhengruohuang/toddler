@@ -327,7 +327,7 @@ START_32:
     mov     esp, LoaderStackTop32
 
 ; Call functions in C
-.JumpToProtectedModeC
+.JumpToProtectedModeC:
     ; Set up return address
     mov     edi, LoaderBase + LoaderVariableStartOffset
     mov     dword [edi], .ProtectedModeReturn + LoaderBase

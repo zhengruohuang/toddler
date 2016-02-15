@@ -27,7 +27,7 @@ $(TARGETDIR)/bin/boot/tdlrldr.bin : start.asm \
 	$(LD) $(LDFLAGS) -s -T real.ld -o $@.real.elf $@.real.o
 	$(GENBIN) $(GENBINFLAGS) $@.real.elf $@.real
 	rm $@.real.elf $@.real.o
-	$(CC) $(CFLAGS) $(CINC) -fno-tree-loop-optimize -c -o $@.protected.o protected.c
+	$(CC) $(CFLAGS) $(CINC) -O0 -fno-tree-loop-optimize -c -o $@.protected.o protected.c
 	$(LD) $(LDFLAGS) -s -T protected.ld -o $@.protected.elf $@.protected.o
 	$(GENBIN) $(GENBINFLAGS) $@.protected.elf $@.protected
 	rm $@.protected.elf $@.protected.o

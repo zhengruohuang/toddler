@@ -6,16 +6,16 @@ HAL Virtual Memory Layout (Ultra-Pico)                          Index in PTE
 |                       |
 |   Reserved for PTEs   |
 |                       |
-|=======================| <- 4GB - 36KB          = 
-|     IO Permission     |                                       1003
-|        Bitmap         |                                       1002
-|-----------------------| <- 4GB - 44KB
+|=======================| <- 4GB - 12KB          = 
+|     IO Permission     |                                     
+|        Bitmap         |                                       
+|-----------------------| <- 4GB - 20KB
 |                       |                                       
 |   IO APIC (8 Pages)   |                                        
 |                       |                                       
-|-----------------------| <- 4GB - 76KB         = 
+|-----------------------| <- 4GB - 52KB         = 
 |      Local APIC       |
-|=======================| <- 4GB - 80KB         = 
+|=======================| <- 4GB - 56KB         = 
 |                       |
 |          ...          |
 |                       |
@@ -60,23 +60,26 @@ Physical Memory Layout
 |                       |
 | Per-CPU Data & Stack  |
 |                       |
-|=======================| <- 1MB + 512KB + Kernel Loaded Size
+|=======================| <- 2MB + Initial Kernel PTE Size
 |                       |
+|  Initial Kernel PTEs  |
+|                       |                                       512
+|=======================| <- 2MB
+|                       |                                       511
 |    Kernel Text and    |
 |      Static Data      |
-|                       |
+|                       |                                       384
 |=======================| <- 1MB + 512KB
-|       Kernel PDE      |
+|       Kernel PDE      |                                       383
 |-----------------------| <- 1MB + 512KB - 4KB
-|                       |
-|  Initial Kernel PTE   |
-|    Pool (8 Pages)     |
-|                       |
-|=======================| <- 1MB + 512KB - 36KB
-|                       |
+|   Kernel Low 4MB PTE  |                                       382
+|-----------------------| <- 1MB + 512KB - 8KB
+|  Kernel High 4MB PTE  |                                       381
+|=======================| <- 1MB + 512KB - 12KB
+|                       |                                       380
 | HAL Text, Static Data,|
 |    and Memory Pool    |
-|                       |
+|                       |                                       256
 |=======================| <- 1MB
 |          ...          |
 |  Reserved 256 Pages   |

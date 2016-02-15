@@ -93,6 +93,22 @@ static int real_mode compare(u8* src, u8* dest, u8 length)
     return 0;
 }
 
+static void real_mode stop()
+{
+    print_new_line();
+    print_string("Unable to load Toddler!");
+    print_new_line();
+    
+    do {
+        __asm__ __volatile__
+        (
+            "hlt"
+            :
+            :
+        );
+    } while (1);
+}
+
 static void real_mode read_sector(u32 lba, u16 segment, u16 offset)
 {
     u32 sector = (lba % 18) + 1;
@@ -132,7 +148,7 @@ static void real_mode read_sector(u32 lba, u16 segment, u16 offset)
     ecx += cylinder >> 2;
     ecx = ecx & 0xFFFFFFC0;
     ecx += sector;
-    
+
     /*
      * Make a BIOS call
      */
@@ -179,22 +195,6 @@ static void real_mode load_file(u16 start_sector, u16 sector_count, u16 segment,
         
         current_offset += 512;
     }
-}
-
-static void real_mode stop()
-{
-    print_new_line();
-    print_string("Unable to load Toddler!");
-    print_new_line();
-    
-    do {
-        __asm__ __volatile__
-        (
-            "hlt"
-            :
-            :
-        );
-    } while (1);
 }
 
 static void real_mode setup_bootdev()
@@ -281,13 +281,15 @@ static int real_mode find_and_load_file(u8* file_name, u16 segment, u16 offset)
             
             // Compare file name
             if (!compare(current_entry->file_name, file_name, 12)) {
+                print_string("Found file: ");
                 print_string((char *)file_name);
+                print_string(", loading ...");
                 
                 // Load the file
                 load_file(current_entry->start_sector, current_entry->sector_count, segment, offset);
                 
+                print_string(" Done!");
                 print_new_line();
-                
                 return 1;
             }
             
@@ -297,6 +299,8 @@ static int real_mode find_and_load_file(u8* file_name, u16 segment, u16 offset)
     }
     
     // Did not find the file
+    print_string("Did not find file: ");
+    print_string((char *)file_name);
     return 0;
 }
 

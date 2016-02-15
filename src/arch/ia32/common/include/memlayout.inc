@@ -16,16 +16,16 @@ BootSectorBufferOffset2         equ     06000h
 ;-------------------------------------------------------------------------------
 ; The position of Loader.bin should be loaded in base:offset format
 LoaderBaseSeg                   equ     00000h
-LoaderOffsetSeg                 equ     0c000h
+LoaderOffsetSeg                 equ     0b000h
 
 ; The position of Loader.bin should be loaded in linear format
 LoaderBase                      equ     LoaderBaseSeg * 010h
 
-LoaderStackTop                  equ     0c000h
+LoaderStackTop                  equ     0b000h
 LoaderStackTop32                equ     LoaderBase + LoaderStackTop
 
-LoaderRealSetupEntry            equ     0c400h
-LoaderProtectedSetupEntry       equ     LoaderBase + 02000h
+LoaderRealSetupEntry            equ     0b800h
+LoaderProtectedSetupEntry       equ     LoaderBase + 0d000h
 
 LoaderVariableStartOffset       equ     0f000h
 ;-------------------------------------------------------------------------------

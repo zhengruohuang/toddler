@@ -15,6 +15,10 @@ Kernel Virtual Memory Layout                                   PDE Index : PTE I
 |                       |
 |=======================| <- 4GB - 128MB        = 0xF8000000
 |                       |
+|         Video         |
+|                       |
+|=======================| <- 4GB - 256MB
+|                       |
 |                       |
 |        Kernel         |
 |  Direct Mapping Area  |

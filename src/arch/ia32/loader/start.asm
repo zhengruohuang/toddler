@@ -137,30 +137,6 @@ PRE_INITIALIZATION:
 ; Entry point of loading HAL
 ;===============================================================================
 START:
-; ; Check stack protector
-;     mov     dx, ds
-;     mov     ax, BootBaseSeg
-;     mov     ds, ax
-; 
-;     mov     ebx, BootStackProtectorStartOffset
-;     mov     ecx, BootStackProtectorCount
-; .CheckStackProtector:
-;     cmp     [ebx], ecx
-;     jnz     .BadStack
-;     add     ebx, 4
-;     loop    .CheckStackProtector
-;     jmp     .CheckDone
-; 
-; .BadStack:
-;     jmp     STOP
-; 
-;     hlt
-;     jmp     .BadStack
-; 
-; .CheckDone:
-;     mov     ds, dx
-;     jmp     .JumpToC
-
 .JumpToRealModeC:
 ; Call functions in C
     mov     edi, LoaderVariableStartOffset
@@ -168,7 +144,7 @@ START:
 
     mov     ebx, LoaderRealSetupEntry
     jmp     ebx
-
+        
 .RealModeReturn:
 ; Move to protected mode
     xor     eax, eax
@@ -514,4 +490,4 @@ BIOS_INVOKER_RETURN_32:
 ;===============================================================================
 
 
-ALIGN   512
+ALIGN   1024

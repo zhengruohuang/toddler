@@ -32,6 +32,11 @@ static void real_mode print_new_line()
 {
     loader_var->cursor_row++;
     loader_var->cursor_col = 0;
+    
+    if (loader_var->cursor_row >= 80) {
+        loader_var->cursor_row = 0;
+    }
+    
     set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
 }
 
@@ -101,22 +106,24 @@ static void real_mode print_string(char *str)
 
 static void real_mode print_dec(u32 n)
 {
-    u32 i;
-    u8 s[12];
+    int divider = 1000000000;
+    int started = 0;
+    u32 num = n;
     
-    for (i = 11; i >= 0; i--) {
-        s[i] = 0;
+    if (!n) {
+        print_char('0');
     }
     
-    i = 0;
-    do  {
-        s[i++] = n % 10 + '0';
-    } while ((n /= 10 ) >  0);
-    
-    for (i = 11; i >= 0; i--) {
-        if (s[i]) {
-            print_char(s[i]);
+    for (int i = 0; i < 10; i++) {
+        if (num / divider) {
+            started = 1;
+            print_char('0' + num / divider);
+        } else if (started) {
+            print_char('0');
         }
+        
+        num %= divider;
+        divider /= 10;
     }
 }
 
@@ -184,33 +191,36 @@ static void real_mode init_vesa()
 {
     struct vesa_info vesa_info;
     struct vesa_mode_info mode_info;
-    u32 ax;
+    u32 eax;
+    
+    //return;
     
     // Zero the info buffer
     
     // Invoke BIOS
-    print_string("Getting VESA Controller Info ...");
+    print_string("Getting VESA info ...");
     __asm__ __volatile__
     (
         "pushw  %%es;"
-        "movw   $0x1000, %%ax;"
+        "xorl   %%eax, %%eax;"
         "movw   %%ax, %%es;"
         "movw   $0x4f00, %%ax;"
         "int    $0x10;"
         "popw   %%es;"
-        :
+        : "=a" (eax)
         : "D" (&vesa_info)
     );
-    print_char(vesa_info.VESASignature[0]);
-    print_char(vesa_info.VESASignature[1]);
-    print_char(vesa_info.VESASignature[2]);
-    print_char(vesa_info.VESASignature[3]);
-    print_done();
     
     // quit if there was an error
-    if (ax >> 8) {
-        print_failed();
+    if (eax >> 8) {
+        //print_failed();
         return;
+    } else {
+        print_char(vesa_info.VESASignature[0]);
+        print_char(vesa_info.VESASignature[1]);
+        print_char(vesa_info.VESASignature[2]);
+        print_char(vesa_info.VESASignature[3]);
+        print_done();
     }
     
     // Get all mode numbers
@@ -220,14 +230,14 @@ static void real_mode init_vesa()
     u32 cur_mode;
     u16 modes[64];
     
-    print_string("Getting Mode List ... ");
+    print_string("Getting mode list ...");
     while (1) {
         __asm__ __volatile__
         (
-            "pushw  %%ds;"
+            "movw   %%ds, %%bx;"
             "movw   %%ax, %%ds;"
             "movw   (%%si), %%ax;"
-            "popw   %%ds;"
+            "movw   %%bx, %%ds;"
             : "=a" (cur_mode)
             : "a" (mode_ds), "S" (mode_si)
         );
@@ -236,8 +246,7 @@ static void real_mode init_vesa()
             break;
         }
         
-        print_dec(cur_mode);
-        print_char(' ');
+        print_char('.');
         
         modes[number_of_modes] = cur_mode;
         number_of_modes++;
@@ -253,13 +262,23 @@ static void real_mode init_vesa()
         // Get mode info
         __asm__ __volatile__
         (
-            "movw   $0x1000, %%ax;"
+            "xorl   %%eax, %%eax;"
             "movw   %%ax, %%es;"
             "movw   $0x4F01, %%ax;"
             "int    $0x10;"
             :
             : "c" (modes[i]), "D" (&mode_info)
         );
+        
+//         print_dec(modes[i]);
+//         print_string(": ");
+//         print_dec(mode_info.XResolution);
+//         print_string("x");
+//         print_dec(mode_info.YResolution);
+//         print_string("@");
+//         print_dec(mode_info.BitsPerPixel);
+//         print_string("                       ");
+//         print_new_line();
         
         u32 mul = mode_info.XResolution * mode_info.YResolution;
         if (mul > big && mode_info.BitsPerPixel >= 24) {
@@ -282,9 +301,9 @@ static void real_mode init_vesa()
     print_dec(best_y);
     print_string(" @ ");
     print_dec(best_bits);
-    print_string(", Bytes per Line: ");
+    print_string(", Bytes/Line: ");
     print_dec(bytes_per_line);
-    print_string(", Framebuffer: ");
+    print_string(", FB: ");
     print_hex(fb_paddr);
     print_new_line();
     
@@ -293,7 +312,7 @@ static void real_mode init_vesa()
     loader_var->res_x = best_x;
     loader_var->res_y = best_y;
     loader_var->bits_per_pixel = best_bits;
-    loader_var->framebuffer_paddr = fb_paddr;
+    loader_var->framebuffer_addr = fb_paddr;
     loader_var->bytes_per_line = bytes_per_line;
     
     // Set the best mode
@@ -306,7 +325,7 @@ static void real_mode init_vesa()
         :
         : "b" (bx)
     );
-    print_done();
+//     print_done();
     
     //stop();
 }
@@ -524,9 +543,11 @@ static void real_mode enter_protected_mode()
 {
     print_string("Entering Protected Mode ...");
     
+    print_hex(loader_var->return_addr);
+    
     __asm__ __volatile__
     (
-        "jmp    *%%ebx"
+        "jmp    *%%ebx;"
         :
         : "b"(loader_var->return_addr)
     );
@@ -537,12 +558,14 @@ int real_mode main()
     loader_var = (struct loader_variables *)LOADER_VARIABLES_ADDR_OFFSET;
     
     init_cursor_pos();
-    init_vesa();
+    
+    print_hex(loader_var->return_addr);
+    
     init_hardware();
+    init_vesa();
     detect_memory_e820();
     enable_a20();
     enter_protected_mode();
     
-    stop();
     return 0;
 }

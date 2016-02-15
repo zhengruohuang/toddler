@@ -29,12 +29,12 @@
 #define ALIGN_DEFAULT 4
 #endif
 
-#ifndef HAL_MEMORY_GET_PHYSICAL_ADDRESS_BY_PFN
-#define HAL_MEMORY_GET_PHYSICAL_ADDRESS_BY_PFN(pfn)     ((pfn) << 12)
+#ifndef PFN_TO_ADDR
+#define PFN_TO_ADDR(pfn)     ((pfn) << 12)
 #endif
 
-#ifndef HAL_MEMORY_GET_PFN_BY_PHYSICAL_ADDRESS
-#define HAL_MEMORY_GET_PFN_BY_PHYSICAL_ADDRESS(addr)    ((addr) >> 12)
+#ifndef ADDR_TO_PFN
+#define ADDR_TO_PFN(addr)    ((addr) >> 12)
 #endif
 
 #ifndef HAL_MEMORY_GET_PDE_INDEX

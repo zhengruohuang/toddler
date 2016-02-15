@@ -9,14 +9,14 @@ Boot Memory Layout
 |=======================| <- 1000:0000
 |   Loader Variables    |               4 KB
 |-----------------------| <- 0000:f000
-|                       |
-|        Loader         |               12 KB
-|                       |
-|-----------------------| <- 0000:c000 - Aligned to 4KB in order to start application processors
-|     Loader Stack      |               4 KB
-|=======================| <- 0000:b000
-|      Boot Param       |               4 KB
-|-----------------------| <- 0000:a000
+|             Protected |               8 KB
+|            -----------| <- 0000:d000
+| Loader 16 KB     Real |               6 KB
+|            -----------| <- 0000:b800
+|                 Start |               2 KB
+|-----------------------| <- 0000:b000 -> Aligned to 4KB in order to start application processors
+|  Loader Stack / Boot  |               4 KB    -> If the boot program is too large,
+|=-=-=-=-=-=-=-=-=-=-=-=| <- 0000:a000             loader stack may share this area with the boot program before loader starts
 |                       |
 |         Boot          |               9 KB
 |                       |
@@ -27,6 +27,10 @@ Boot Memory Layout
 |-----------------------| <- 0000:6000  -> BIOS Invoker Registers
 |     Disk Sector 1     |
 |=======================| <- 0000:5000
+|                       |
+|    Boot Parameters    |               8 KB
+|                       |
+|=======================| <- 0000:2000
 |       Reserved        |
 |=======================| <- 0000:0000
 

@@ -55,7 +55,7 @@ struct loader_variables {
     
     // Video
     u32 video_type;
-    u32 framebuffer_paddr;
+    u32 framebuffer_addr;
     u32 res_x;
     u32 res_y;
     u32 bits_per_pixel;

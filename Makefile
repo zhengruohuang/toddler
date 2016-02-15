@@ -46,6 +46,7 @@ ALLTARGETDIR	= $(PROJDIR)/target
 TARGETDIR	= $(PROJDIR)/target/$(ARCH)
 DOCDIR		= $(PROJDIR)/doc
 TOOLSDIR	= $(PROJDIR)/tools
+VMDIR		= $(PROJDIR)/vm
 
 # Including paths
 CINC		= -I$(SRCDIR)/ -I$(SRCDIR)/arch/$(ARCH)/
@@ -103,7 +104,7 @@ floppyimg:
 		$(TARGETDIR)/img/floppy.img		\
 		$(TARGETDIR)/bin/boot/tdlrboot.fp	\
 		$(TARGETDIR)/bin/boot/tdlrldr.bin	\
-		$(TARGETDIR)/bin/tdlrkrnl.img
+		$(TARGETDIR)/bin/tdlrcore.img
 
 # Start a virtual machine or emulator
 qemu:

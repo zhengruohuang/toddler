@@ -1,6 +1,6 @@
 SECTIONS
 {
-    . = 0xc400;
+    . = 0xb800;
 
     .cseg :
     {

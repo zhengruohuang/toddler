@@ -11,7 +11,11 @@
 #endif
 
 #ifndef real_mode
-#define real_mode   __attribute__((noinline)) __attribute__((regparm(3)))
+#define real_mode   __attribute__((noinline)) __attribute__((regparm(3))) __attribute__((optimize("-O0")))
+#endif
+
+#ifndef no_opt
+#define no_opt  __attribute__((optimize("-O3")))
 #endif
 
 

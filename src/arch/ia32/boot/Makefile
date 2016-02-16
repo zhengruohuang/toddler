@@ -21,11 +21,10 @@ clean:
 	rm -f $(TARGETS)
 
 # Build Boot
-$(TARGETDIR)/bin/boot/tdlrboot.fp : floppy/floppy.c \
-					floppy/floppy.c \
-					floppy/boot.asm
+$(TARGETDIR)/bin/boot/tdlrboot.fp : floppy/boot.asm \
+					floppy/floppy.c
 	$(ASMBOOT) $(ASMINC) $(ASMBOOTFLAGS) -o $@.boot floppy/boot.asm
-	$(CC) $(CFLAGS) $(CINC) -fno-tree-loop-optimize -c -o $@.o $<
+	$(CC) $(CFLAGS) $(CINC) -fno-tree-loop-optimize -c -o $@.o floppy/floppy.c
 	$(LD) $(LDFLAGS) -s -T floppy/floppy.ld -o $@.elf $@.o
 	$(GENBIN) $(GENBINFLAGS) $@.elf $@.floppy
 	rm $@.elf $@.o

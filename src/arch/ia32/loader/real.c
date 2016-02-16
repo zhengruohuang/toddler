@@ -109,12 +109,13 @@ static void real_mode print_dec(u32 n)
     int divider = 1000000000;
     int started = 0;
     u32 num = n;
+    int i;
     
     if (!n) {
         print_char('0');
     }
     
-    for (int i = 0; i < 10; i++) {
+    for (i = 0; i < 10; i++) {
         if (num / divider) {
             started = 1;
             print_char('0' + num / divider);
@@ -164,6 +165,11 @@ static void real_mode print_done()
 static void real_mode print_failed()
 {
     print_string(" Failed!\n");
+}
+
+static void real_mode fail()
+{
+    print_failed();
     stop();
 }
 
@@ -213,15 +219,20 @@ static void real_mode init_vesa()
     
     // quit if there was an error
     if (eax >> 8) {
-        //print_failed();
+        loader_var->video_type = 0;
+        loader_var->res_x = 80;
+        loader_var->res_y = 25;
+        
+        print_failed();
         return;
-    } else {
-        print_char(vesa_info.VESASignature[0]);
-        print_char(vesa_info.VESASignature[1]);
-        print_char(vesa_info.VESASignature[2]);
-        print_char(vesa_info.VESASignature[3]);
-        print_done();
     }
+    
+    // Echo the VESA signature
+    print_char(vesa_info.VESASignature[0]);
+    print_char(vesa_info.VESASignature[1]);
+    print_char(vesa_info.VESASignature[2]);
+    print_char(vesa_info.VESASignature[3]);
+    print_done();
     
     // Get all mode numbers
     u32 mode_ds = vesa_info.VideoModePtr >> 16;
@@ -281,7 +292,7 @@ static void real_mode init_vesa()
 //         print_new_line();
         
         u32 mul = mode_info.XResolution * mode_info.YResolution;
-        if (mul > big && mode_info.BitsPerPixel >= 24) {
+        if (mul > big && mode_info.BitsPerPixel >= 24 && mode_info.XResolution <= 1024) {
             best_num = modes[i];
             best_x = mode_info.XResolution;
             best_y = mode_info.YResolution;
@@ -293,15 +304,15 @@ static void real_mode init_vesa()
     }
     
     // Tell the user about the VESA info
-    print_string("Best VESA Mode #");
+    print_string("Best VESA mode: #");
     print_dec(best_num);
     print_string(", ");
     print_dec(best_x);
     print_string("x");
     print_dec(best_y);
-    print_string(" @ ");
+    print_string(", @");
     print_dec(best_bits);
-    print_string(", Bytes/Line: ");
+    print_string("bits, bytes/line: ");
     print_dec(bytes_per_line);
     print_string(", FB: ");
     print_hex(fb_paddr);
@@ -316,7 +327,7 @@ static void real_mode init_vesa()
     loader_var->bytes_per_line = bytes_per_line;
     
     // Set the best mode
-    print_string("Setting VESA Mode ...");
+    print_string("Setting VESA mode ...");
     unsigned int bx = 0x4000 | best_num;
     __asm__ __volatile__
     (
@@ -325,20 +336,12 @@ static void real_mode init_vesa()
         :
         : "b" (bx)
     );
-//     print_done();
-    
-    //stop();
-}
-
-static void real_mode init_hardware()
-{
-    print_string("Initializing Hardwares ...");
     print_done();
 }
 
 static void real_mode detect_memory_e820()
 {
-    print_string("Detecting Memory Map By E820 ...");
+    print_string("Detecting E820 memory map  ...");
     
     u32 cur_entry_addr = (u32)loader_var->e820_map;
     loader_var->mem_part_count = 0;
@@ -373,7 +376,7 @@ static void real_mode detect_memory_e820()
     return;
     
 failed:
-    print_failed();
+    fail();
     return;
 }
 
@@ -532,7 +535,7 @@ static void real_mode enable_a20()
     }
     
     // Failed
-    print_failed();
+    fail();
     return;
     
 succeed:
@@ -542,8 +545,6 @@ succeed:
 static void real_mode enter_protected_mode()
 {
     print_string("Entering Protected Mode ...");
-    
-    print_hex(loader_var->return_addr);
     
     __asm__ __volatile__
     (
@@ -558,10 +559,6 @@ int real_mode main()
     loader_var = (struct loader_variables *)LOADER_VARIABLES_ADDR_OFFSET;
     
     init_cursor_pos();
-    
-    print_hex(loader_var->return_addr);
-    
-    init_hardware();
     init_vesa();
     detect_memory_e820();
     enable_a20();

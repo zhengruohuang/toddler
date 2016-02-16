@@ -7,8 +7,8 @@
 ################################################################################
 
 # Entry points
-HALENTRY	= 0xffc08000		# 0xfff01000
-ASMGRENTRY	= 0xff808000
+HALENTRY	= 0xFFF84000		# 4GB - 512KB + 16KB
+ASMGRENTRY	= 0xFFF01000		# 4GB - 1MB + 4KB
 APPENTRY	= 0xC0800000		# 3GB + 8MB
 LIBCENTRY	= 0xC0001000
 
@@ -42,7 +42,6 @@ include Makefile.config
 
 # Directories
 SRCDIR		= $(PROJDIR)/src
-ALLTARGETDIR	= $(PROJDIR)/target
 TARGETDIR	= $(PROJDIR)/target/$(ARCH)
 DOCDIR		= $(PROJDIR)/doc
 TOOLSDIR	= $(PROJDIR)/tools
@@ -77,24 +76,23 @@ build_os:
 	@mkdir -p $(TARGETDIR)/bin;			\
 	mkdir -p $(TARGETDIR)/bin/boot;			\
 	mkdir -p $(TARGETDIR)/img;			\
+	mkdir -p $(TARGETDIR)/gdb;			\
 	cd $(SRCDIR);					\
 	$(MAKE) --print-directory MAKEFLAGS= all;	\
 	cd ../;
 
 # Clean
 clean:
-	@rm -rf $(ALLTARGETDIR)
-
-#@cd $(SRCDIR);					
-#$(MAKE) --print-directory MAKEFLAGS= clean;	
-#cd $(PROJDIR);
+	cd $(SRCDIR);					\
+	$(MAKE) --print-directory MAKEFLAGS= clean;	\
+	cd ../;
 
 # Build kernel image
 coreimg:
 	@$(TARGETDIR)/tools/coreimg			\
-		$(TARGETDIR)/bin/tdlrkrnl.img		\
+		$(TARGETDIR)/bin/tdlrcore.img		\
 		$(TARGETDIR)/bin/tdlrhal.bin		\
-		$(TARGETDIR)/bin/tdlrasmgr.bin		\
+		$(TARGETDIR)/bin/tdlrkrnl.bin		\
 		$(TARGETDIR)/bin/tdlrbase.bin		\
 		$(TARGETDIR)/bin/libc.bin
 

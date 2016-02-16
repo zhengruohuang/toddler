@@ -6,6 +6,14 @@
 #define packedstruct __attribute__((packed))
 #endif
 
+#ifndef asmlinkage
+#define asmlinkage __attribute__((regparm(0)))
+#endif
+
+#ifndef inthandler
+#define inthandler __attribute__((regparm(0)))
+#endif
+
 #ifndef no_inline
 #define no_inline   __attribute__((noinline))
 #endif
@@ -15,7 +23,7 @@
 #endif
 
 #ifndef no_opt
-#define no_opt  __attribute__((optimize("-O3")))
+#define no_opt  __attribute__((optimize("-O0")))
 #endif
 
 

@@ -27,28 +27,42 @@ static void no_inline memcpy(void* src, void* dest, u32 length)
     }
 }
 
+static void no_inline set_cursor_pos(u32 line, u32 column)
+{
+    u32 position = line * 80 + column;
+    
+    __asm__ __volatile__
+    (
+        "xorl   %%eax, %%eax;"
+        
+        "movb   $0xf, %%al;"
+        "movw   $0x3d4, %%dx;"          /* Port 0x3d4 */
+        "outb   %%al, %%dx;"
+        
+        "movw   %%cx, %%ax;"
+        "movw   $0x3d5, %%dx;"          /* Port 0x3d5 */
+        "outb   %%al, %%dx;"            /* Low part of cursor position */
+        
+        "movb   $0xe, %%al;"
+        "movw   $0x3d4, %%dx;"          /* Port 0x3d4 */
+        "outb   %%al, %%dx;"
+        
+        "movw   %%cx, %%ax;"
+        "movb   %%ah, %%al;"
+        "movw   $0x3d5, %%dx;"          /* Port 0x3d5 */
+        "outb   %%al, %%dx"            /* Low part of cursor position */
+        :
+        : "c" (position)
+    );
+}
 
 static void no_inline print_new_line()
 {
-    int i, j;
-    u32 fb = loader_var->framebuffer_addr;
-    u32 bytes = loader_var->bytes_per_line;
-    
     loader_var->cursor_row++;
     loader_var->cursor_col = 0;
     
-    if (loader_var->res_y / 16 == loader_var->cursor_row) {
-        for (i = 16; i < loader_var->res_y; i++) {
-            memcpy((void *)(fb + bytes * i), (void *)(fb + bytes * (i - 16)), bytes);
-        }
-        
-        for (i = loader_var->res_y - 16; i < loader_var->res_y; i++) {
-            for (j = 0; j < bytes; j++) {
-                *((u8 *)fb + bytes * i + j) = 0x0;
-            }
-        }
-        
-        loader_var->cursor_row--;
+    if (loader_var->video_type == 0) {
+        set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
     }
 }
 
@@ -85,13 +99,42 @@ static void no_inline draw_char(u8 ch, u32 line, u32 col)
     }
 }
 
-static void no_inline print_char(char ch)
+static void no_inline print_char_px(char ch)
 {
     draw_char(ch, loader_var->cursor_row, loader_var->cursor_col);
     
     loader_var->cursor_col++;
     if (loader_var->res_x / 8 == loader_var->cursor_col) {
         print_new_line();
+    }
+}
+
+static void no_inline print_char_tx(char ch)
+{
+    u32 position = (loader_var->cursor_row * 80 + loader_var->cursor_col) * 2;
+    
+    __asm__ __volatile__
+    (
+        "movb   $0x7, %%ah;"
+        "movw   %%ax, %%ds:(%%edi)"
+        :
+        : "D" (TEXT_VIDEO_MEM_ADDR + position), "a" (ch)
+    );
+    
+    loader_var->cursor_col++;
+    if (80 == loader_var->cursor_col) {
+        print_new_line();
+    } else {
+        set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
+    }
+}
+
+static void no_inline print_char(char ch)
+{
+    if (loader_var->video_type == 0) {
+        print_char_tx(ch);
+    } else {
+        print_char_px(ch);
     }
 }
 
@@ -111,6 +154,8 @@ static void no_inline print_string(char *str)
             loader_var->cursor_col = (loader_var->cursor_col + 1) * 8;
             if (loader_var->cursor_col >= 80) {
                 print_new_line();
+            } else if (loader_var->video_type == 0) {
+                set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
             }
             break;
         default:
@@ -142,12 +187,13 @@ static void real_mode print_dec(u32 n)
     int divider = 1000000000;
     int started = 0;
     u32 num = n;
+    int i;
     
     if (!n) {
         print_char('0');
     }
     
-    for (int i = 0; i < 10; i++) {
+    for (i = 0; i < 10; i++) {
         if (num / divider) {
             started = 1;
             print_char('0' + num / divider);
@@ -194,11 +240,11 @@ static void no_inline print_done()
     print_string(" Done!\n");
 }
 
-// static void no_inline print_failed()
-// {
-//     print_string(" Failed!\n");
-//     stop();
-// }
+static void no_inline print_failed()
+{
+    print_string(" Failed!\n");
+    stop();
+}
 
 static void no_inline enter_protected_mode()
 {
@@ -354,32 +400,48 @@ static void no_opt no_inline setup_paging()
     
     /*
      * Page table for low 4MB: Direct map.
-     * But the first page should be reserved so that a null pointer could be detected easily.
-     * Note: Actually we map the first page, because it is required by BIOS Invoker
+     * But the first page should be reserved so that a null pointer can be detected easily.
      */
-    struct page_frame *pf = (struct page_frame *)KERNEL_PTE_LO4_PADDR;
+    struct page_frame *pg = (struct page_frame *)KERNEL_PTE_LO4_PADDR;
     for (i = 0; i < 1024; i++) {
-        pf->value_u32[i] = 0;
-        pf->value_pte[i].pfn = i;
-        pf->value_pte[i].present = 1;
-        pf->value_pte[i].rw = 1;
-        pf->value_pte[i].user = 0;
+        pg->value_u32[i] = 0;
+        pg->value_pte[i].pfn = i;
+        pg->value_pte[i].present = 1;
+        pg->value_pte[i].rw = 1;
+        pg->value_pte[i].user = 0;
     }
-    //page_frame->value_u32[0] = 0;
+    pg->value_u32[0] = 0;
     
     /*
-     * Page table for high 4MB: Last 4MB <-> HAL Loading Location.
-     * But the last page should be reserved so that a some errors could be detected easily.
+     * Page table for HAL
+     *  The highest 512KB is mapped to HAL loading area
+     *  However, reserved PDE and PTEs at the last 12KB are not mapped
      */
-    pf = (struct page_frame *)KERNEL_PTE_HI4_PADDR;
-    for (i = 0; i < 1024; i++) {
-        pf->value_u32[i] = 0;
-        pf->value_pte[i].pfn = HAL_EXEC_START_PFN + i;
-        pf->value_pte[i].present = 1;
-        pf->value_pte[i].rw = 1;
-        pf->value_pte[i].user = 0;
+    pg = (struct page_frame *)KERNEL_PTE_HI4_PADDR;
+    for (i = 896; i < 1024; i++) {
+        pg->value_u32[i] = 0;
+        pg->value_pte[i].pfn = HAL_EXEC_START_PFN + i - 896;
+        pg->value_pte[i].present = 1;
+        pg->value_pte[i].rw = 1;
+        pg->value_pte[i].user = 0;
     }
-    //pf->value_u32[1023] = 0;
+    pg->value_u32[1023] = 0;
+    pg->value_u32[1022] = 0;
+    pg->value_u32[1021] = 0;
+    
+    /*
+     * Page table for Kernel
+     *  The 2nd highext 512KB is mapped to kernel loading area
+     *  
+     */
+    pg = (struct page_frame *)KERNEL_PTE_HI4_PADDR;
+    for (i = 768; i < 896; i++) {
+        pg->value_u32[i] = 0;
+        pg->value_pte[i].pfn = KERNEL_EXEC_START_PFN + i - 768;
+        pg->value_pte[i].present = 1;
+        pg->value_pte[i].rw = 1;
+        pg->value_pte[i].user = 0;
+    }
     
     /*
      * Map vieo framebuffer
@@ -393,7 +455,9 @@ static void no_opt no_inline setup_paging()
     u32 video_vpfn = VIDEO_START_VPFN;
     u32 cur_init_pfn = KERNEL_INIT_PTE_START_PFN - 1;
     
-    for (u32 fb_pfn = fb_start_pfn; fb_pfn <= fb_end_pfn; fb_pfn++, video_vpfn++) {
+    u32 fb_pfn;
+    
+    for (fb_pfn = fb_start_pfn; fb_pfn <= fb_end_pfn; fb_pfn++, video_vpfn++) {
         u32 pde_index = video_vpfn / PAGE_ENTRY_COUNT;
         u32 pte_index = video_vpfn % PAGE_ENTRY_COUNT;
         
@@ -404,18 +468,17 @@ static void no_opt no_inline setup_paging()
             dir->value_pde[pde_index].user = 0;
         }
         
-        pf = (struct page_frame *)(PFN_TO_ADDR(cur_init_pfn));
-        pf->value_u32[pte_index] = 0;
-        pf->value_pte[pte_index].pfn = fb_pfn;
-        pf->value_pte[pte_index].present = 1;
-        pf->value_pte[pte_index].rw = 1;
-        pf->value_pte[pte_index].user = 0;
+        pg = (struct page_frame *)(PFN_TO_ADDR(cur_init_pfn));
+        pg->value_u32[pte_index] = 0;
+        pg->value_pte[pte_index].pfn = fb_pfn;
+        pg->value_pte[pte_index].present = 1;
+        pg->value_pte[pte_index].rw = 1;
+        pg->value_pte[pte_index].user = 0;
     }
     
     /* Enable paging */
     __asm__ __volatile__
     (
-        "xchgw  %%bx, %%bx;"
         "movl   %%eax, %%cr3;"
         "movl   %%cr0, %%eax;"
         "orl    $0x80000000, %%eax;"
@@ -439,19 +502,57 @@ static void no_opt no_inline setup_paging()
     print_done();
 }
 
-static void no_inline layout_hal()
+static int no_inline compare(u8* src, u8* dest, u8 length)
 {
-    print_string("Expanding HAL ...");
+    u32 i;
+    
+    for (i = 0; i < length; i++) {
+        if (src[i] != dest[i]) {
+            return 1;
+        }
+        
+        if (src[i] == 0) {
+            return 0;
+        }
+    }
+    
+    return 0;
+}
+
+static void no_inline find_and_layout(char *name, int is_hal)
+{
+    u32 i;
+    
+    print_string("Expanding file: ");
+    print_string(name);
+    print_string(" ...");
+    
+    // Find the file
+    struct coreimg_fat *fat = (struct coreimg_fat *)COREIMG_LOAD_PADDR;
+    struct coreimg_record *record = 0;
+    int found = 0;
+    
+    for (i = 0; i < fat->header.file_count; i++) {
+        record = &fat->records[i];
+        
+        if (!compare((u8 *)name, record->file_name, 20)) {
+            found = 1;
+            break;
+        }
+    }
+    
+    if (!found) {
+        print_failed();
+    }
     
     //stop();
-    struct coreimg_record *hal_file_record = (struct coreimg_record *)(COREIMG_LOAD_PADDR + 32);
-    struct elf32_elf_header *elf_header = (struct elf32_elf_header *)(hal_file_record->start_offset + COREIMG_LOAD_PADDR);
+    //struct coreimg_record *hal_file_record = (struct coreimg_record *)(COREIMG_LOAD_PADDR + 32);
+    struct elf32_elf_header *elf_header = (struct elf32_elf_header *)(record->start_offset + COREIMG_LOAD_PADDR);
     struct elf32_program_header *header;
     
     loader_var->hal_vaddr_end = 0;
     
     /* For every segment, map and load them */
-    u32 i;
     for (i = 0; i < elf_header->elf_phnum; i++) {
         /* Get header */
         header = (struct elf32_program_header *)((u32)elf_header + elf_header->elf_phoff + elf_header->elf_phentsize * i);
@@ -498,14 +599,16 @@ static void no_inline layout_hal()
     
     //stop();
     
-    // Set HAL Entry
-    *((u32 *)loader_var->hal_entry_addr) = elf_header->elf_entry;
-    
-    // HAL Virtual Address End: Align to 4KB
-    if (loader_var->hal_vaddr_end % 4096) {
-        loader_var->hal_vaddr_end = loader_var->hal_vaddr_end >> 12;
-        loader_var->hal_vaddr_end++;
-        loader_var->hal_vaddr_end = loader_var->hal_vaddr_end << 12;
+    if (is_hal) {
+        // Set HAL Entry
+        *((u32 *)loader_var->hal_entry_addr) = elf_header->elf_entry;
+        
+        // HAL Virtual Address End: Align to 4KB
+        if (loader_var->hal_vaddr_end % 4096) {
+            loader_var->hal_vaddr_end = loader_var->hal_vaddr_end >> 12;
+            loader_var->hal_vaddr_end++;
+            loader_var->hal_vaddr_end = loader_var->hal_vaddr_end << 12;
+        }
     }
     
     print_done();
@@ -522,7 +625,7 @@ static void no_inline jump_to_hal()
 //     hal_start_param->cursor_col = loader_var->cursor_col;
 //     hal_start_param->hal_vaddr_end = loader_var->hal_vaddr_end;
     
-    /* Jump to the assembly */
+    // Jump back to assembly, then the assembly code will jump to HAL
     __asm__ __volatile__
     (
         "jmp    *%%ebx"
@@ -540,7 +643,8 @@ int main()
     init_hardware();
     build_bootparam();
     setup_paging();
-    layout_hal();
+    find_and_layout("tdlrhal.bin", 1);
+    //find_and_layout("tdlrkrnl.bin", 0);
     jump_to_hal();
     
     stop();

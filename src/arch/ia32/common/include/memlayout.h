@@ -27,6 +27,8 @@
 #define VIDEO_START_VADDR               (0xF0000000)
 #define VIDEO_START_VPFN                (VIDEO_START_VADDR >> 12)
 
+#define TEXT_VIDEO_MEM_ADDR             (0xb8000)
+
 
 /*
  * Boot

@@ -1,4 +1,5 @@
 #include "common/include/data.h"
+#include "hal/include/print.h"
 
 
 #define __FT_UNKNOWN    0
@@ -16,14 +17,7 @@
 
 static void print_char(char c)
 {
-}
-
-static void print_new_line()
-{
-}
-
-static void print_tab()
-{
+    draw_char(c);
 }
 
 static void print_string(char *s)
@@ -35,157 +29,110 @@ static void print_string(char *s)
     }
 }
 
+static void print_bin64(u64 value)
+{
+    int i;
+    
+    for (i = 63; i >= 0; i++) {
+        print_char((value & (0x1ull << i)) ? '1' : '0');
+    }
+}
+
+static void print_bin(u32 value)
+{
+    int i;
+    
+    for (i = 31; i >= 0; i++) {
+        print_char((value & (0x1 << i)) ? '1' : '0');
+    }
+}
+
 static void print_hex64(u64 value, int prefix, int upper)
 {
-    char buf[17];
     int i;
-    u64 cur;
+    u64 cur = 0;
+    int started = 0;
     
-    for (i = 0; i < 17; i++) {
-        buf[i] = 0;
-    }
-    
-    i = 15;
-    cur = 0;
-    do {
-        cur = value & 0xfull;
-        if (cur >= (u64)10) {
-            buf[i] = (upper ? 'A' : 'a') + (int)cur - 10;
-        } else {
-            buf[i] = '0' + (int)cur;
-        }
-        
-        value >>= 4;
-        i--;
-    } while (value);
-    
-    buf[16] = 0;
     if (prefix) {
         print_string("0x");
     }
     
-    for (i = 0; i < 16; i++) {
-        if (buf[i] != 0) {
-            print_string(buf + i);
-            return;
+    for (i = 60; i >= 0; i -= 4) {
+        cur = (value >> i) & 0xfull;
+        
+        if (cur >= (u64)10) {
+            print_char((upper ? 'A' : 'a') + (int)cur - 10);
+            started = 1;
+        } else if (cur || started) {
+            print_char('0' + (int)cur);
+            started = 1;
         }
     }
     
-    print_string(" __WRONG__HEX64__ ");
-}
-
-static void print_int64(u64 value, int has_sign)
-{
-    char buf[21];
-    int i;
-    
-    for (i = 0; i < 21; i++) {
-        buf[i] = 0;
+    if (!started) {
+        print_char('0');
     }
-    
-    if (value >> 63) {
-        print_char('-');
-        value = ~value + 1;
-    }
-    
-    i = 19;
-    do {
-        buf[i] = '0' + (int)(value % (u64)10);
-        value /= (u64)10;
-        i--;
-    } while (value);
-    
-    buf[20] = 0;
-    
-    for (i = 0; i < 20; i++) {
-        if (buf[i] != 0) {
-            print_string(buf + i);
-            return;
-        }
-    }
-    
-    print_string(" __WRONG__(U)INT__ ");
 }
 
 static void print_hex(u32 value, int prefix, int upper)
 {
-    char buf[9];
     int i;
-    unsigned int cur;
+    u32 cur = 0;
+    int started = 0;
     
-    for (i = 0; i < 9; i++) {
-        buf[i] = 0;
-    }
-    
-    cur = 0;
-    i = 7;
-    do {
-        cur = value & 0xf;
-        if (cur >= (u32)10) {
-            buf[i] = (upper ? 'A' : 'a') + (int)cur - 10;
-        } else {
-            buf[i] = '0' + (int)cur;
-        }
-        
-        value >>= 4;
-        i--;
-    } while (value);
-    
-    buf[8] = 0;
     if (prefix) {
         print_string("0x");
     }
     
-    for (i = 0; i < 8; i++) {
-        if (buf[i] != 0) {
-            print_string(buf + i);
-            return;
+    for (i = 28; i >= 0; i -= 4) {
+        cur = (value >> i) & 0xf;
+        
+        if (cur >= (u32)10) {
+            print_char((upper ? 'A' : 'a') + (int)cur - 10);
+            started = 1;
+        } else if (cur || started) {
+            print_char('0' + (int)cur);
+            started = 1;
         }
     }
     
-    print_string(" __WRONG__HEX__ ");
+    if (!started) {
+        print_char('0');
+    }
+}
+
+static void print_int64(u64 value, int has_sign)
+{
+    print_string("__UNSUPPORT_INT64__");
 }
 
 static void print_int(u32 value, int has_sign)
 {
-    char buf[11];
     int i;
-    
-    for (i = 0; i < 11; i++) {
-        buf[i] = 0;
-    }
+    u32 div = 1000000000;
+    u32 cur = 0;
+    int started = 0;
     
     if (has_sign && value >> 31) {
         print_string("-");
         value = ~value + 1;
     }
     
-    i = 9;
-    do {
-        buf[i] = '0' + (int)(value % (u32)10);
-        value /= (u32)10;
-        i--;
-    } while (value);
-    
-    buf[10] = 0;
-    
-    for (i = 0; i < 11; i++) {
-        if (buf[i]) {
-            print_string(buf + i);
-            return;
+    while (div) {
+        cur = value / div;
+        
+        if (cur || started) {
+            print_char('0' + (int)cur);
+            started = 1;
         }
+        
+        value %= div;
+        div /= 10;
     }
     
-    print_string(" __WRONG__(U)INT__ ");
-}
-
-static void print_ptr(ulong value)
-{
-//     if (sizeof(unsigned long) == 64) {
-//         _print_hex64(f, (unsigned long long)value);
-//     } else {
-//         _print_hex(f, (unsigned int)value);
-//     }
+    if (!started) {
+        print_char('0');
+    }
 }
 
 static void print_unknown()
@@ -193,174 +140,146 @@ static void print_unknown()
     print_string(" __UNKNOWN__ ");
 }
 
-static int find_token(char *ft, int *size, int *ft_count, int *prefix, int *upper, int *has_sign)
+static int find_long_token(char token, int *size, int *prefix, int *upper, int *has_sign)
 {
-    *ft_count = 0;
     *size = 0;
     *prefix = 0;
+    *upper = 0;
     *has_sign = 0;
     
-    switch (*ft) {
-    case '%':
-        *ft_count = 1;
-        return __FT_PERCENT;
-    case 'c':
-    case 'C':
-        *ft_count = 1;
-        *size = 4;
-        return __FT_CHAR;
+    switch (token) {
     case 'd':
-    case 'D':
-        *ft_count = 1;
-        *size = 4;
+        *size = 8;
         *has_sign = 1;
-        return __FT_INT;
+        return __FT_INT64;
     case 'u':
-    case 'U':
-        *ft_count = 1;
-        *size = 4;
-        return __FT_INT;
-    case 'x':
+        *size = 8;
+        return __FT_INT64;
     case 'X':
-        *ft_count = 1;
-        *size = 4;
+        *upper = 1;
+    case 'x':
+        *size = 8;
         *prefix = 1;
-        *upper = (*ft == 'X') ? 1 : 0;
-        return __FT_HEX;
-    case 'h':
+        return __FT_HEX64;
     case 'H':
-        *ft_count = 1;
-        *size = 4;
-        *upper = (*ft == 'H') ? 1 : 0;
-        return __FT_HEX;
-    case 'b':
+        *upper = 1;
+    case 'h':
+        *size = 8;
+        return __FT_HEX64;
     case 'B':
-        *ft_count = 1;
-        *size = 4;
-        return __FT_BIN;
-        
-    case 'p':
-    case 'P':
-        *ft_count = 1;
-        *size = (sizeof(u64) == sizeof(ulong)) ? 8 : 4;
-        *prefix = 1;
-        *upper = (*ft == 'P') ? 1 : 0;
-        return __FT_PTR;
-    case 's':
-    case 'S':
-        *ft_count = 1;
-        *size = (sizeof(u64) == sizeof(ulong)) ? 8 : 4;
-        return __FT_STR;
-    
-    case 'l':
-        switch (*(ft + 1)) {
-        case 'd':
-        case 'D':
-            *ft_count = 2;
-            *size = 8;
-            *has_sign = 1;
-            return __FT_INT64;
-        case 'u':
-        case 'U':
-            *ft_count = 2;
-            *size = 8;
-            return __FT_INT64;
-        case 'x':
-        case 'X':
-            *ft_count = 2;
-            *size = 8;
-            *prefix = 1;
-            *upper = (*(ft + 1) == 'P') ? 1 : 0;
-            return __FT_HEX64;
-        case 'h':
-        case 'H':
-            *ft_count = 2;
-            *size = 8;
-            *upper = (*(ft + 1) == 'P') ? 1 : 0;
-            return __FT_HEX64;
-        case 'b':
-        case 'B':
-            *ft_count = 2;
-            *size = 8;
-            return __FT_BIN64;
-            
-        case 'l':
-            switch (*(ft + 2)) {
-            case 'd':
-            case 'D':
-                *ft_count = 3;
-                *size = 8;
-                *has_sign = 1;
-                return __FT_INT64;
-            case 'u':
-            case 'U':
-                *ft_count = 3;
-                *size = 8;
-                return __FT_INT64;
-            case 'x':
-            case 'X':
-                *ft_count = 3;
-                *size = 8;
-                *prefix = 1;
-                *upper = (*(ft + 2) == 'P') ? 1 : 0;
-                return __FT_HEX64;
-            case 'h':
-            case 'H':
-                *ft_count = 3;
-                *size = 8;
-                *upper = (*(ft + 2) == 'P') ? 1 : 0;
-                return __FT_HEX64;
-            case 'b':
-            case 'B':
-                *ft_count = 3;
-                *size = 8;
-                return __FT_BIN64;
-            default:
-                break;
-            }
-        default:
-            break;
-        }
-        
+    case 'b':
+        *size = 8;
+        return __FT_BIN64;
     default:
-        break;
+        return __FT_UNKNOWN;
     }
     
     return __FT_UNKNOWN;
 }
 
-#define POP_PARAM32()
-#define POP_PARAM64()
+static int find_token(char *tp, int *ft_count, int *size, int *prefix, int *upper, int *has_sign)
+{
+    *ft_count = 0;
+    *size = 0;
+    *prefix = 0;
+    *upper = 0;
+    *has_sign = 0;
+    
+    int ret_long = __FT_UNKNOWN;
+    char token_long = 0;
+    
+    *ft_count = 1;
+    
+    switch (*tp) {
+    case '%':
+        return __FT_PERCENT;
+    case 'c':
+        *size = 4;
+        return __FT_CHAR;
+    case 'd':
+        *size = 4;
+        *has_sign = 1;
+        return __FT_INT;
+    case 'u':
+        *size = 4;
+        return __FT_INT;
+    case 'X':
+        *upper = 1;
+    case 'x':
+        *size = 4;
+        *prefix = 1;
+        return __FT_HEX;
+    case 'H':
+        *upper = 1;
+    case 'h':
+        *size = 4;
+        return __FT_HEX;
+    case 'B':
+    case 'b':
+        *size = 4;
+        return __FT_BIN;
+    case 'P':
+        *upper = 1;
+    case 'p':
+        *prefix = 1;
+        if (sizeof(u64) == sizeof(ulong)) {
+            *size = 8;
+            return __FT_HEX64;
+        } else {
+            *size = 4;
+            return __FT_HEX;
+        }
+    case 's':
+        *size = (sizeof(u64) == sizeof(ulong)) ? 8 : 4;
+        return __FT_STR;
+    
+    case 'l':
+        token_long = *(tp + 1);
+        *ft_count = 2;
+        
+        if (token_long == 'l') {
+            token_long = *(tp + 2);
+            *ft_count = 3;
+        }
+        
+        ret_long = find_long_token(token_long, size, prefix, upper, has_sign);
+        if (__FT_UNKNOWN == ret_long) {
+            *ft_count = 0;
+        }
+        
+        return ret_long;
+    default:
+        return __FT_UNKNOWN;
+    }
+    
+    return __FT_UNKNOWN;
+}
+
+#define POP_ARG4()  (*(u32 *)va); va += sizeof(u32)
+#define POP_ARG8()  (*(u64 *)va); va += sizeof(u64)
 
 int asmlinkage kprintf(char *fmt, ...)
 {
-    char *cur = fmt;
+    char *c = fmt;
     int ftype = 0, ft_count, param_size, prefix, upper, has_sign;
     
-    u32 param32;
-    u64 param64;
-    u32 va_offset = 12;
+    u32 arg4;
+    u64 arg8;
+    void *va = &fmt + sizeof(char *);
     
-    while (*cur) {
-        switch (*cur) {
-        case '\n':
-        case '\r':
-            print_new_line();
-            break;
-        case '\t':
-            print_tab();
-            break;
+    while (*c) {
+        switch (*c) {
         case '%':
             // Find out token type
-            ftype = find_token(cur + 1, &ft_count, &param_size, &prefix, &upper, &has_sign);
+            ftype = find_token(c + 1, &ft_count, &param_size, &prefix, &upper, &has_sign);
             
             // Pop data from stack
             switch (param_size) {
             case 4:
-                param32 = POP_PARAM32();
+                arg4 = POP_ARG4();
                 break;
             case 8:
-                param64 = POP_PARAM64();
+                arg8 = POP_ARG8();
                 break;
             default:
                 break;
@@ -369,31 +288,32 @@ int asmlinkage kprintf(char *fmt, ...)
             // Print the data
             switch (ftype) {
             case __FT_INT:
-                
+                print_int(arg4, has_sign);
                 break;
             case __FT_HEX:
-                
+                print_hex(arg4, prefix, upper);
                 break;
             case __FT_BIN:
-                
+                print_bin(arg4);
                 break;
             case __FT_INT64:
-                
+                print_int64(arg4, has_sign);
                 break;
             case __FT_HEX64:
-                
+                print_hex64(arg4, prefix, upper);
                 break;
             case __FT_BIN64:
-                
-                break;
-            case __FT_PTR:
-                
+                print_bin64(arg4);
                 break;
             case __FT_CHAR:
-                
+                print_char((char)arg4);
                 break;
             case __FT_STR:
-                
+                if (param_size == 4) {
+                    print_string((char *)arg4);
+                } else {
+                    print_string((char *)arg8);
+                }
                 break;
             case __FT_PERCENT:
                 print_char('%');
@@ -404,23 +324,14 @@ int asmlinkage kprintf(char *fmt, ...)
                 break;
             }
             
-            /* Pop a param from stack */
-//             __asm__ __volatile__
-//             (
-//                 "movl   (%%ebp, %%ebx, 1), %%eax;"
-//                 : "=a" (param)
-//                 : "b" (ebp_disp)
-//             );
-//             va_offset += sizeof(u32);
-            
-            cur += ft_count;
+            c += ft_count;
             break;
         default:
-            print_char(*cur);
+            print_char(*c);
             break;
         }
         
-        cur++;
+        c++;
     }
     
 }

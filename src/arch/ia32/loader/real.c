@@ -5,9 +5,11 @@ asm ("jmp main");
 #include "loader/loader.h"
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
+#include "common/include/bootparam.h"
 
 
 static struct loader_variables *loader_var;
+static struct boot_parameters *boot_param;
 
 
 static void real_mode set_cursor_pos(u32 row, u32 col)
@@ -30,14 +32,14 @@ static void real_mode set_cursor_pos(u32 row, u32 col)
 
 static void real_mode print_new_line()
 {
-    loader_var->cursor_row++;
-    loader_var->cursor_col = 0;
+    boot_param->cursor_row++;
+    boot_param->cursor_col = 0;
     
-    if (loader_var->cursor_row >= 80) {
-        loader_var->cursor_row = 0;
+    if (boot_param->cursor_row >= 80) {
+        boot_param->cursor_row = 0;
     }
     
-    set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
+    set_cursor_pos(boot_param->cursor_row, boot_param->cursor_col);
 }
 
 static void real_mode print_char(char ch)
@@ -52,11 +54,11 @@ static void real_mode print_char(char ch)
         : "a" ((u32)ch)
     );
     
-    loader_var->cursor_col++;
-    if (80 == loader_var->cursor_col) {
+    boot_param->cursor_col++;
+    if (80 == boot_param->cursor_col) {
         print_new_line();
     } else {
-        set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
+        set_cursor_pos(boot_param->cursor_row, boot_param->cursor_col);
     }
 }
 
@@ -72,12 +74,12 @@ static void real_mode print_string(char *str)
             print_char('\\');
             break;
         case '\t':
-            loader_var->cursor_col /= 8;
-            loader_var->cursor_col = (loader_var->cursor_col + 1) * 8;
-            if (loader_var->cursor_col >= 80) {
+            boot_param->cursor_col /= 8;
+            boot_param->cursor_col = (boot_param->cursor_col + 1) * 8;
+            if (boot_param->cursor_col >= 80) {
                 print_new_line();
             } else {
-                set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
+                set_cursor_pos(boot_param->cursor_row, boot_param->cursor_col);
             }
             break;
         default:
@@ -187,8 +189,8 @@ static void real_mode init_cursor_pos()
         :
     );
     
-    loader_var->cursor_row = ((edx << 16) >> 24);
-    loader_var->cursor_col = ((edx << 24) >> 24);
+    boot_param->cursor_row = ((edx << 16) >> 24);
+    boot_param->cursor_col = ((edx << 24) >> 24);
     
     print_string(" OS Loader is now running!\n");
 }
@@ -219,9 +221,9 @@ static void real_mode init_vesa()
     
     // quit if there was an error
     if (eax >> 8) {
-        loader_var->video_type = 0;
-        loader_var->res_x = 80;
-        loader_var->res_y = 25;
+        boot_param->video_mode = 0;
+        boot_param->res_x = 80;
+        boot_param->res_y = 25;
         
         print_failed();
         return;
@@ -319,12 +321,12 @@ static void real_mode init_vesa()
     print_new_line();
     
     // Set loader variables
-    loader_var->video_type = 1;
-    loader_var->res_x = best_x;
-    loader_var->res_y = best_y;
-    loader_var->bits_per_pixel = best_bits;
-    loader_var->framebuffer_addr = fb_paddr;
-    loader_var->bytes_per_line = bytes_per_line;
+    boot_param->video_mode = 1;
+    boot_param->res_x = best_x;
+    boot_param->res_y = best_y;
+    boot_param->bits_per_pixel = best_bits;
+    boot_param->framebuffer_addr = fb_paddr;
+    boot_param->bytes_per_line = bytes_per_line;
     
     // Set the best mode
     print_string("Setting VESA mode ...");
@@ -557,6 +559,7 @@ static void real_mode enter_protected_mode()
 int real_mode main()
 {
     loader_var = (struct loader_variables *)LOADER_VARIABLES_ADDR_OFFSET;
+    boot_param = (struct boot_parameters *)BOOT_PARAM_ADDR_OFFSET;
     
     init_cursor_pos();
     init_vesa();

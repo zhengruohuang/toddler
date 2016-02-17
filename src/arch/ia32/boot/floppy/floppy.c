@@ -199,7 +199,7 @@ static void real_mode load_file(u16 start_sector, u16 sector_count, u16 segment,
 
 static void real_mode setup_bootdev()
 {
-    struct boot_param *bp = (struct boot_param *)BOOT_PARAM_ADDRESS_OFFSET;
+    struct boot_parameters *bp = (struct boot_parameters *)BOOT_PARAM_ADDR_OFFSET;
     
     bp->boot_dev = 1;
     bp->boot_dev_info = 0;

@@ -1,54 +1,10 @@
 #include "common/include/data.h"
+#include "common/include/memlayout.h"
+#include "common/include/bootparam.h"
 
 
-void asmlinkage _start()
+static void no_opt stop()
 {
-    int start_param = 0;
-    
-    switch (start_param) {
-    case 0:
-        /* Save the parameters */
-        //hal_print_current_row_number = hal_start_param->line_number;
-        //hal_print_current_column_number = hal_start_param->column_number;
-        //hal_global_memory_pool_start = hal_start_param->hal_vaddr_end + 4096;
-        
-        /* Switch stack to HAL's, and thus this function is unable to return */
-        __asm__ __volatile__
-        (
-            "xchgw  %%bx, %%bx;"
-            "movl   %%eax, %%esp;"
-            :
-            : "a" (0xFFC02000)
-        );
-        
-        break;
-        
-    /* Start AP */
-    case 1:
-        break;
-        
-    /* Return from BIOS Invoker */
-    case 2:
-        break;
-        
-    /* Stop */
-    default:
-        /* Switch stack to HAL's, and thus this function is unable to return */
-        do {
-            __asm__ __volatile__
-            (
-                "hlt;"
-                :
-                :
-            );
-        } while (1);
-        
-        break;
-    }
-    
-    /* Call the entry of HAL */
-    //hal_entry();
-    
     do {
         __asm__ __volatile__
         (
@@ -57,4 +13,55 @@ void asmlinkage _start()
             :
         );
     } while (1);
+}
+
+static void hal_entry()
+{
+    
+}
+
+static void ap_entry()
+{
+}
+
+static void bios_return()
+{
+}
+
+void asmlinkage _start()
+{
+    struct boot_parameters *boot_param = (struct boot_parameters *)BOOT_PARAM_PADDR;
+    
+    switch (boot_param->hal_start_flag) {
+    // Start HAL
+    case 0:
+        // Switch stack to HAL's
+        // thus this function is unable to return 
+        __asm__ __volatile__
+        (
+            "xchgw  %%bx, %%bx;"
+            "movl   %%eax, %%esp;"
+            :
+            : "a" (0xFFC02000)
+        );
+        
+        hal_entry();
+        break;
+        
+    // Start AP
+    case 1:
+        break;
+        
+    // Return from BIOS invoker
+    case 2:
+        break;
+        
+    // Undefined
+    default:
+        stop();
+        break;
+    }
+    
+    // Should never reach here
+    stop();
 }

@@ -33,7 +33,7 @@
 /*
  * Boot
  */
-#define BOOT_PARAM_ADDRESS_OFFSET       (0x2000)
+#define BOOT_PARAM_ADDR_OFFSET          (0x2000)
 #define BOOT_PARAM_PADDR                (0x2000)
 
 #define BOOT_SECTOR_BUFFER_OFFSET_1     (0x5000)

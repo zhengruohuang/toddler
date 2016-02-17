@@ -13,6 +13,7 @@ asm ("jmp main");
 
 
 static struct loader_variables *loader_var;
+static struct boot_parameters *boot_param;
 
 
 static void no_inline memcpy(void* src, void* dest, u32 length)
@@ -58,24 +59,24 @@ static void no_inline set_cursor_pos(u32 line, u32 column)
 
 static void no_inline print_new_line()
 {
-    loader_var->cursor_row++;
-    loader_var->cursor_col = 0;
+    boot_param->cursor_row++;
+    boot_param->cursor_col = 0;
     
-    if (loader_var->video_type == 0) {
-        set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
+    if (boot_param->video_mode == 0) {
+        set_cursor_pos(boot_param->cursor_row, boot_param->cursor_col);
     }
 }
 
 static void no_inline draw_char(u8 ch, u32 line, u32 col)
 {
-    u32 bytes = loader_var->bytes_per_line;
-    u32 bits = loader_var->bits_per_pixel;
+    u32 bytes = boot_param->bytes_per_line;
+    u32 bits = boot_param->bits_per_pixel;
     u32 offset = 16 * line * bytes + 8 * col * bits / 8;
     u32 offset_x;
     
     u8 *font = vga_font[ch < 0x20 ? 0 : ch - 0x20];
     u8 cur_map;
-    u8 *fb = (u8 *)loader_var->framebuffer_addr;
+    u8 *fb = (u8 *)boot_param->framebuffer_addr;
     
     int i, j;
     for (i = 0; i < 16; i++) {
@@ -101,17 +102,17 @@ static void no_inline draw_char(u8 ch, u32 line, u32 col)
 
 static void no_inline print_char_px(char ch)
 {
-    draw_char(ch, loader_var->cursor_row, loader_var->cursor_col);
+    draw_char(ch, boot_param->cursor_row, boot_param->cursor_col);
     
-    loader_var->cursor_col++;
-    if (loader_var->res_x / 8 == loader_var->cursor_col) {
+    boot_param->cursor_col++;
+    if (boot_param->res_x / 8 == boot_param->cursor_col) {
         print_new_line();
     }
 }
 
 static void no_inline print_char_tx(char ch)
 {
-    u32 position = (loader_var->cursor_row * 80 + loader_var->cursor_col) * 2;
+    u32 position = (boot_param->cursor_row * 80 + boot_param->cursor_col) * 2;
     
     __asm__ __volatile__
     (
@@ -121,17 +122,17 @@ static void no_inline print_char_tx(char ch)
         : "D" (TEXT_VIDEO_MEM_ADDR + position), "a" (ch)
     );
     
-    loader_var->cursor_col++;
-    if (80 == loader_var->cursor_col) {
+    boot_param->cursor_col++;
+    if (80 == boot_param->cursor_col) {
         print_new_line();
     } else {
-        set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
+        set_cursor_pos(boot_param->cursor_row, boot_param->cursor_col);
     }
 }
 
 static void no_inline print_char(char ch)
 {
-    if (loader_var->video_type == 0) {
+    if (boot_param->video_mode == 0) {
         print_char_tx(ch);
     } else {
         print_char_px(ch);
@@ -150,12 +151,12 @@ static void no_inline print_string(char *str)
             print_char('\\');
             break;
         case '\t':
-            loader_var->cursor_col /= 8;
-            loader_var->cursor_col = (loader_var->cursor_col + 1) * 8;
-            if (loader_var->cursor_col >= 80) {
+            boot_param->cursor_col /= 8;
+            boot_param->cursor_col = (boot_param->cursor_col + 1) * 8;
+            if (boot_param->cursor_col >= 80) {
                 print_new_line();
-            } else if (loader_var->video_type == 0) {
-                set_cursor_pos(loader_var->cursor_row, loader_var->cursor_col);
+            } else if (boot_param->video_mode == 0) {
+                set_cursor_pos(boot_param->cursor_row, boot_param->cursor_col);
             }
             break;
         default:
@@ -254,15 +255,15 @@ static void no_inline enter_protected_mode()
 static void no_inline setup_video()
 {
     print_string("Video Mode: ");
-    print_dec(loader_var->res_x);
+    print_dec(boot_param->res_x);
     print_string("x");
-    print_dec(loader_var->res_y);
+    print_dec(boot_param->res_y);
     print_string(" @ ");
-    print_dec(loader_var->bits_per_pixel);
+    print_dec(boot_param->bits_per_pixel);
     print_string(", FB Address: ");
-    print_hex(loader_var->framebuffer_addr);
+    print_hex(boot_param->framebuffer_addr);
     print_string(", Bytes per Line: ");
-    print_dec(loader_var->bytes_per_line);
+    print_dec(boot_param->bytes_per_line);
     print_new_line();
 }
 
@@ -275,12 +276,6 @@ static void no_inline init_hardware()
 static void no_inline build_bootparam()
 {
     print_string("Building Boot Parameters ...");
-    
-    struct boot_param *bp = (struct boot_param *)BOOT_PARAM_PADDR;
-    
-    // Video
-    bp->video_mode = 0;
-    print_string("|.");
     
     // Memory map
     u64 memory_size = 0;
@@ -345,10 +340,10 @@ static void no_inline build_bootparam()
         
         /* Add to boot param list */
         if (1 == current_type || 3 == current_type) {
-            bp->mem_zones[zone_count].start_paddr = current_base_address;
-            bp->mem_zones[zone_count].len = current_length;
-            bp->mem_zones[zone_count].type = current_type;
-            bp->mem_zone_count = ++zone_count;
+            boot_param->mem_zones[zone_count].start_paddr = current_base_address;
+            boot_param->mem_zones[zone_count].len = current_length;
+            boot_param->mem_zones[zone_count].type = current_type;
+            boot_param->mem_zone_count = ++zone_count;
         }
         
         /* Move to next block */
@@ -363,13 +358,17 @@ static void no_inline build_bootparam()
         memory_size++;
         memory_size = memory_size << 20;
     }
-    bp->mem_size = memory_size;
+    boot_param->mem_size = memory_size;
     print_string("|.");
     
     // Loader functions
-    bp->what_to_load_addr = loader_var->what_to_load_addr;
-    bp->ap_entry_addr = loader_var->ap_entry_addr;
-    bp->ap_page_dir_pfn_addr = loader_var->ap_page_dir_pfn_addr;
+    boot_param->loader_func_type_ptr = loader_var->loader_func_type_ptr;
+    boot_param->ap_entry_addr_ptr = loader_var->ap_entry_addr_ptr;
+    boot_param->bios_invoker_addr_ptr = loader_var->bios_invoker_addr_ptr;
+    print_string("|.");
+    
+    // HAL start flag
+    boot_param->hal_start_flag = 0;
     print_string("|.");
     
     print_done();
@@ -446,8 +445,8 @@ static void no_opt no_inline setup_paging()
     /*
      * Map vieo framebuffer
      */
-    u32 fb_start = loader_var->framebuffer_addr;
-    u32 fb_end = loader_var->framebuffer_addr + loader_var->bytes_per_line * loader_var->res_y;
+    u32 fb_start = boot_param->framebuffer_addr;
+    u32 fb_end = boot_param->framebuffer_addr + boot_param->bytes_per_line * boot_param->res_y;
     
     u32 fb_start_pfn = fb_start / PAGE_SIZE;
     u32 fb_end_pfn = fb_end / PAGE_SIZE + 1;
@@ -490,7 +489,7 @@ static void no_opt no_inline setup_paging()
     );
     
     // Update framebuffer address
-    loader_var->framebuffer_addr = VIDEO_START_VADDR + loader_var->framebuffer_addr % PAGE_SIZE;
+    boot_param->framebuffer_addr = VIDEO_START_VADDR + boot_param->framebuffer_addr % PAGE_SIZE;
     
     /* Zero memory at the highest 4MB */
 //     for (i = 0; i < 1023; i++) {
@@ -545,12 +544,9 @@ static void no_inline find_and_layout(char *name, int is_hal)
         print_failed();
     }
     
-    //stop();
-    //struct coreimg_record *hal_file_record = (struct coreimg_record *)(COREIMG_LOAD_PADDR + 32);
     struct elf32_elf_header *elf_header = (struct elf32_elf_header *)(record->start_offset + COREIMG_LOAD_PADDR);
     struct elf32_program_header *header;
-    
-    loader_var->hal_vaddr_end = 0;
+    ulong vaddr_end = 0;
     
     /* For every segment, map and load them */
     for (i = 0; i < elf_header->elf_phnum; i++) {
@@ -584,8 +580,8 @@ static void no_inline find_and_layout(char *name, int is_hal)
         }
         
         // Get the end of virtual address of HAL
-        if (header->program_vaddr + header->program_memsz > loader_var->hal_vaddr_end) {
-            loader_var->hal_vaddr_end = header->program_vaddr + header->program_memsz;
+        if (header->program_vaddr + header->program_memsz > vaddr_end) {
+            vaddr_end = header->program_vaddr + header->program_memsz;
         }
         
         print_char('.');
@@ -600,15 +596,17 @@ static void no_inline find_and_layout(char *name, int is_hal)
     //stop();
     
     if (is_hal) {
-        // Set HAL Entry
-        *((u32 *)loader_var->hal_entry_addr) = elf_header->elf_entry;
-        
         // HAL Virtual Address End: Align to 4KB
-        if (loader_var->hal_vaddr_end % 4096) {
-            loader_var->hal_vaddr_end = loader_var->hal_vaddr_end >> 12;
-            loader_var->hal_vaddr_end++;
-            loader_var->hal_vaddr_end = loader_var->hal_vaddr_end << 12;
+        if (vaddr_end % PAGE_SIZE) {
+            vaddr_end /= PAGE_SIZE;
+            vaddr_end++;
+            vaddr_end *= PAGE_SIZE;
         }
+        
+        // Set HAL Entry
+        *((u32 *)loader_var->hal_entry_addr_ptr) = elf_header->elf_entry;
+        boot_param->hal_entry_addr = elf_header->elf_entry;
+        boot_param->hal_vaddr_end = vaddr_end;
     }
     
     print_done();
@@ -618,25 +616,19 @@ static void no_inline jump_to_hal()
 {
     print_string("Starting HAL ... ");
     
-    /* Construct start parameters */
-//     s_hal_start_param* hal_start_param = (s_hal_start_param*)HAL_START_PARAM_ADDRESS;
-//     hal_start_param->param_type = 0;
-//     hal_start_param->cursor_row = loader_var->cursor_row;
-//     hal_start_param->cursor_col = loader_var->cursor_col;
-//     hal_start_param->hal_vaddr_end = loader_var->hal_vaddr_end;
-    
     // Jump back to assembly, then the assembly code will jump to HAL
     __asm__ __volatile__
     (
         "jmp    *%%ebx"
         :
-        : "b"(loader_var->return_addr)
+        : "b"(loader_var->return_addr), "D" (boot_param->hal_entry_addr)
     );
 }
 
 int main()
 {
-    loader_var = (struct loader_variables *)(LOADER_VARIABLES_PADDR);
+    loader_var = (struct loader_variables *)LOADER_VARIABLES_PADDR;
+    boot_param = (struct boot_parameters *)BOOT_PARAM_PADDR;
     
     enter_protected_mode();
     setup_video();

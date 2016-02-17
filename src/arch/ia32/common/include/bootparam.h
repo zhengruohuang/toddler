@@ -11,24 +11,33 @@ struct boot_mem_zone {
     u32 type;
 } packedstruct;
 
-struct boot_param {
+struct boot_parameters {
     // Boot device
     u32 boot_dev;
     u32 boot_dev_info;
     
-    // Addresses for loader
-    u32 what_to_load_addr;
-    u32 ap_entry_addr;
-    u32 ap_page_dir_pfn_addr;
+    // Pointers
+    ulong loader_func_type_ptr;
+    ulong ap_entry_addr_ptr;
+    ulong bios_invoker_addr_ptr;
+    
+    // HAL
+    u32 hal_start_flag;
+    u32 hal_entry_addr;
+    u32 hal_vaddr_end;
     
     // Video info
-    u8 video_mode;
+    u32 video_mode;
+    u32 framebuffer_addr;
+    u32 res_x;
+    u32 res_y;
+    u32 bits_per_pixel;
+    u32 bytes_per_line;
     
-    // HAL start up flags
-    u32 hal_start_flag;
+    // Cursor
     u32 cursor_row;
     u32 cursor_col;
-    
+        
     // Memory size
     u64 mem_size;
     

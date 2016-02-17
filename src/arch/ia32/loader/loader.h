@@ -28,15 +28,11 @@ struct e820_entry {
 
 struct loader_variables {
     // Always the first fields in this struct
-    u32 return_addr;
-    u32 hal_entry_addr;
-    u32 what_to_load_addr;
-    u32 ap_entry_addr;
-    u32 ap_page_dir_pfn_addr;
-    u32 bios_invoker_addr;
-    
-    // HAL Info
-    u32 hal_vaddr_end;
+    ulong return_addr;
+    ulong hal_entry_addr_ptr;
+    ulong loader_func_type_ptr;
+    ulong ap_entry_addr_ptr;
+    ulong bios_invoker_addr_ptr;
     
     // Memory
     u32 mem_part_count;
@@ -48,18 +44,6 @@ struct loader_variables {
         };
         u64 mem_size;
     };
-    
-    // Cursor
-    u32 cursor_row;
-    u32 cursor_col;
-    
-    // Video
-    u32 video_type;
-    u32 framebuffer_addr;
-    u32 res_x;
-    u32 res_y;
-    u32 bits_per_pixel;
-    u32 bytes_per_line;
 } packedstruct;
 
 struct vesa_info {

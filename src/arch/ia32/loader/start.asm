@@ -68,8 +68,8 @@ SelectorReal    equ     GDT_REAL   - GDT_START
 ;   2 = Start Application Processor
 ;   3 = Run BIOS Invoker
 ;-------------------------------------------------------------------------------
-WhatToLoad      dd      1
-WhatToLoad32    equ     LoaderBase + WhatToLoad
+LoaderFuncType      dd      1
+LoaderFuncType32    equ     LoaderBase + LoaderFuncType
 ;-------------------------------------------------------------------------------
 
 ;-------------------------------------------------------------------------------
@@ -113,8 +113,8 @@ PRE_INITIALIZATION:
     mov     sp, LoaderStackTop
 
 ; Figure out what to load
-    mov     eax, [WhatToLoad]
-    mov     dword [WhatToLoad], 0
+    mov     eax, [LoaderFuncType]
+    mov     dword [LoaderFuncType], 0
 
     ; Load HAL?
     cmp     eax, 1
@@ -312,20 +312,16 @@ START_32:
     mov     edi, LoaderBase + LoaderVariableStartOffset + 4
     mov     dword [edi], HalEntry32
 
-    ; Set up the address of WhatToLoad32
+    ; Set up the address of LoaderFuncType32
     mov     edi, LoaderBase + LoaderVariableStartOffset + 8
-    mov     dword [edi], WhatToLoad32
+    mov     dword [edi], LoaderFuncType32
 
     ; ApStartupEntry32
     mov     edi, LoaderBase + LoaderVariableStartOffset + 12
     mov     dword [edi], ApStartupEntry32
 
-    ; ApPageDirectoryPfn32
-    mov     edi, LoaderBase + LoaderVariableStartOffset + 16
-    mov     dword [edi], ApPageDirectoryPfn32
-
     ; BIOS_INVOKER_ENTRY_32
-    mov     edi, LoaderBase + LoaderVariableStartOffset + 20
+    mov     edi, LoaderBase + LoaderVariableStartOffset + 16
     mov     dword [edi], LoaderBase + BIOS_INVOKER_ENTRY_32
 
     ; Jump to C entry
@@ -333,8 +329,9 @@ START_32:
     jmp     ebx
 
 .ProtectedModeReturn:
-; Move to kernel, that is, jump to the entry of HAL
-    mov     ebx, [HalEntry32]
+; Jump to the entry of HAL
+; EDI is filled with the entry addr of HAL by the C code
+    mov     ebx, edi
     call    ebx     ; Jump to HAL, and the Loader should finish its task now
     
 ; Stop

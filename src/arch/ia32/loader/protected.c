@@ -465,6 +465,7 @@ static void no_opt no_inline setup_paging()
             dir->value_pde[pde_index].present = 1;
             dir->value_pde[pde_index].rw = 1;
             dir->value_pde[pde_index].user = 0;
+            dir->value_pde[pte_index].cache_disabled = 1;
         }
         
         pg = (struct page_frame *)(PFN_TO_ADDR(cur_init_pfn));
@@ -473,6 +474,7 @@ static void no_opt no_inline setup_paging()
         pg->value_pte[pte_index].present = 1;
         pg->value_pte[pte_index].rw = 1;
         pg->value_pte[pte_index].user = 0;
+        pg->value_pte[pte_index].cache_disabled = 1;
     }
     
     /* Enable paging */

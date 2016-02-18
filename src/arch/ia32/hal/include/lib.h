@@ -3,26 +3,20 @@
 
 
 #include "common/include/data.h"
-#include "common/include/memlayout.h"
 #include "common/include/bootparam.h"
 
 
-static struct boot_parameters *get_bootparam()
-{
-    return (struct boot_parameters *)BOOT_PARAM_PADDR;
-}
+extern struct boot_parameters *get_bootparam();
 
-static void no_opt halt()
-{
-    do {
-        __asm__ __volatile__
-        (
-            "hlt;"
-            :
-            :
-        );
-    } while (1);
-}
+extern void io_out32(ulong port, ulong value);
+extern void io_out16(ulong port, ulong value);
+extern void io_out8(ulong port, ulong value);
+
+extern ulong io_in32(ulong port);
+extern ulong io_in16(ulong port);
+extern ulong io_in8(ulong port);
+
+extern void no_opt halt();
 
 
 #endif

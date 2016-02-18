@@ -7,17 +7,34 @@
 static void hal_entry()
 {
     // First we init the screen then tell the user we are in HAL
-    init_screen();
+    init_video();
     kprintf("We are in HAL!\n");
+
+    
+//     kprintf("We are in HAL!\n");
+//     kprintf("We are in HAL!\n");
+//     kprintf("We are in HAL!\n");
+//     kprintf("We are in HAL!\n");
+//     kprintf("We are in HAL!\n");
+//     kprintf("We are in HAL!\n");
+//     kprintf("We are in HAL!\n");
+//     kprintf("We are in HAL!\n");
+//     kprintf("We are in HAL!\n");
+//     kprintf("We are in HAL!\n");
+//     kprintf("We are in HAL!\n");
+    
+//     do {
+//         kprintf("We are in HAL!\n");
+//     } while(1);
 }
 
-static void ap_entry()
-{
-}
-
-static void bios_return()
-{
-}
+// static void ap_entry()
+// {
+// }
+// 
+// static void bios_return()
+// {
+// }
 
 /*
  * This is the entry point of HAL
@@ -31,13 +48,13 @@ void asmlinkage _start()
     case 0:
         // Switch stack to HAL's
         // thus this function is unable to return 
-        __asm__ __volatile__
-        (
-            "xchgw  %%bx, %%bx;"
-            "movl   %%eax, %%esp;"
-            :
-            : "a" (0xFFC02000)
-        );
+//         __asm__ __volatile__
+//         (
+//             "xchgw  %%bx, %%bx;"
+//             "movl   %%eax, %%esp;"
+//             :
+//             : "a" (0xFFC02000)
+//         );
         
         hal_entry();
         break;

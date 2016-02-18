@@ -108,7 +108,6 @@ static void print_int64(u64 value, int has_sign)
 
 static void print_int(u32 value, int has_sign)
 {
-    int i;
     u32 div = 1000000000;
     u32 cur = 0;
     int started = 0;
@@ -265,7 +264,7 @@ int asmlinkage kprintf(char *fmt, ...)
     
     u32 arg4;
     u64 arg8;
-    void *va = &fmt + sizeof(char *);
+    ulong va = (ulong)&fmt + sizeof(char *);
     
     while (*c) {
         switch (*c) {
@@ -334,4 +333,5 @@ int asmlinkage kprintf(char *fmt, ...)
         c++;
     }
     
+    return 0;
 }

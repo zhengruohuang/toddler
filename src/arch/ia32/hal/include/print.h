@@ -9,7 +9,7 @@
 
 
 extern void draw_char(char ch);
-extern void init_screen();
+extern void init_video();
 
 extern int asmlinkage kprintf(char *fmt, ...);
 

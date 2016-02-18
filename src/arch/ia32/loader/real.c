@@ -222,8 +222,13 @@ static void real_mode init_vesa()
     // quit if there was an error
     if (eax >> 8) {
         boot_param->video_mode = 0;
+        
         boot_param->res_x = 80;
         boot_param->res_y = 25;
+        
+        boot_param->framebuffer_addr = TEXT_VIDEO_MEM_ADDR;
+        boot_param->bits_per_pixel = 16;
+        boot_param->bytes_per_line = 80 * 2;
         
         print_failed();
         return;

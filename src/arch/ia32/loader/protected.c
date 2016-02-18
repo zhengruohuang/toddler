@@ -287,7 +287,7 @@ static void no_inline build_bootparam()
     print_char('|');
     
     do {
-        /* We find the first block */
+        // Find the first block 
         u64 current_base_address_find = -1;
         u32 first_block_index = 0xffffffff;
         current_length = 0xffffffff;
@@ -305,12 +305,12 @@ static void no_inline build_bootparam()
             }
         }
         
-        /* Did not find a block? We have got the full memory map! */
+        // Did not find a block? We have got the full memory map!
         if (0xffffffff == first_block_index) {
             break;
         }
         
-        /* Then we combine all contiguious blocks */
+        // Then we combine all contiguious blocks
         current_base_address = current_base_address_find;
         for (i = 0; i < loader_var->mem_part_count; i++) {
             for (j = 0; j < loader_var->mem_part_count; j++) {
@@ -325,7 +325,7 @@ static void no_inline build_bootparam()
             }
         }
         
-        /* Calculate memory size */
+        // Calculate memory size
         if (1 == current_type || 3 == current_type) {
             if (current_base_address < 1024 * 1024) {
                 if (current_base_address + current_length < 1024 * 1024) {
@@ -338,7 +338,7 @@ static void no_inline build_bootparam()
             }
         }
         
-        /* Add to boot param list */
+        // Add to boot param list
         if (1 == current_type || 3 == current_type) {
             boot_param->mem_zones[zone_count].start_paddr = current_base_address;
             boot_param->mem_zones[zone_count].len = current_length;
@@ -346,7 +346,7 @@ static void no_inline build_bootparam()
             boot_param->mem_zone_count = ++zone_count;
         }
         
-        /* Move to next block */
+        // Move to next block
         current_base_address = current_base_address + current_length;
         
         print_char('.');
@@ -399,17 +399,25 @@ static void no_opt no_inline setup_paging()
     
     /*
      * Page table for low 4MB: Direct map.
-     * But the first page should be reserved so that a null pointer can be detected easily.
      */
     struct page_frame *pg = (struct page_frame *)KERNEL_PTE_LO4_PADDR;
-    for (i = 0; i < 1024; i++) {
+    
+    // The first page should be reserved so that a null pointer can be detected.
+    pg->value_u32[0] = 0;
+    
+    // Regular direct map
+    for (i = 1; i < 1024; i++) {
         pg->value_u32[i] = 0;
         pg->value_pte[i].pfn = i;
         pg->value_pte[i].present = 1;
         pg->value_pte[i].rw = 1;
         pg->value_pte[i].user = 0;
     }
-    pg->value_u32[0] = 0;
+    
+    // 0xa0000 to 0xfffff should not be cached
+    for (i = 160; i < 256; i++) {
+        pg->value_pte[i].cache_disabled = 1;
+    }
     
     /*
      * Page table for HAL
@@ -430,8 +438,7 @@ static void no_opt no_inline setup_paging()
     
     /*
      * Page table for Kernel
-     *  The 2nd highext 512KB is mapped to kernel loading area
-     *  
+     *  The 2nd highest 512KB is mapped to kernel loading area
      */
     pg = (struct page_frame *)KERNEL_PTE_HI4_PADDR;
     for (i = 768; i < 896; i++) {
@@ -477,7 +484,9 @@ static void no_opt no_inline setup_paging()
         pg->value_pte[pte_index].cache_disabled = 1;
     }
     
-    /* Enable paging */
+    /*
+     * Enable paging
+     */
     __asm__ __volatile__
     (
         "movl   %%eax, %%cr3;"

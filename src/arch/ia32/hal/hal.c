@@ -9,6 +9,8 @@ static void hal_entry()
     // First we init the screen then tell the user we are in HAL
     init_video();
     kprintf("We are in HAL!\n");
+    
+    // Init TSS
 
     
 //     kprintf("We are in HAL!\n");

@@ -92,9 +92,7 @@ coreimg:
 	@$(TARGETDIR)/tools/coreimg			\
 		$(TARGETDIR)/bin/tdlrcore.img		\
 		$(TARGETDIR)/bin/tdlrhal.bin		\
-		$(TARGETDIR)/bin/tdlrkrnl.bin		\
-		$(TARGETDIR)/bin/tdlrbase.bin		\
-		$(TARGETDIR)/bin/libc.bin
+		$(TARGETDIR)/bin/tdlrkrnl.bin
 
 # Build floppy image
 floppyimg:

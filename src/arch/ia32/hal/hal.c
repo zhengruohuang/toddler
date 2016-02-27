@@ -4,6 +4,7 @@
 #include "hal/include/print.h"
 #include "hal/include/mem.h"
 #include "hal/include/int.h"
+#include "hal/include/cpu.h"
 
 
 static void hal_entry()
@@ -18,6 +19,9 @@ static void hal_entry()
     // Init interrupt
     init_int_handlers();
     init_idt();
+    
+    // Init topo
+    init_topo();
     
     // Init TSS
 

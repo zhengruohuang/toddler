@@ -32,10 +32,10 @@ void init_idt_mp()
 void init_idt()
 {
     // All of the Traps and Faults are initialized as Interupt Gates
-    kprintf("Interrupt Descriptor Table\n");
+    kprintf("Initializing interrupt descriptor table\n");
     
     // Exceptions and Traps
-    kprintf("\tException Handlers\n");
+    kprintf("\tConstructing IDT entries\n");
     idt_entry(VEC_DIVIDE,           DA_IntGate, int_handler_divide,                 PRIVILEGE_KRNL);
     idt_entry(VEC_DEBUG,            DA_IntGate, int_handler_debug,                  PRIVILEGE_KRNL);
     idt_entry(VEC_NMI,              DA_IntGate, int_handler_nmi,                    PRIVILEGE_KRNL);
@@ -57,7 +57,7 @@ void init_idt()
     idt_entry(VEC_SIMD,             DA_IntGate, int_handler_simd_error,             PRIVILEGE_KRNL);
     
     // Generate Handlers
-    kprintf("\tInterrupt Handlers\n");
+    kprintf("\tConstructing interrupt handlers\n");
     u8 *temp = (u8 *)int_handler_template_begin;
     ulong template_size = (ulong)int_handler_template_end - (ulong)int_handler_template_begin;
     int vec_num_offset = 0;

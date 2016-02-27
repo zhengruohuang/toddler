@@ -40,9 +40,13 @@ void init_int_handlers()
 {
     u32 i;
     
+    kprintf("Initializing interrupt handlers ... ");
+    
     for (i = 0; i < IDT_ENTRY_COUNT; i++) {
         int_handler_list[i] = NULL;
     }
+    
+    kprintf("Done!\n");
 }
 
 /*

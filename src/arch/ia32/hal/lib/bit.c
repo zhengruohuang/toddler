@@ -17,6 +17,8 @@ ulong round_up(ulong value)
             return cur;
         }
     }
+    
+    return value;
 }
 
 ulong round_down(ulong value)
@@ -28,4 +30,6 @@ ulong round_down(ulong value)
             return cur;
         }
     }
+    
+    return value;
 }

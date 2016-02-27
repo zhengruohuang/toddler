@@ -22,4 +22,11 @@ struct cpuid_reg {
 };
 
 
+extern void init_cpuid();
+extern int cpuid(struct cpuid_reg *reg);
+
+extern int get_num_cpus();
+extern void init_topo();
+
+
 #endif

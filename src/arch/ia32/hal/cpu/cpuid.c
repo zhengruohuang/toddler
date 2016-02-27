@@ -4,7 +4,7 @@
 
 
 static int cpuid_supported = 0;
-static int vendor_type = -1;
+//static int vendor_type = -1;
 
 
 void init_cpuid()
@@ -34,7 +34,7 @@ void init_cpuid()
 }
 
 
-static int do_cpuid(struct cpuid_reg *reg)
+int cpuid(struct cpuid_reg *reg)
 {
     if (!cpuid_supported) {
         return 0;
@@ -48,16 +48,4 @@ static int do_cpuid(struct cpuid_reg *reg)
     );
     
     return 1;
-}
-
-int check_cpuid_1(ulong *result)
-{
-}
-
-int check_cpuid_b_0(ulong *result)
-{
-}
-
-int check_cpuid_b_1(ulong *result)
-{
 }

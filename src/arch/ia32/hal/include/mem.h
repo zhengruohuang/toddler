@@ -5,7 +5,9 @@
 #include "common/include/data.h"
 
 
-
+extern void kfree(void *ptr);
+extern void *kalloc(size_t size);
+extern void init_kalloc();
 
 
 #endif

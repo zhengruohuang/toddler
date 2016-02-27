@@ -2,6 +2,8 @@
 #include "common/include/memlayout.h"
 #include "hal/include/lib.h"
 #include "hal/include/print.h"
+#include "hal/include/mem.h"
+#include "hal/include/int.h"
 
 
 static void hal_entry()
@@ -9,6 +11,13 @@ static void hal_entry()
     // First we init the screen then tell the user we are in HAL
     init_video();
     kprintf("We are in HAL!\n");
+    
+    // Init mempool
+    init_kalloc();
+    
+    // Init interrupt
+    init_int_handlers();
+    init_idt();
     
     // Init TSS
 

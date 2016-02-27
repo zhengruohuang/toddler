@@ -6,14 +6,20 @@
 
 
 #define dec_per_cpu(type, name)         \
-    int __##name##_per_cpu_index = -1;  \
-    type __##name##_template
+    int __##name##_per_cpu_id = -1
     
 #define ext_per_cpu(type, name)         \
-    extern int __##name##_per_cpu_index;\
-    extern type __##name##_template
+    extern int __##name##_per_cpu_id
     
-#define get_per_cpu(name)
+#define get_per_cpu(type, name)   ((type *)access_per_cpu_var(&__##name##_per_cpu_index, sizeof(type)))
+
+
+struct cpuid_reg {
+    ulong     a;
+    ulong     b;
+    ulong     c;
+    ulong     d;
+};
 
 
 #endif

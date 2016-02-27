@@ -27,6 +27,11 @@
 #endif
 
 
+#ifndef NULL
+#define NULL    ((void *)0)
+#endif
+
+
 typedef signed char         s8;
 typedef signed short        s16;
 typedef signed int          s32;
@@ -43,5 +48,6 @@ typedef unsigned int        uint;
 typedef unsigned long       ulong;
 typedef unsigned long long  ulonglong;
 
+typedef unsigned long       size_t;
 
 #endif

@@ -12,3 +12,4 @@ void no_opt halt()
         );
     } while (1);
 }
+

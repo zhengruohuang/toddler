@@ -15,10 +15,10 @@
 
 
 struct cpuid_reg {
-    ulong     a;
-    ulong     b;
-    ulong     c;
-    ulong     d;
+    ulong a;
+    ulong b;
+    ulong c;
+    ulong d;
 };
 
 

@@ -37,6 +37,9 @@ struct boot_parameters {
     // Cursor
     u32 cursor_row;
     u32 cursor_col;
+    
+    // First free PFN
+    u32 free_pfn_start;
         
     // Memory size
     u64 mem_size;

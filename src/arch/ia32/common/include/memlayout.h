@@ -3,6 +3,12 @@
 
 
 /*
+ * HAL
+ */
+#define POINTER_TO_EBDA_ADDR            (0x40e)
+
+
+/*
  * Loader
  */
 #define LOADER_VARIABLES_ADDR_SEGMENT   (0x0)

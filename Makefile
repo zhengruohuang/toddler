@@ -107,7 +107,7 @@ qemu:
 	@qemu-system-i386 -m 128			\
 		-fda $(TARGETDIR)/img/floppy.img	\
 		-no-shutdown -no-reboot -no-kvm		\
-		-smp cores=2,threads=2,sockets=2 # -numa node -numa node # -numa node -numa node
+		-smp cores=2,threads=2,sockets=2 # -numa node
 
 bochs: build
 	@cd $(VMDIR)/bochs;				\

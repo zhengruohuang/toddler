@@ -21,7 +21,7 @@ static void detect_topo()
 
 void init_topo()
 {
-    kprintf("Detecting processor topology ... \n");
+    kprintf("Detecting processor topology ... ");
     detect_topo();
     kprintf("%d logical CPUs\n", get_num_cpus());
 }

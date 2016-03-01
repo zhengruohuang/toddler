@@ -352,6 +352,14 @@ static void no_inline build_bootparam()
         print_char('.');
     } while (1);
     
+    // Free PFN start
+    if (boot_param->free_pfn_start) {
+        boot_param->free_pfn_start++;
+    } else {
+        boot_param->free_pfn_start = KERNEL_INIT_PTE_START_PFN;
+    }
+    print_string("|.");
+    
     // Memory size
     if (memory_size % (1024 * 1024)) {
         memory_size = memory_size >> 20;
@@ -459,7 +467,7 @@ static void no_opt no_inline setup_paging()
     u32 fb_end_pfn = fb_end / PAGE_SIZE + 1;
     
     u32 video_vpfn = VIDEO_START_VPFN;
-    u32 cur_init_pfn = KERNEL_INIT_PTE_START_PFN - 1;
+    boot_param->free_pfn_start = 0;
     
     u32 fb_pfn;
     
@@ -468,14 +476,19 @@ static void no_opt no_inline setup_paging()
         u32 pte_index = video_vpfn % PAGE_ENTRY_COUNT;
         
         if (!dir->value_u32[pde_index]) {
-            dir->value_pde[pde_index].pfn = ++cur_init_pfn;
+            if (boot_param->free_pfn_start) {
+                boot_param->free_pfn_start++;
+            } else {
+                boot_param->free_pfn_start = KERNEL_INIT_PTE_START_PFN;
+            }
+            dir->value_pde[pde_index].pfn = boot_param->free_pfn_start;
             dir->value_pde[pde_index].present = 1;
             dir->value_pde[pde_index].rw = 1;
             dir->value_pde[pde_index].user = 0;
             dir->value_pde[pte_index].cache_disabled = 1;
         }
         
-        pg = (struct page_frame *)(PFN_TO_ADDR(cur_init_pfn));
+        pg = (struct page_frame *)(PFN_TO_ADDR(boot_param->free_pfn_start));
         pg->value_u32[pte_index] = 0;
         pg->value_pte[pte_index].pfn = fb_pfn;
         pg->value_pte[pte_index].present = 1;

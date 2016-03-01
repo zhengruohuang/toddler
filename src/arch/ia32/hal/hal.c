@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
+#include "hal/include/bios.h"
 #include "hal/include/lib.h"
 #include "hal/include/print.h"
 #include "hal/include/mem.h"
@@ -13,8 +14,13 @@ static void hal_entry()
     init_video();
     kprintf("We are in HAL!\n");
     
+    // Init EBDA
+    init_ebda();
+    
     // Init mempool
     init_kalloc();
+    
+    // Init ACPI
     
     // Init interrupt
     init_int_handlers();
@@ -24,6 +30,14 @@ static void hal_entry()
     init_topo();
     
     // Init TSS
+    
+    // Init APIC
+    
+    // Init APs
+    
+    // Init kernel
+    
+    // Start the system!
 
     
 //     kprintf("We are in HAL!\n");
@@ -61,16 +75,6 @@ void asmlinkage _start()
     switch (boot_param->hal_start_flag) {
     // Start HAL
     case 0:
-        // Switch stack to HAL's
-        // thus this function is unable to return 
-//         __asm__ __volatile__
-//         (
-//             "xchgw  %%bx, %%bx;"
-//             "movl   %%eax, %%esp;"
-//             :
-//             : "a" (0xFFC02000)
-//         );
-        
         hal_entry();
         break;
         

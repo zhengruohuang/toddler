@@ -5,8 +5,4 @@
 #include "common/include/data.h"
 
 
-extern ulong ebda_phys_addr;
-extern void init_ebda();
-
-
 #endif

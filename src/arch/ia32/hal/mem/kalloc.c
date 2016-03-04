@@ -22,8 +22,8 @@ void *kalloc(size_t size)
 
 void init_kalloc()
 {
-    kprintf("Initializing HAL memory allocator ... \n");
+    kprintf("Initializing HAL memory allocator ... ");
     
     mempool_limit = get_bootparam()->hal_vaddr_end;
-    kprintf("Mempool start addr: %p\n", mempool_limit);
+    kprintf("mempool start addr: %p\n", mempool_limit);
 }

@@ -38,6 +38,9 @@ struct boot_parameters {
     u32 cursor_row;
     u32 cursor_col;
     
+    // EBDA
+    u32 ebda_addr;
+    
     // First free PFN
     u32 free_pfn_start;
         

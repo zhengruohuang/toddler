@@ -398,28 +398,22 @@ static void no_opt no_inline setup_paging()
     dir->value_pde[0].pfn = KERNEL_PTE_LO4_PFN;
     dir->value_pde[0].present = 1;
     dir->value_pde[0].rw = 1;
-    dir->value_pde[0].user = 0;
     
     dir->value_pde[1023].pfn = KERNEL_PTE_HI4_PFN;
     dir->value_pde[1023].present = 1;
     dir->value_pde[1023].rw = 1;
-    dir->value_pde[1023].user = 0;
     
     /*
      * Page table for low 4MB: Direct map.
      */
     struct page_frame *pg = (struct page_frame *)KERNEL_PTE_LO4_PADDR;
     
-    // The first page should be reserved so that a null pointer can be detected.
-    pg->value_u32[0] = 0;
-    
     // Regular direct map
-    for (i = 1; i < 1024; i++) {
+    for (i = 0; i < 1024; i++) {
         pg->value_u32[i] = 0;
         pg->value_pte[i].pfn = i;
         pg->value_pte[i].present = 1;
         pg->value_pte[i].rw = 1;
-        pg->value_pte[i].user = 0;
     }
     
     // 0xa0000 to 0xfffff should not be cached
@@ -438,7 +432,6 @@ static void no_opt no_inline setup_paging()
         pg->value_pte[i].pfn = HAL_EXEC_START_PFN + i - 896;
         pg->value_pte[i].present = 1;
         pg->value_pte[i].rw = 1;
-        pg->value_pte[i].user = 0;
     }
     pg->value_u32[1023] = 0;
     pg->value_u32[1022] = 0;
@@ -454,7 +447,6 @@ static void no_opt no_inline setup_paging()
         pg->value_pte[i].pfn = KERNEL_EXEC_START_PFN + i - 768;
         pg->value_pte[i].present = 1;
         pg->value_pte[i].rw = 1;
-        pg->value_pte[i].user = 0;
     }
     
     /*
@@ -484,7 +476,6 @@ static void no_opt no_inline setup_paging()
             dir->value_pde[pde_index].pfn = boot_param->free_pfn_start;
             dir->value_pde[pde_index].present = 1;
             dir->value_pde[pde_index].rw = 1;
-            dir->value_pde[pde_index].user = 0;
             dir->value_pde[pte_index].cache_disabled = 1;
         }
         
@@ -493,7 +484,6 @@ static void no_opt no_inline setup_paging()
         pg->value_pte[pte_index].pfn = fb_pfn;
         pg->value_pte[pte_index].present = 1;
         pg->value_pte[pte_index].rw = 1;
-        pg->value_pte[pte_index].user = 0;
         pg->value_pte[pte_index].cache_disabled = 1;
     }
     

@@ -1,9 +1,9 @@
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
-#include "hal/include/bios.h"
-#include "hal/include/lib.h"
 #include "hal/include/print.h"
+#include "hal/include/lib.h"
 #include "hal/include/mem.h"
+#include "hal/include/acpi.h"
 #include "hal/include/int.h"
 #include "hal/include/cpu.h"
 
@@ -14,13 +14,11 @@ static void hal_entry()
     init_video();
     kprintf("We are in HAL!\n");
     
-    // Init EBDA
-    init_ebda();
-    
     // Init mempool
     init_kalloc();
     
     // Init ACPI
+    init_acpi();
     
     // Init interrupt
     init_int_handlers();

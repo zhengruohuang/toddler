@@ -35,12 +35,6 @@
 #define ACPI_MADT_RESERVED_OEM_BEGIN        128
 
 
-enum acpi_table_type {
-    acpi_table_type_rsdt,
-    acpi_table_type_xsdt
-};
-
-
 /* Root System Description Pointer */
 struct acpi_rsdp_v1 {
     /* RSDP v1 */
@@ -282,6 +276,37 @@ enum {
 #define ACPI_SLP_EN (1 << 13)
 #define ACPI_SLP_TYP_OFFSET 10
 /******************************************************************************/
+
+
+/*
+ * MADT
+ */
+extern int madt_supported;
+extern ulong madt_lapic_addr;
+extern int madt_lapic_count;
+extern int madt_ioapic_count;
+extern int madt_int_count;
+
+extern int init_madt(struct acpi_madt *madt);
+
+
+/*
+ * FADT
+ */
+extern int fadt_supported;
+extern int acpi_shutdown_supported;
+
+extern int init_fadt(struct acpi_fadt *fadt);
+
+
+/*
+ * ACPI
+ */
+extern int acpi_supported;
+extern int acpi_v2_enabled;
+
+extern int acpi_byte_checksum(void *base, u32 size);
+extern void init_acpi();
 
 
 #endif

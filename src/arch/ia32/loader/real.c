@@ -346,6 +346,21 @@ static void real_mode init_vesa()
     print_done();
 }
 
+static void real_mode detect_ebda()
+{
+    print_string("Detecting EBDA  ...");
+    
+    u16 ebda_base_addr_from_eda = *((u16 *)POINTER_TO_EBDA_ADDR);
+    u32 ebda_phys_addr = ((u32)ebda_base_addr_from_eda) << 4;
+    
+    print_string(" found at ");
+    print_hex(ebda_phys_addr);
+    print_string(" ...");
+    
+    boot_param->ebda_addr = ebda_phys_addr;
+    print_done();
+}
+
 static void real_mode detect_memory_e820()
 {
     print_string("Detecting E820 memory map  ...");
@@ -568,6 +583,7 @@ int real_mode main()
     
     init_cursor_pos();
     init_vesa();
+    detect_ebda();
     detect_memory_e820();
     enable_a20();
     enter_protected_mode();

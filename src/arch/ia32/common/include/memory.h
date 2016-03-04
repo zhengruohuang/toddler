@@ -30,26 +30,27 @@
 #endif
 
 #ifndef PFN_TO_ADDR
-#define PFN_TO_ADDR(pfn)     ((pfn) << 12)
+#define PFN_TO_ADDR(pfn)        ((pfn) << 12)
 #endif
 
 #ifndef ADDR_TO_PFN
-#define ADDR_TO_PFN(addr)    ((addr) >> 12)
+#define ADDR_TO_PFN(addr)       ((addr) >> 12)
 #endif
 
-#ifndef HAL_MEMORY_GET_PDE_INDEX
-#define HAL_MEMORY_GET_PDE_INDEX(addr)          ((addr) >> 22)
+#ifndef GET_PDE_INDEX
+#define GET_PDE_INDEX(addr)     ((addr) >> 22)
 #endif
 
-#ifndef HAL_MEMORY_GET_PTE_INDEX
-#define HAL_MEMORY_GET_PTE_INDEX(addr)          (((addr) << 10) >> 22)
+#ifndef GET_PTE_INDEX
+#define GET_PTE_INDEX(addr)     (((addr) << 10) >> 22)
 #endif
 
-#ifndef HAL_MEMORY_GET_INDEX_IN_PAGE
-#define HAL_MEMORY_GET_INDEX_IN_PAGE(addr)      (((addr) << 20) >> 20)
+#ifndef GET_PAGE_OFFSET
+#define GET_PAGE_OFFSET(addr)   (((addr) << 20) >> 20)
 #endif
 
 #ifndef HAL_VADDR_TO_PADDR
+// FIXME: This is incorrect
 #define HAL_VADDR_TO_PADDR(vaddr)               (vaddr - (HAL_VIRTUAL_MEMORY_START_ADDRESS - HAL_EXECUTE_START_PFN * PAGE_SIZE))
 #endif
 

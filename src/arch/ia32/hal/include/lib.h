@@ -42,6 +42,15 @@ extern ulong round_down(ulong value);
 
 
 /*
+ * String
+ */
+extern void memcpy(void *src, void *dest, size_t count);
+extern void memset(void *src, int value, size_t size);
+extern void memzero(void *src, size_t size);
+extern int memcmp(void *src1, void *src2, size_t len);
+
+
+/*
  * Misc
  */
 extern void no_opt halt();

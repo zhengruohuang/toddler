@@ -1,6 +1,5 @@
 #include "common/include/data.h"
 #include "hal/include/print.h"
-#include "hal/include/bios.h"
 #include "hal/include/mem.h"
 #include "hal/include/lib.h"
 #include "hal/include/acpi.h"
@@ -206,9 +205,9 @@ void init_acpi()
         }
         
         // FADT
-        else if (!memcmp(hdr->signature, ACPI_FADT_SIGNATURE, 4)) {
-            kprintf("\tFound FADT at %p\n", hdr);
-            init_fadt((struct acpi_fadt *)hdr);
-        }
+        //else if (!memcmp(hdr->signature, ACPI_FADT_SIGNATURE, 4)) {
+        //    kprintf("\tFound FADT at %p\n", hdr);
+        //    init_fadt((struct acpi_fadt *)hdr);
+        //}
     }
 }

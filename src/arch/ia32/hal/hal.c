@@ -6,6 +6,7 @@
 #include "hal/include/acpi.h"
 #include "hal/include/int.h"
 #include "hal/include/cpu.h"
+#include "hal/include/mps.h"
 
 
 static void hal_entry()
@@ -19,6 +20,9 @@ static void hal_entry()
     
     // Init ACPI
     init_acpi();
+    
+    // Init MPS
+    init_mps();
     
     // Init interrupt
     init_int_handlers();

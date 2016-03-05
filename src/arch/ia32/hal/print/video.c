@@ -55,8 +55,8 @@ static void update_cursor()
                 *(dest_start + i) = *(src_start + i);
             }
             
-            for (i = 0; i < 2 * char_x / 4; i++) {
-                *(last_line + i) = 0;
+            for (i = 0; i < 2 * char_x / 2; i++) {
+                *(last_line + i) = 0x0;
             }
         }
         

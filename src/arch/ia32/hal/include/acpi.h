@@ -287,6 +287,9 @@ extern int madt_lapic_count;
 extern int madt_ioapic_count;
 extern int madt_int_count;
 
+extern struct acpi_madt_lapic *get_next_lapic_entry(struct acpi_madt_lapic *cur, int *usable);
+extern struct acpi_madt_ioapic *get_next_ioapic_entry(struct acpi_madt_ioapic *cur, ulong *ioapic_addr);
+extern struct acpi_madt_intr_src_ovrd *get_next_int_entry(struct acpi_madt_intr_src_ovrd *cur, int *src, int *gint, int *pol, int *tri);
 extern int init_madt(struct acpi_madt *madt);
 
 

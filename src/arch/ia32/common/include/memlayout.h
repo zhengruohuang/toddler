@@ -7,6 +7,15 @@
  */
 #define POINTER_TO_EBDA_ADDR            (0x40e)
 
+#define LAPIC_DEFAULT_PHYSICAL_ADDR     (0xfee00000)
+#define IOAPIC_DEFAULT_PHYSICAL_ADDR    (0xfec00000)
+#define IOAPIC_START_VIRTUAL_ADDR       (0)
+
+#define PER_CPU_AREA_SIZE               (4096 * 2)
+#define PER_CPU_AREA_START              (0)
+#define PER_CPU_ARE_LAPIC_OFFSET        (4096)
+#define PER_CPU_ARE_STACK_TOP_OFFSET    (4096)
+
 
 /*
  * Loader

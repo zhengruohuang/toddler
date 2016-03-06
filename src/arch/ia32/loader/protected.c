@@ -386,15 +386,15 @@ static void no_opt no_inline setup_paging()
 {
     print_string("Setting up Paging ...");
     
-    /* Get the page directory */
+    // Get the page directory
     struct page_frame *dir = (struct page_frame *)KERNEL_PDE_PADDR;
     
     u32 i;
     for (i = 1; i < 1023; i++) {
-        dir->value_u32[i] = 0;       /* Empty entries */
+        dir->value_u32[i] = 0;
     }
     
-    /* First and last entry in page directory should not be empty */
+    // First and last entry in page directory should not be empty
     dir->value_pde[0].pfn = KERNEL_PTE_LO4_PFN;
     dir->value_pde[0].present = 1;
     dir->value_pde[0].rw = 1;
@@ -458,14 +458,13 @@ static void no_opt no_inline setup_paging()
     u32 fb_start_pfn = fb_start / PAGE_SIZE;
     u32 fb_end_pfn = fb_end / PAGE_SIZE + 1;
     
-    u32 video_vpfn = VIDEO_START_VPFN;
     boot_param->free_pfn_start = 0;
     
     u32 fb_pfn;
     
-    for (fb_pfn = fb_start_pfn; fb_pfn <= fb_end_pfn; fb_pfn++, video_vpfn++) {
-        u32 pde_index = video_vpfn / PAGE_ENTRY_COUNT;
-        u32 pte_index = video_vpfn % PAGE_ENTRY_COUNT;
+    for (fb_pfn = fb_start_pfn; fb_pfn <= fb_end_pfn; fb_pfn++) {
+        u32 pde_index = fb_pfn / PAGE_ENTRY_COUNT;
+        u32 pte_index = fb_pfn % PAGE_ENTRY_COUNT;
         
         if (!dir->value_u32[pde_index]) {
             if (boot_param->free_pfn_start) {
@@ -501,16 +500,6 @@ static void no_opt no_inline setup_paging()
         :
         : "a" (KERNEL_PDE_PADDR)
     );
-    
-    // Update framebuffer address
-    boot_param->framebuffer_addr = VIDEO_START_VADDR + boot_param->framebuffer_addr % PAGE_SIZE;
-    
-    /* Zero memory at the highest 4MB */
-//     for (i = 0; i < 1023; i++) {
-//         for (j = 0; j < 1024; j++) {
-//             *((u32 *)(HI4_START_VADDR + i * j)) = 0;
-//         }
-//     }
     
     print_done();
 }

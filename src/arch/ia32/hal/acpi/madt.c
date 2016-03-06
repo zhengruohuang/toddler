@@ -31,7 +31,7 @@ struct acpi_madt_lapic *get_next_lapic_entry(struct acpi_madt_lapic *cur, int *u
     return NULL;
 }
 
-struct acpi_madt_ioapic *get_next_ioapic_entry(struct acpi_madt_ioapic *cur, int *ioapic_addr)
+struct acpi_madt_ioapic *get_next_ioapic_entry(struct acpi_madt_ioapic *cur, ulong *ioapic_addr)
 {
     struct acpi_madt_apic_header *end = (struct acpi_madt_apic_header *)(((ulong)acpi_madt) + acpi_madt->header.length);
     struct acpi_madt_apic_header *ptr;

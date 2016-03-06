@@ -48,6 +48,9 @@ typedef unsigned int        uint;
 typedef unsigned long       ulong;
 typedef unsigned long long  ulonglong;
 
+#ifndef AVOID_LIBC_CONFLICT
 typedef unsigned long       size_t;
+#endif
+
 
 #endif

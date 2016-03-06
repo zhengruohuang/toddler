@@ -3,6 +3,10 @@
 #include <string.h>
 
 
+#ifndef AVOID_LIBC_CONFLICT
+#define AVOID_LIBC_CONFLICT
+#endif
+
 #include "common/include/data.h"
 #include "common/include/floppyimg.h"
 
@@ -217,7 +221,6 @@ static void print_usage()
 int main(int argc, char *argv[])
 {
     printf("Toddler Floppy Image Generator 0.5.0.1\n");
-    printf("Copyright 2016 Ruohuang Zheng\n");
     
     /* Check arguments */
     if (argc < 3) {

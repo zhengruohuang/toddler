@@ -491,6 +491,11 @@ static void no_opt no_inline setup_paging()
     }
     
     /*
+     * HAL virtual space end
+     */
+    boot_param->hal_vspace_end = HAL_SPACE_END_VADDR;
+    
+    /*
      * Enable paging
      */
     __asm__ __volatile__
@@ -525,7 +530,7 @@ static int no_inline compare(u8* src, u8* dest, u8 length)
     return 0;
 }
 
-static void no_inline find_and_layout(char *name, int is_hal)
+static void no_inline find_and_layout(char *name, int bin_type)
 {
     u32 i;
     
@@ -602,7 +607,8 @@ static void no_inline find_and_layout(char *name, int is_hal)
     
     //stop();
     
-    if (is_hal) {
+    // We just loaded HAL
+    if (bin_type == 1) {
         // HAL Virtual Address End: Align to 4KB
         if (vaddr_end % PAGE_SIZE) {
             vaddr_end /= PAGE_SIZE;
@@ -614,6 +620,11 @@ static void no_inline find_and_layout(char *name, int is_hal)
         *((u32 *)loader_var->hal_entry_addr_ptr) = elf_header->elf_entry;
         boot_param->hal_entry_addr = elf_header->elf_entry;
         boot_param->hal_vaddr_end = vaddr_end;
+    }
+    
+    // We just loaded kernel
+    else if (bin_type == 2) {
+        boot_param->kernel_entry_addr = elf_header->elf_entry;
     }
     
     print_done();
@@ -643,7 +654,7 @@ int main()
     build_bootparam();
     setup_paging();
     find_and_layout("tdlrhal.bin", 1);
-    //find_and_layout("tdlrkrnl.bin", 0);
+    find_and_layout("tdlrkrnl.bin", 2);
     jump_to_hal();
     
     stop();

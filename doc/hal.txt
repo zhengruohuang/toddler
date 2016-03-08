@@ -6,16 +6,11 @@ HAL Virtual Memory Layout (Ultra-Pico)                          Index in PTE
 |                       |
 |   Reserved for PTEs   |
 |                       |
-|=======================| <- 4GB - 12KB          = 
-|     IO Permission     |                                     
-|        Bitmap         |                                       
-|-----------------------| <- 4GB - 20KB
+|=======================| <- 4GB - 12KB         = 
 |                       |                                       
-|   IO APIC (8 Pages)   |                                        
+| IO APIC (1 ~ 8 Pages) |                                        
 |                       |                                       
-|-----------------------| <- 4GB - 52KB         = 
-|      Local APIC       |
-|=======================| <- 4GB - 56KB         = 
+|=======================| <- 4GB - 12KB - (4KB ~ 32KB)  = 
 |                       |
 |          ...          |
 |                       |

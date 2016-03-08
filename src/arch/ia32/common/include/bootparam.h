@@ -25,6 +25,10 @@ struct boot_parameters {
     u32 hal_start_flag;
     u32 hal_entry_addr;
     u32 hal_vaddr_end;
+    u32 hal_vspace_end;
+    
+    // Kernel
+    u32 kernel_entry_addr;
     
     // Video info
     u32 video_mode;

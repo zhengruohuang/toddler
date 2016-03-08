@@ -16,6 +16,9 @@ static void hal_entry()
     init_video();
     kprintf("We are in HAL!\n");
     
+    // Init CPUID
+    init_cpuid();
+    
     // Init mempool
     init_kalloc();
     

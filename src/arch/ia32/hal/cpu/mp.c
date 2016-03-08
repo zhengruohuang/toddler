@@ -36,10 +36,10 @@ void init_mp()
         ulong cur_stack_top = cur_area_vstart + PER_CPU_ARE_STACK_TOP_OFFSET;
         
         // Map LAPIC
-        kernel_indirect_map_array(cur_lapic_vaddr, lapic_paddr, PAGE_SIZE, 1);
+        kernel_indirect_map_array(cur_lapic_vaddr, lapic_paddr, PAGE_SIZE, 1, 0);
         
         // Map per-cpu stack
-        kernel_indirect_map_array(cur_area_vstart, PFN_TO_ADDR(start_pfn), PER_CPU_AREA_PSIZE, 1);
+        kernel_indirect_map_array(cur_area_vstart, PFN_TO_ADDR(start_pfn), PER_CPU_AREA_PSIZE, 1, 0);
         
         // Record the result
         per_cpu_area_start_vaddr[i] = cur_area_vstart;

@@ -18,6 +18,25 @@ static struct mps_fps *mps_fps;
 static struct mps_ct *mps_ct;
 
 
+struct mps_ioapic *get_next_mps_ioapic_entry(struct mps_ioapic *cur, ulong *ioapic_addr)
+{
+    int i;
+    
+    u8 *e = &mps_ct->base_table[0];
+    
+    for (i = 0; i < mps_ct->entry_count; i++) {
+        if (*e == 2 && (ulong)e > (ulong)cur) {
+            struct mps_ioapic *ioe = (struct mps_ioapic *)e;
+            *ioapic_addr = ioe->ioapic_address;
+            
+            return ioe;
+        }
+    }
+    
+    return NULL;
+}
+
+
 static void lapic(struct mps_processor *pr, u32 i)
 {
     kprintf("\t\tProcessor #%d: ID %d\n", i, pr->lapic_id);

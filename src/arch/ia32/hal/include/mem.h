@@ -5,8 +5,8 @@
 #include "common/include/data.h"
 
 
-extern void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache);
-extern void kernel_indirect_map_array(ulong vaddr, ulong paddr, size_t size, int disable_cache);
+extern void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int override);
+extern void kernel_indirect_map_array(ulong vaddr, ulong paddr, size_t size, int disable_cache, int override);
 extern void kernel_direct_map(ulong addr, int disable_cache);
 extern void kernel_direct_map_array(ulong addr, size_t size, int disable_cache);
 

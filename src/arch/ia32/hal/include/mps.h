@@ -132,6 +132,8 @@ struct mps_lintr {
 extern int mps_supported;
 extern ulong mps_lapic_addr;
 
+extern struct mps_ioapic *get_next_mps_ioapic_entry(struct mps_ioapic *cur, ulong *ioapic_addr);
+
 extern int mps_lapic_count;
 extern int mps_ioapic_count;
 extern int mps_bus_count;

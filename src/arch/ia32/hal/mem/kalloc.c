@@ -35,6 +35,9 @@ void *kalloc(size_t size)
     
     void *result = (void *)mempool_limit;
     mempool_limit += size;
+    
+    assert(mempool_limit <= get_bootparam()->hal_vspace_end);
+    
     return result;
 }
 

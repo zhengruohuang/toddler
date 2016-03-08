@@ -486,6 +486,10 @@ static void no_opt no_inline setup_paging()
         pg->value_pte[pte_index].cache_disabled = 1;
     }
     
+    if (!boot_param->free_pfn_start) {
+        boot_param->free_pfn_start = KERNEL_INIT_PTE_START_PFN;
+    }
+    
     /*
      * Enable paging
      */

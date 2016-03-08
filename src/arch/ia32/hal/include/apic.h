@@ -5,5 +5,11 @@
 #include "common/include/data.h"
 
 
+extern int apic_supported;
+extern int apic_present;
+extern ulong lapic_paddr;
+
+extern void init_apic();
+
 
 #endif

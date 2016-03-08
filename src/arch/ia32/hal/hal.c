@@ -7,6 +7,7 @@
 #include "hal/include/int.h"
 #include "hal/include/cpu.h"
 #include "hal/include/mps.h"
+#include "hal/include/apic.h"
 
 
 static void hal_entry()
@@ -31,15 +32,25 @@ static void hal_entry()
     // Init topo
     init_topo();
     
+    // Init APIC
+    init_apic();
+    
+    // Init MP
+    init_mp();
+    
     // Init TSS
     
-    // Init APIC
+    // Init GDT
     
-    // Init APs
+    // Init IDT
     
     // Init kernel
     
-    // Start the system!
+    // Bringup BSP
+    
+    // Bringup APs
+    
+    // Start to work
 
     
 //     kprintf("We are in HAL!\n");

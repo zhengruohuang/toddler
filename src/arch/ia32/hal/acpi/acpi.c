@@ -169,10 +169,10 @@ void init_acpi()
     // Get and map RSDT or XSDT
     if (acpi_v2_enabled) {
         acpi_xsdt = (struct acpi_xsdt *)(acpi_rsdp->xsdt_address);
-        kernel_direct_map((ulong)acpi_xsdt, 0);
+        kernel_direct_map_array((ulong)acpi_xsdt, sizeof(struct acpi_xsdt), 0);
     } else {
         acpi_rsdt = (struct acpi_rsdt *)(acpi_rsdp->rsdt_address);
-        kernel_direct_map((ulong)acpi_rsdt, 0);
+        kernel_direct_map_array((ulong)acpi_rsdt, sizeof(struct acpi_rsdt), 0);
     }
     
     // Find out all tables
@@ -181,8 +181,10 @@ void init_acpi()
     int count = 0;
     if (acpi_v2_enabled) {
         count = (acpi_xsdt->header.length - sizeof(struct acpi_sdt_header)) / sizeof(u64);
+        kernel_direct_map_array((ulong)acpi_xsdt, acpi_xsdt->header.length, 0);
     } else {
         count = (acpi_rsdt->header.length - sizeof(struct acpi_sdt_header)) / sizeof(u32);
+        kernel_direct_map_array((ulong)acpi_rsdt, acpi_rsdt->header.length, 0);
     }
     
     int i;
@@ -196,7 +198,7 @@ void init_acpi()
         }
         
         // Map the table
-        kernel_direct_map((ulong)hdr, 0);
+        kernel_direct_map_array((ulong)hdr, sizeof(struct acpi_sdt_header), 0);
         
         // MADT
         if (!memcmp(hdr->signature, ACPI_MADT_SIGNATURE, 4)) {

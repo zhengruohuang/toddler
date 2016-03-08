@@ -2,14 +2,8 @@
 #include "common/include/memlayout.h"
 #include "common/include/memory.h"
 #include "hal/include/lib.h"
+#include "hal/include/mem.h"
 
-
-static ulong alloc_init_kernel_pte()
-{
-    ulong result = PFN_TO_ADDR((ulong)get_bootparam()->free_pfn_start);
-    get_bootparam()->free_pfn_start++;
-    return result;
-}
 
 void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache)
 {
@@ -18,7 +12,7 @@ void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache)
     int index = GET_PDE_INDEX(vaddr);
     
     if (!page->value_u32[index]) {
-        page->value_pde[index].pfn = alloc_init_kernel_pte();
+        page->value_pde[index].pfn = palloc(1);
         page->value_pde[index].present = 1;
         page->value_pde[index].rw = 1;
     }
@@ -31,9 +25,12 @@ void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache)
         assert(
             page->value_pte[index].pfn == ADDR_TO_PFN(paddr) &&
             page->value_pde[index].present &&
-            page->value_pde[index].rw &&
-            page->value_pde[index].cache_disabled == disable_cache
+            page->value_pde[index].rw
         );
+        
+        if (disable_cache) {
+            page->value_pde[index].cache_disabled = 1;
+        }
     } else {
         page->value_pte[index].pfn = ADDR_TO_PFN(paddr);
         page->value_pde[index].present = 1;

@@ -4,14 +4,42 @@
 
 #include "common/include/data.h"
 #include "common/include/bootparam.h"
+#include "hal/include/print.h"
 
 
 #ifndef assert
-#define assert(exp)
+#define assert(exp)                         \
+    do {                                    \
+        if (exp) {                          \
+        } else {                            \
+            kprintf("[ASSERT] ");           \
+            kprintf(#exp);                  \
+            kprintf("\n");                  \
+            disp_src_info(__FILE__, __BASE_FILE__, __LINE__);   \
+            halt();                         \
+        }                                   \
+    } while (0)
 #endif
 
 #ifndef warn
-#define warn    kprintf
+#define warn(fmt, ...)                  \
+    do {                                \
+        kprintf("[WARN] ");             \
+        kprintf(fmt, ##__VA_ARGS__);    \
+        kprintf("\n");                  \
+        disp_src_info(__FILE__, __BASE_FILE__, __LINE__);   \
+    } while (0)
+#endif
+
+#ifndef panic
+#define panic(fmt, ...)                 \
+    do {                                \
+        kprintf("[PANIC] ");            \
+        kprintf(fmt, ##__VA_ARGS__);    \
+        kprintf("\n");                  \
+        disp_src_info(__FILE__, __BASE_FILE__, __LINE__);   \
+        halt();                                             \
+    } while (0)
 #endif
 
 
@@ -54,6 +82,7 @@ extern int memcmp(void *src1, void *src2, size_t len);
  * Misc
  */
 extern void no_opt halt();
+extern void disp_src_info(char *file, char *base, int line);
 
 
 #endif

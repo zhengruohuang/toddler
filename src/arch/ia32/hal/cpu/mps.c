@@ -209,7 +209,7 @@ static int find_config_table()
         }
         
         mps_ct = (struct mps_ct *)(mps_fps->configuration_table);
-        kernel_direct_map((ulong)mps_ct, 0);
+        kernel_direct_map_array((ulong)mps_ct, sizeof(struct mps_ct), 0);
         kernel_direct_map_array(
             (ulong)mps_ct,
             sizeof(struct mps_ct) + mps_ct->base_table_length +

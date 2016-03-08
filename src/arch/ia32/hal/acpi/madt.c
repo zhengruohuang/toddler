@@ -98,7 +98,7 @@ int init_madt(struct acpi_madt *madt)
     acpi_madt = madt;
     
     // Map the table to HAL's address space
-    kernel_direct_map((ulong)madt, 0);
+    kernel_direct_map_array((ulong)madt, sizeof(struct acpi_madt), 0);
     kernel_direct_map_array((ulong)madt, madt->header.length, 0);
     
     // Checksum

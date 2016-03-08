@@ -1,10 +1,28 @@
 #include "common/include/data.h"
+#include "common/include/memory.h"
 #include "hal/include/print.h"
 #include "hal/include/lib.h"
 #include "hal/include/mem.h"
 
 
 static ulong mempool_limit = 0;
+
+
+/*
+ * Allocate a page, returns PFN
+ */
+ulong palloc(int count)
+{
+    assert(count > 0);
+    
+    ulong result = (ulong)get_bootparam()->free_pfn_start;
+    get_bootparam()->free_pfn_start += count;
+    
+    //kprintf("PAlloc: %p, count: %d\n", result, count);
+    
+    return result;
+}
+
 
 void kfree(void *ptr)
 {

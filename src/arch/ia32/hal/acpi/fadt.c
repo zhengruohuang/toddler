@@ -241,7 +241,7 @@ int init_fadt(struct acpi_fadt *fadt)
     acpi_fadt = fadt;
     
     // Map the table to HAL's address space
-    kernel_direct_map((ulong)fadt, 0);
+    kernel_direct_map_array((ulong)fadt, sizeof(struct acpi_fadt), 0);
     kernel_direct_map_array((ulong)fadt, fadt->header.length, 0);
     
     // Checksum
@@ -253,7 +253,7 @@ int init_fadt(struct acpi_fadt *fadt)
     // Find and map DSDT
     struct acpi_dsdt *dsdt = (struct acpi_dsdt *)fadt->dsdt_address;
     
-    kernel_direct_map((long)dsdt, 0);
+    kernel_direct_map_array((long)dsdt, sizeof(struct acpi_dsdt), 0);
     kernel_direct_map_array((ulong)dsdt, dsdt->header.length, 0);
     
     kprintf("\t\tFound DSDT at %p, Len: %d Bytes\n", dsdt, dsdt->header.length);

@@ -192,10 +192,6 @@
 int apic_supported = 0;
 int apic_present = 0;
 
-int ioapic_count = 8;
-
-ulong lapic_paddr = LAPIC_DEFAULT_PADDR;
-
 
 static ulong cpu_apic_present()
 {
@@ -208,77 +204,6 @@ static ulong cpu_apic_present()
     cpuid(&reg);
     
     return (reg.d & (0x1 << 9));
-}
-
-static void map_ioapic()
-{
-    ulong ioapic_paddr = IOAPIC_DEFAULT_PADDR;
-    ulong ioapic_vaddr = IOAPIC_TOP_VADDR;
-    ioapic_count = 8;
-    
-    if (acpi_supported && madt_supported) {
-        if (madt_ioapic_count < ioapic_count) {
-            ioapic_count = madt_ioapic_count;
-        }
-        assert(ioapic_count > 0);
-        
-        struct acpi_madt_ioapic *e = NULL;
-        int i = 0;
-        while (e = get_next_acpi_ioapic_entry(e, &ioapic_paddr)) {
-            assert(ioapic_paddr);
-            ioapic_vaddr -= PAGE_SIZE;
-            
-            kernel_indirect_map_array(
-                ioapic_vaddr, ioapic_paddr, PAGE_SIZE, 1, 1
-            );
-            
-            kprintf("\tIOAPIC #%d mapped: %p -> %p\n", i, ioapic_vaddr, ioapic_paddr);
-            i++;
-        }
-    }
-    
-    else if (mps_supported) {
-        if (mps_ioapic_count < ioapic_count) {
-            ioapic_count = mps_ioapic_count;
-        }
-        assert(ioapic_count > 0);
-
-        struct mps_ioapic *e = NULL;
-        int i = 0;
-        while (e = get_next_mps_ioapic_entry(e, &ioapic_paddr)) {
-            assert(ioapic_paddr);
-            ioapic_vaddr -= PAGE_SIZE;
-            
-            kernel_indirect_map_array(
-                IOAPIC_TOP_VADDR - PAGE_SIZE * i, ioapic_paddr,
-                PAGE_SIZE, 1, 1
-            );
-            
-            kprintf("\tIOAPIC #%d mapped: %p -> %p\n", i, ioapic_vaddr, ioapic_paddr);
-            i++;
-        }
-    }
-    
-    // Update HAL virtual space boundary
-    get_bootparam()->hal_vspace_end -= PAGE_SIZE * ioapic_count;
-}
-
-static void find_lapic_paddr()
-{
-    // Figure out LAPIC paddr
-    if (acpi_supported && madt_supported) {
-        if (madt_lapic_addr) {
-            lapic_paddr = madt_lapic_addr;
-        }
-    } else if (mps_supported) {
-        if (mps_lapic_addr) {
-            lapic_paddr = mps_lapic_addr;
-        }
-    } else {
-        panic("APIC Init: Unable to figure out LAPIC paddr!");
-    }
-    
-    kprintf("\tLocal APIC physical addr: %p\n", lapic_paddr);
 }
 
 void init_apic()
@@ -299,10 +224,10 @@ void init_apic()
         disable_i8259a();
         
         // Find out paddr of LAPIC
-        find_lapic_paddr();
+        init_lapic();
         
         // Map IOAPIC
-        map_ioapic();
+        init_ioapic();
     } else {
         kprintf("\tAPIC not supported, use i8259a instead. MP is disabled!\n");
         init_i8259a();

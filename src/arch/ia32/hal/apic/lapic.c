@@ -213,53 +213,148 @@
 //     //hal_apic_lapic_ipi_broadcast(0, start_ipi_id);
 // }
 // 
-// void lapic_eoi()
-// {
-//     hal_apic_lapic[HAL_APIC_EOI] = 0;
-// }
-// 
-// int get_lapic_id()
-// {
-//     s_hal_apic_lapic_id idreg;
-//     
-//     idreg.value = hal_apic_lapic[HAL_APIC_LAPIC_ID];
-//     
-//     return idreg.apic_id;
-// }
-// 
-// int check_lapic()
-// {
-//     s_hal_apic_error_status_register esr;
-//     
-//     esr.value = hal_apic_lapic[HAL_APIC_ESR];
-//     
-//     if (esr.send_checksum_error) {
-//         kprintf("Send Checksum Error\n");
-//     }
-//     
-//     if (esr.receive_checksum_error) {
-//         kprintf("Receive Checksum Error\n");
-//     }
-//     
-//     if (esr.send_accept_error) {
-//         kprintf("Send Accept Error\n");
-//     }
-//     
-//     if (esr.receive_accept_error) {
-//         kprintf("Receive Accept Error\n");
-//     }
-//     
-//     if (esr.send_illegal_vector) {
-//         kprintf("Send Illegal Vector\n");
-//     }
-//     
-//     if (esr.received_illegal_vector) {
-//         kprintf("Received Illegal Vector\n");
-//     }
-//     
-//     if (esr.illegal_register_address) {
-//         kprintf("Illegal Register Address\n");
-//     }
-//     
-//     return !esr.err_bitmap;
-// }
+
+
+#include "common/include/data.h"
+#include "common/include/memlayout.h"
+#include "common/include/memory.h"
+#include "hal/include/print.h"
+#include "hal/include/lib.h"
+#include "hal/include/acpi.h"
+#include "hal/include/mps.h"
+#include "hal/include/mem.h"
+#include "hal/include/cpu.h"
+#include "hal/include/apic.h"
+
+
+ulong lapic_paddr = LAPIC_DEFAULT_PADDR;
+u32 *lapic_vaddr = (u32 *)LAPIC_VADDR;
+
+
+// Records the APCI ID of each processor
+int bsp_apic_id = -1;
+ulong *apic_id_map = NULL;
+int cur_apic_id_map_index = 0;
+
+
+/*
+ * Interrupt handlers
+ */
+static int lapic_error_handler(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags)
+{
+    return 0;
+}
+
+static int lapic_spurious_handler(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags)
+{
+    return 0;
+}
+
+static int check_lapic()
+{
+    s_hal_apic_error_status_register esr;
+    
+    esr.value = lapic_vaddr[APIC_ESR];
+    
+    if (esr.send_checksum_error) {
+        kprintf("Send Checksum Error\n");
+    }
+    
+    if (esr.receive_checksum_error) {
+        kprintf("Receive Checksum Error\n");
+    }
+    
+    if (esr.send_accept_error) {
+        kprintf("Send Accept Error\n");
+    }
+    
+    if (esr.receive_accept_error) {
+        kprintf("Receive Accept Error\n");
+    }
+    
+    if (esr.send_illegal_vector) {
+        kprintf("Send Illegal Vector\n");
+    }
+    
+    if (esr.received_illegal_vector) {
+        kprintf("Received Illegal Vector\n");
+    }
+    
+    if (esr.illegal_register_address) {
+        kprintf("Illegal Register Address\n");
+    }
+    
+    return !esr.err_bitmap;
+}
+
+void lapic_eoi()
+{
+    lapic_vaddr[APIC_EOI] = 0;
+}
+
+int get_cpu_id_by_apic_id(int apic_id)
+{
+    int i;
+    
+    for (i = 0; i < num_cpus; i++) {
+        if (apic_id_map[i] == apic_id) {
+            return i;
+        }
+    }
+    
+    warn("Unable to find APIC ID: %d", apic_id);
+    
+    return -1;
+}
+
+int get_apic_id()
+{
+    struct lapic_id idreg;
+    
+    idreg.value = lapic_vaddr[LAPIC_ID];
+    
+    return idreg.apic_id;
+}
+
+void init_lapic_mp()
+{
+    // Insert into APIC ID map
+    int cur_cpu_index = cur_apic_id_map_index++;
+    int cur_apic_id = get_apic_id();
+    apic_id_map[cur_cpu_index] = cur_apic_id;
+    
+    // BSP's APIC ID
+    if (0 == cur_cpu_index) {
+        bsp_apic_id = cur_apic_id;
+    }
+}
+
+void init_lapic()
+{
+    // Figure out LAPIC paddr
+    if (acpi_supported && madt_supported) {
+        if (madt_lapic_addr) {
+            lapic_paddr = madt_lapic_addr;
+        }
+    } else if (mps_supported) {
+        if (mps_lapic_addr) {
+            lapic_paddr = mps_lapic_addr;
+        }
+    } else {
+        panic("APIC Init: Unable to figure out LAPIC paddr!");
+    }
+    
+    // Map LAPIC
+    kernel_indirect_map_array(lapic_vaddr, lapic_paddr, PAGE_SIZE, 1, 1);
+    kprintf("\tLocal APIC mapped: %p -> %p\n", lapic_vaddr, lapic_paddr);
+    
+    // Alloc APICID map
+    int i;
+    apic_id_map = kalloc(sizeof(ulong) * num_cpus);
+    for (i = 0; i < num_cpus; i++) {
+        apic_id_map[i] = -1;
+    }
+    
+    // Init LAPIC on BSP
+    init_lapic_mp();
+}

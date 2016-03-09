@@ -48,6 +48,11 @@ extern void init_topo();
 /*
  * MP
  */
+extern ulong get_per_cpu_area_start_vaddr(int cpu_id);
+extern ulong get_per_cpu_lapic_vaddr(int cpu_id);
+extern ulong get_per_cpu_stack_top(int cpu_id);
+extern ulong get_per_cpu_data_vaddr(int cpu_id);
+
 extern void init_mp();
 extern void bringup_mp();
 

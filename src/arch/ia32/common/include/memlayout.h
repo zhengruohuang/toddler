@@ -12,16 +12,15 @@
 
 #define LAPIC_DEFAULT_PADDR             (0xfee00000)
 #define IOAPIC_DEFAULT_PADDR            (0xfec00000)
-#define IOAPIC_TOP_VADDR                (0xFFFFD000)
+#define LAPIC_VADDR                     (0xFFFFC000)
+#define IOAPIC_TOP_VADDR                (0xFFFFC000)
 
-#define PER_CPU_AREA_VPAGE_COUNT        (2)
-#define PER_CPU_AREA_VSIZE              (PAGE_SIZE * PER_CPU_AREA_VPAGE_COUNT)
-#define PER_CPU_AREA_PPAGE_COUNT        (1)
-#define PER_CPU_AREA_PSIZE              (PAGE_SIZE * PER_CPU_AREA_PPAGE_COUNT)
+#define PER_CPU_AREA_PAGE_COUNT         (1)
+#define PER_CPU_AREA_SIZE               (PAGE_SIZE * PER_CPU_AREA_PAGE_COUNT)
 
 #define PER_CPU_AREA_TOP_VADDR          (0xFFF00000)
-#define PER_CPU_ARE_LAPIC_OFFSET        (PER_CPU_AREA_PSIZE)
-#define PER_CPU_ARE_STACK_TOP_OFFSET    (PER_CPU_AREA_PSIZE)
+#define PER_CPU_AREA_STACK_TOP_OFFSET   (PER_CPU_AREA_SIZE)
+#define PER_CPU_AREA_DATA_START_OFFSET  (0)
 
 
 /*

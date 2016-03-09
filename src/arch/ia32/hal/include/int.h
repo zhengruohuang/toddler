@@ -123,6 +123,7 @@ extern void enable_local_int();
 /*
  * Pre-defined interrupt handlers
  */
+extern int_handler int_handler_list[IDT_ENTRY_COUNT];
 extern void init_int_handlers();
 extern int asmlinkage int_handler_entry(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags);
 extern int int_handler_dummy(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags);
@@ -135,6 +136,25 @@ extern int int_handler_device(u32 vector_num, u32 error_code, u32 eip, u32 cs, u
  */
 extern void init_idt();
 extern void init_idt_mp();
+
+
+/*
+ * Interrupt vectors
+ */
+#define INT_VECTOR_ALLOC_START        32
+#define INT_VECTOR_ALLOC_END          255
+
+enum int_vector_state {
+    int_vector_unknown,
+    int_vector_reserved,
+    int_vector_free,
+    int_vector_allocated,
+    int_vector_other
+};
+
+extern void init_int_vector();
+extern int alloc_int_vector(int_handler hdlr);
+extern void free_int_vector(int vector);
 
 
 #endif

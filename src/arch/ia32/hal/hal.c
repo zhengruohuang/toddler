@@ -31,6 +31,7 @@ static void hal_entry()
     // Init interrupt
     init_int_handlers();
     init_idt();
+    init_int_vector();
     
     // Init topo
     init_topo();

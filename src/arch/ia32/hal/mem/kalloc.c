@@ -43,8 +43,12 @@ void *kalloc(size_t size)
 
 void init_kalloc()
 {
-    kprintf("Initializing HAL memory allocator ... ");
+    kprintf("Initializing HAL memory allocator\n");
     
     mempool_limit = get_bootparam()->hal_vaddr_end;
-    kprintf("mempool start addr: %p\n", mempool_limit);
+    
+    kprintf("\tMempool range: %p to %p, allocatable size: %d KB\n",
+            mempool_limit, get_bootparam()->hal_vspace_end,
+            (int)(get_bootparam()->hal_vspace_end - mempool_limit) / 1024
+    );
 }

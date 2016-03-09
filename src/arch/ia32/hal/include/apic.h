@@ -197,15 +197,17 @@ struct apic_task_priority_register {
 /* Spurious-Interrupt Vector Register. */
 #define APIC_SVR  (0x0f0 / sizeof(u32))
 
-typedef union {
-    u32 value;
-    struct {
-        u32     vector          : 8;            /* < Spurious Vector. */
-        u32     lapic_enabled   : 1;            /* < APIC Software Enable/Disable. */
-        u32     focus_checking  : 1;            /* < Focus Processor Checking. */
-        u32     reserved        : 22;           /* < Reserved. */
-    } packedstruct;
-} s_hal_apic_spurious_vector_register;
+struct apic_spurious_vector_register {
+    union {
+        u32 value;
+        struct {
+            u32     vector          : 8;            /* < Spurious Vector. */
+            u32     lapic_enabled   : 1;            /* < APIC Software Enable/Disable. */
+            u32     focus_checking  : 1;            /* < Focus Processor Checking. */
+            u32     reserved        : 22;           /* < Reserved. */
+        };
+    };
+} packedstruct;
 /******************************************************************************/
 
 
@@ -215,13 +217,15 @@ typedef union {
 /* Time Divide Configuration Register. */
 #define APIC_TDCR  (0x3e0 / sizeof(u32))
 
-typedef union {
-    u32 value;
-    struct {
-        u32     div_value       : 4;            /* < Divide Value, bit 2 is always 0. */
-        u32     reserved        : 28;           /* < Reserved. */
-    } packedstruct;
-} s_hal_apic_divide_config_register;
+struct apic_divide_config_register {
+    union {
+        u32 value;
+        struct {
+            u32     div_value       : 4;            /* < Divide Value, bit 2 is always 0. */
+            u32     reserved        : 28;           /* < Reserved. */
+        };
+    };
+} packedstruct;
 /******************************************************************************/
 
 
@@ -237,18 +241,20 @@ typedef union {
 /* LVT Timer register. */
 #define APIC_LVT_TIME       (0x320 / sizeof(u32))
 
-typedef union {
-    u32 value;
-    struct {
-        u32     vector          : 8;            /* < Local Timer Interrupt vector. */
-        u32     reserved_1      : 4;            /* < Reserved. */
-        u32     delivs          : 1;            /* < Delivery status (RO). */
-        u32     reserved_2      : 3;            /* < Reserved. */
-        u32     masked          : 1;            /* < Interrupt Mask. */
-        u32     mode            : 1;            /* < Timer Mode. */
-        u32     reserved_3      : 14;           /* < Reserved. */
-    } packedstruct;
-} s_hal_apic_lvt_timer_register;
+struct apic_lvt_timer_register {
+    union {
+        u32 value;
+        struct {
+            u32     vector          : 8;            /* < Local Timer Interrupt vector. */
+            u32     reserved_1      : 4;            /* < Reserved. */
+            u32     delivs          : 1;            /* < Delivery status (RO). */
+            u32     reserved_2      : 3;            /* < Reserved. */
+            u32     masked          : 1;            /* < Interrupt Mask. */
+            u32     mode            : 1;            /* < Timer Mode. */
+            u32     reserved_3      : 14;           /* < Reserved. */
+        };
+    };
+} packedstruct;
 /******************************************************************************/
 
 
@@ -259,20 +265,22 @@ typedef union {
 #define APIC_LVT_LINT0  (0x350 / sizeof(u32))
 #define APIC_LVT_LINT1  (0x360 / sizeof(u32))
 
-typedef union {
-    u32 value;
-    struct {
-        u32     vector          : 8;            /* < LINT Interrupt vector. */
-        u32     delmod          : 3;            /* < Delivery Mode. */
-        u32     reserved_1      : 1;            /* < Reserved. */
-        u32     delivs          : 1;            /* < Delivery status (RO). */
-        u32     intpol          : 1;            /* < Interrupt Input Pin Polarity. */
-        u32     irr             : 1;            /* < Remote IRR (RO). */
-        u32     trigger_mode    : 1;            /* < Trigger Mode. */
-        u32     masked          : 1;            /* < Interrupt Mask. */
-        u32     reserved_2      : 15;           /* < Reserved. */
-    } packedstruct;
-} s_hal_apic_lvt_lint_register;
+struct apic_lvt_lint_register {
+    union {
+        u32 value;
+        struct {
+            u32     vector          : 8;            /* < LINT Interrupt vector. */
+            u32     delmod          : 3;            /* < Delivery Mode. */
+            u32     reserved_1      : 1;            /* < Reserved. */
+            u32     delivs          : 1;            /* < Delivery status (RO). */
+            u32     intpol          : 1;            /* < Interrupt Input Pin Polarity. */
+            u32     irr             : 1;            /* < Remote IRR (RO). */
+            u32     trigger_mode    : 1;            /* < Trigger Mode. */
+            u32     masked          : 1;            /* < Interrupt Mask. */
+            u32     reserved_2      : 15;           /* < Reserved. */
+        };
+    };
+} packedstruct;
 /******************************************************************************/
 
 
@@ -282,17 +290,19 @@ typedef union {
 /* LVT Error register. */
 #define APIC_LVT_ERR        (0x370 / sizeof(u32))
 
-typedef union {
-    u32 value;
-    struct {
-        u32     vector          : 8;            /* < Local Timer Interrupt vector. */
-        u32     reserved_1      : 4;            /* < Reserved. */
-        u32     delivs          : 1;            /* < Delivery status (RO). */
-        u32     reserved_2      : 3;            /* < Reserved. */
-        u32     masked          : 1;            /* < Interrupt Mask. */
-        u32     reserved_3      : 15;           /* < Reserved. */
-    } packedstruct;
-} s_hal_apic_lvt_error_register;
+struct apic_lvt_error_register {
+    union {
+        u32 value;
+        struct {
+            u32     vector          : 8;            /* < Local Timer Interrupt vector. */
+            u32     reserved_1      : 4;            /* < Reserved. */
+            u32     delivs          : 1;            /* < Delivery status (RO). */
+            u32     reserved_2      : 3;            /* < Reserved. */
+            u32     masked          : 1;            /* < Interrupt Mask. */
+            u32     reserved_3      : 15;           /* < Reserved. */
+        };
+    };
+} packedstruct;
 /******************************************************************************/
 
 
@@ -302,13 +312,15 @@ typedef union {
 /*  Local APIC ID Register. */
 #define APIC_LAPIC_ID  (0x020 / sizeof(u32))
 
-typedef union {
-    u32 value;
-    struct {
-        u32     reserved        : 24;           /* < Reserved. */
-        u32     apic_id         : 8;            /* < Local APIC ID. */
-    } packedstruct;
-} s_hal_apic_lapic_id;
+struct apic_lapic_id {
+    union {
+        u32 value;
+        struct {
+            u32     reserved        : 24;           /* < Reserved. */
+            u32     apic_id         : 8;            /* < Local APIC ID. */
+        };
+    };
+} packedstruct;
 
 /*  Local APIC Version Register */
 #define APIC_LAVR                   (0x030 / sizeof(u32))
@@ -326,13 +338,15 @@ typedef union {
 /*  Logical Destination Register. */
 #define APIC_LDR   (0x0d0 / sizeof(u32))
 
-typedef union {
-    u32 value;
-    struct {
-        u32     reserved        : 24;           /* < Reserved. */
-        u32     id              : 8;            /* < Logical APIC ID. */
-    } packedstruct;
-} s_hal_apic_logical_destination_register;
+struct apic_logical_destination_register {
+    union {
+        u32 value;
+        struct {
+            u32     reserved        : 24;           /* < Reserved. */
+            u32     id              : 8;            /* < Logical APIC ID. */
+        };
+    };
+} packedstruct;
 /******************************************************************************/
 
 
@@ -342,13 +356,15 @@ typedef union {
 /*  Destination Format Register. */
 #define APIC_DFR    (0x0e0 / sizeof(u32))
 
-typedef union {
-    u32 value;
-    struct {
-        u32     reserved        : 28;           /* < Reserved, all ones. */
-        u32     model           : 4;            /* < Model. */
-    } packedstruct;
-} s_hal_apic_destination_format_register;
+struct apic_destination_format_register {
+    union {
+        u32 value;
+        struct {
+            u32     reserved        : 28;           /* < Reserved, all ones. */
+            u32     model           : 4;            /* < Model. */
+        };
+    };
+} packedstruct;
 /******************************************************************************/
 
 
@@ -365,13 +381,15 @@ typedef union {
 #define APIC_IO_REDTBL       0x10
 
 /*  I/O Register Select Register. */
-typedef union {
-    u32 value;
-    struct {
-        u32     reg_addr        : 8;            /* < APIC Register Address. */
-        u32     reserved        : 24;           /* < Reserved. */
-    } packedstruct;
-} s_hal_apic_io_regseclect_register;
+struct apic_io_regseclect_register {
+    union {
+        u32 value;
+        struct {
+            u32     reg_addr        : 8;            /* < APIC Register Address. */
+            u32     reserved        : 24;           /* < Reserved. */
+        };
+    };
+} packedstruct;
 /******************************************************************************/
 
 
@@ -379,7 +397,7 @@ typedef union {
  *                          I/O Redirection Register                           *
  ******************************************************************************/
 /*  I/O Redirection Register. */
-typedef struct io_redirection_reg {
+struct io_redirection_register {
     union {
         u32 low;
         struct {
@@ -392,17 +410,18 @@ typedef struct io_redirection_reg {
             u32     trigger_mode    : 1;            /* < Trigger Mode. */
             u32     masked          : 1;            /* < Interrupt Mask. */
             u32     reserved_1      : 15;           /* < Reserved. */
-        } packedstruct;
+        };
     };
+    
     union {
         u32 high;
         struct {
             u32     reserved_2      : 24;           /* < Reserved. */
             u32     dest            : 8;            /* < Destination Field. */
-        } packedstruct;
+        };
     };
     
-} packedstruct io_redirection_reg_t, s_hal_apic_io_redirection_register;
+} packedstruct;
 /******************************************************************************/
 
 
@@ -410,14 +429,16 @@ typedef struct io_redirection_reg {
  *                       IO APIC Identification Register                       *
  ******************************************************************************/
 /*  IO APIC Identification Register. */
-typedef union {
-    u32 value;
-    struct {
-        u32     reserved_1      : 24;                   /* < Reserved. */
-        u32     apic_id         : 4;                    /* < IO APIC ID. */
-        u32     reserved_2      : 4;                    /* < Reserved. */
-    } packedstruct;
-} packedstruct io_apic_id_t, s_hal_apic_ioapic_id;
+struct apic_ioapic_id {
+    union {
+        u32 value;
+        struct {
+            u32     reserved_1      : 24;                   /* < Reserved. */
+            u32     apic_id         : 4;                    /* < IO APIC ID. */
+            u32     reserved_2      : 4;                    /* < Reserved. */
+        } packedstruct;
+    };
+} packedstruct;
 /******************************************************************************/
 
 
@@ -434,7 +455,26 @@ extern void init_ioapic();
  * Local APIC
  */
 extern ulong lapic_paddr;
+
+extern void lapic_eoi();
+extern int get_cpu_id_by_apic_id(int apic_id);
+extern int get_apic_id();
+extern void init_lapic_mp();
 extern void init_lapic();
+
+
+/*
+ * IO APIC
+ */
+
+extern void ioapic_start();
+extern void ioapic_init_redirection_table(int chip, int pin, int vector, int trigger, int polarity);
+extern void ioapic_change_io_redirection_table(int chip, int pin, int dest, int vec, u32 flags);
+extern void ioapic_disable_irq(u16 irq);
+extern void ioapic_enable_irq(u16 irq);
+extern u32 *ioapic_get_chip_base(int chip);
+extern u32 ioapic_read(int chip, int address);
+extern void ioapic_write(int chip, int address, u32 val);
 
 
 /*

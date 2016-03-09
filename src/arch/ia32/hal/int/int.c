@@ -3,7 +3,8 @@
 #include "hal/include/int.h"
 
 
-static int_handler int_handler_list[IDT_ENTRY_COUNT];
+int_handler int_handler_list[IDT_ENTRY_COUNT];
+
 static u32 interrupt_lock = 0;
 
 

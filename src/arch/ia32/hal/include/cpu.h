@@ -20,6 +20,14 @@ extern int cpuid(struct cpuid_reg *reg);
 
 
 /*
+ * MSR
+ */
+extern void msr_read(ulong reg, u64* value_out);
+extern void msr_write(ulong reg, u64* value);
+extern void msr_timestamp(u64* value);
+
+
+/*
  * Per-CPU var
  */
 #ifndef dec_per_cpu

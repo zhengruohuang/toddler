@@ -1,5 +1,5 @@
 #include "common/include/data.h"
-#include "hal/include/mem.h"
+#include "hal/include/task.h"
 #include "hal/include/cpu.h"
 
 
@@ -14,6 +14,6 @@ void init_tss_mp()
 {
 }
 
-voi init_tss()
+void init_tss()
 {
 }

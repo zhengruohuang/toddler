@@ -133,6 +133,7 @@ extern int mps_supported;
 extern ulong mps_lapic_addr;
 
 extern struct mps_ioapic *get_next_mps_ioapic_entry(struct mps_ioapic *cur, ulong *ioapic_addr);
+extern struct mps_ioint *get_next_mps_ioint_entry(struct mps_ioint *cur, int *bus, int *irq, int *chip, int *pin, int *pol, int *tri);
 
 extern int mps_lapic_count;
 extern int mps_ioapic_count;

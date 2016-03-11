@@ -7,10 +7,12 @@ HAL Virtual Memory Layout (Ultra-Pico)                          Index in PTE
 |   Reserved for PTEs   |
 |                       |
 |=======================| <- 4GB - 12KB         = 
+|      Local APIC       |
+|-----------------------| <- 4GB - 16KB         =
 |                       |                                       
 | IO APIC (1 ~ 8 Pages) |                                        
 |                       |                                       
-|=======================| <- 4GB - 12KB - (4KB ~ 32KB)  = 
+|=======================| <- 4GB - 16KB - (4KB ~ 32KB)  = 
 |                       |
 |          ...          |
 |                       |

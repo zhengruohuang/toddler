@@ -12,15 +12,15 @@
 
 
 struct apic_irq_to_pin {
-    u8                      chip;
-    u8                      pin;
+    u8              chip;
+    u8              pin;
     union {
-        u8              vector;
-        u8              irq;
+        u8          vector;
+        u8          irq;
     };
     
     union {
-        u8              flags;
+        u8          flags;
         
         struct {
             u8      trigger         : 1;
@@ -84,7 +84,7 @@ static void ioapic_override_madt()
         assert(madt_ioapic_count == 1);
         
         // Determine IO APIC Chip Number and Pin Number
-        for (j = 0; j < madt_ioapic_count; i++) {
+        for (j = 0; j < madt_ioapic_count; j++) {
             ioapic_entry = get_next_acpi_ioapic_entry(ioapic_entry, NULL);
             assert(ioapic_entry);
             
@@ -94,7 +94,7 @@ static void ioapic_override_madt()
                 irq_map[irq].pin = vector - ioapic_entry->global_intr_base;
                 irq_map[irq].available = 1;
             } else {
-                panic("Unable to setup IO APIC");
+                panic("\tUnable to setup IO APIC!");
             }
         }
         
@@ -118,7 +118,7 @@ static void ioapic_override_madt()
                 irq_map[irq].polarity = APIC_POLARITY_LOW;
                 break;
             case 2:
-                panic("Unsupported Polarlity!");
+                panic("\tUnsupported Polarlity!");
                 break;
             default:
                 break;
@@ -133,7 +133,7 @@ static void ioapic_override_madt()
                 irq_map[irq].trigger = APIC_TRIGMOD_LEVEL;
                 break;
             case 2:
-                panic("Unsupported Trigger Mode!");
+                panic("\tUnsupported Trigger Mode!");
                 break;
             default:
                 break;
@@ -145,14 +145,14 @@ static void ioapic_override_mps()
 {
     int i, j;
     
-    int irq = 0, polarity = 0, trigger = 0;
+    int irq = 0, polarity = 0, trigger = 0, pin = 0, chip = 0, bus = 0;
     struct mps_ioint *entry = NULL;
     
     // We only support 1 IO APIC
     assert(mps_ioapic_count == 1);
     
     for (i = 0; i < mps_ioint_count; i++) {
-        entry = NULL;
+        entry = get_next_mps_ioint_entry(entry, &bus, &irq, &chip, &pin, &polarity, &trigger);
         assert(entry);
         
         if (entry->interrupt_type) {
@@ -162,8 +162,8 @@ static void ioapic_override_mps()
         struct mps_ioapic *ioapic_entry = NULL;
         
         // Determine IO APIC Chip Number, and Pin Number
-        for (j = 0; j < mps_ioapic_count; i++) {
-            ioapic_entry = NULL;
+        for (j = 0; j < mps_ioapic_count; j++) {
+            ioapic_entry = get_next_mps_ioapic_entry(ioapic_entry, NULL);
             assert(ioapic_entry);
             
             // Check this IO APIC's ID
@@ -388,8 +388,7 @@ void init_ioapic()
     // Update HAL virtual space boundary
     get_bootparam()->hal_vspace_end -= PAGE_SIZE * ioapic_count;
     
-
-    
+    // Override IO APIC using MADT or MPS
     int i;
     
     // Set default ISA IRQ map
@@ -414,14 +413,14 @@ void init_ioapic()
         ioapic_override_mps();
     }
     
-    kprintf("\n\tIO APIC Initialization IRQ Map\n");
+    kprintf("\tIO APIC IRQ map\n");
     
     for (i = 0; i < 16; i++) {
         if (!irq_map[i].available) {
             continue;
         }
         
-        kprintf("\tIRQ %d, Vector %d, Chip %d, Pin %d, Tri %d, Pol %d\n",
+        kprintf("\t\tIRQ: %d, Vector: %d, Chip: %d, Pin: %d, Trigger: %d, Polarity: %d\n",
                 i,
                 irq_map[i].vector,
                 irq_map[i].chip,
@@ -431,7 +430,7 @@ void init_ioapic()
         );
     }
     
-    kprintf("\nIO APIC Initialization Vector Map\n");
+    kprintf("\tIO APIC vector map\n");
     
     // Initialize Vector Map
     for (i = 0; i < 256; i++) {
@@ -462,7 +461,7 @@ void init_ioapic()
             vector_map[vector].polarity
         );
         
-        kprintf("\tVector %d, IRQ %d, Chip %d, Pin %d, Tri %d, Pol %d\n",
+        kprintf("\t\tVector: %d, IRQ: %d, Chip: %d, Pin: %d, Trigger: %d, Polarity: %d\n",
                 vector,
                 vector_map[vector].vector,
                 vector_map[vector].chip,

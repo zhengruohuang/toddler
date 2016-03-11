@@ -55,7 +55,7 @@ struct acpi_madt_intr_src_ovrd *get_next_acpi_int_entry(struct acpi_madt_intr_sr
     struct acpi_madt_apic_header *ptr;
     
     for (ptr = acpi_madt->apic_header; ptr < end; ptr = (struct acpi_madt_apic_header*)((ulong)ptr + ptr->length)) {
-        if ((ulong)ptr > (ulong)cur && ptr->type == ACPI_MADT_IOAPIC) {
+        if ((ulong)ptr > (ulong)cur && ptr->type == ACPI_MADT_INTR_SRC_OVRD) {
             struct acpi_madt_intr_src_ovrd *ret = (struct acpi_madt_intr_src_ovrd *)ptr;
             if (src)    *src = ret->source;
             if (gint)   *gint = ret->global_int;

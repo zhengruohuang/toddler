@@ -20,16 +20,77 @@ static struct mps_ct *mps_ct;
 
 struct mps_ioapic *get_next_mps_ioapic_entry(struct mps_ioapic *cur, ulong *ioapic_addr)
 {
+    u8 *e = &mps_ct->base_table[0];
     int i;
     
+    for (i = 0; i < mps_ct->entry_count; i++) {
+        switch (*e) {
+        case 0:
+            e += 20;
+            break;
+        case 1:
+            e += 8;
+            break;
+        case 2:
+            if ((ulong)e > (ulong)cur) {
+                struct mps_ioapic *r = (struct mps_ioapic *)e;
+                if (ioapic_addr) *ioapic_addr = r->ioapic_address;
+                return r;
+            }
+            e += 8;
+            break;
+        case 4:
+            e += 8;
+            break;
+        case 3:
+            e += 8;
+            break;
+        default:
+            panic("\tMPS configuration table is bad: %d\n", *e);
+            return 0;
+        }
+    }
+    
+    return NULL;
+}
+
+struct mps_ioint *get_next_mps_ioint_entry(struct mps_ioint *cur, int *bus, int *irq, int *chip, int *pin, int *pol, int *tri)
+{
     u8 *e = &mps_ct->base_table[0];
+    int i;
     
     for (i = 0; i < mps_ct->entry_count; i++) {
-        if (*e == 2 && (ulong)e > (ulong)cur) {
-            struct mps_ioapic *ioe = (struct mps_ioapic *)e;
-            *ioapic_addr = ioe->ioapic_address;
-            
-            return ioe;
+        switch (*e) {
+        case 0:
+            e += 20;
+            break;
+        case 1:
+            e += 8;
+            break;
+        case 2:
+            e += 8;
+            break;
+        case 4:
+            e += 8;
+            break;
+        case 3:
+            if ((ulong)e > (ulong)cur) {
+                struct mps_ioint *r = (struct mps_ioint *)e;
+                
+                if (bus) *bus = r->src_bus_id;
+                if (irq) *irq = r->src_bus_irq;
+                if (chip) *chip = r->dest_ioapic_id;
+                if (pin) *pin = r->dest_ioapic_pin;
+                if (pol) *pol = r->polarity;
+                if (tri) *tri = r->trigger;
+                
+                return r;
+            }
+            e += 8;
+            break;
+        default:
+            panic("\tMPS configuration table is bad: %d\n", *e);
+            return 0;
         }
     }
     
@@ -81,7 +142,7 @@ static void ioint(struct mps_ioint *iointr, u32 i)
         break;
     }
     
-    kprintf("\t\tIO-%s #%d: Pol %d, Tri %d, Bus %d, IRQ %d, IOA %d, Pin %d\n",
+    kprintf("\t\tIO-%s #%d: Polarity: %d, Trigger: %d, Bus: %d, IRQ: %d, Chip: %d, Pin: %d\n",
             int_type,
             i,
             iointr->polarity,
@@ -132,7 +193,7 @@ static int mps_configure()
     mps_lapic_addr = (u32)mps_ct->lapic_address;
     
     u8 *cur = &mps_ct->base_table[0];
-    u16 i;
+    int i;
     
     // First we need to get the count of every entry
     for (i = 0; i < mps_ct->entry_count; i++) {
@@ -150,13 +211,13 @@ static int mps_configure()
             break;
         
         case 2:
-            // I/O APIC
+            // IO APIC
             ioapic((struct mps_ioapic*)cur, mps_ioapic_count++);
             cur += 8;
             break;
         
         case 3:
-            // I/O Interrupt Assignment
+            // IO Interrupt Assignment
             ioint((struct mps_ioint*)cur, mps_ioint_count++);
             cur += 8;
             break;
@@ -169,7 +230,7 @@ static int mps_configure()
         
         default:
             // Something is wrong
-            kprintf("\tMPS configuration table is bad: %d\n", *cur);
+            panic("\tMPS configuration table is bad: %d\n", *cur);
             return 0;
         }
     }
@@ -349,6 +410,5 @@ void init_mps()
     
     // Now we are sure that this system supports MP Specification
     mps_supported = 1;
-    
 }
 

@@ -30,7 +30,7 @@
 //     
 //     msg->type = message_type_start;
 //     
-//     /* Start APIC */
+//     //Start APIC */
 //     hal_apic_start();
 //     
 //     lapic_vaddr_eoi();
@@ -59,10 +59,10 @@
 // 
 // void start_bsp_lapic()
 // {
-//     /* Register the start-to-work IPI */
+//     //Register the start-to-work IPI */
 //     u32 kernel_ipi_id = lapic_vaddr_ipi_register(lapic_handler_start_to_work);
 //     
-//     /* Send start-to-work IPI */
+//     //Send start-to-work IPI */
 //     u32 i;
 //     for (i = 0; i < hal_cpu_topology_machine.logical_processor_count; i++) {
 //         if (
@@ -78,19 +78,19 @@
 //         }
 //     }
 //     
-//     /* Wait for 10 milliseconds */
+//     //Wait for 10 milliseconds */
 //     hal_time_delay(10);
 // }
 // 
 // void start_lapic()
 // {
-//     /* Register the start-to-work IPI */
+//     //Register the start-to-work IPI */
 //     u32 start_ipi_id = lapic_vaddr_ipi_register(lapic_handler_bringup);
 //     
-//     /* Enable interrupts in all APs */
+//     //Enable interrupts in all APs */
 //     hal_mp_ap_enable_interrupts = 1;
 //     
-//     /* Wait until all the APs have enabled interrupts */
+//     //Wait until all the APs have enabled interrupts */
 //     u32 loop_count_limit = 10;
 //     u32 current_loop_count = 0;
 //     do {
@@ -98,18 +98,18 @@
 //             break;
 //         }
 //         
-//         /* If there is bug that not all APs started successfully */
+//         //If there is bug that not all APs started successfully */
 //         if (current_loop_count >= loop_count_limit) {
 //             CRASH("Not All APs Started Successfully!");
 //         }
 //         
-//         /* Wait for 100 milliseconds */
+//         //Wait for 100 milliseconds */
 //         hal_time_delay(100);
 //         current_loop_count++;
 //     } while (1);
 //     hal_time_delay(10);
 //     
-//     /* Send start-to-work IPI */
+//     //Send start-to-work IPI */
 //     u32 i;
 //     for (i = 0; i < hal_cpu_topology_machine.logical_processor_count; i++) {
 //         if (
@@ -121,7 +121,7 @@
 //                 start_ipi_id
 //             );
 //             
-//             /* Wait for 10 milliseconds */
+//             //Wait for 10 milliseconds */
 //             hal_time_delay(10);
 //         }
 //     }
@@ -129,7 +129,7 @@
 //     
 //     //lapic_vaddr_ipi_send(4, start_ipi_id);
 //     
-//     /* Broadcast a start-to-work IPI */
+//     //Broadcast a start-to-work IPI */
 //     //lapic_vaddr_ipi_broadcast(0, start_ipi_id);
 // }
 // 
@@ -149,7 +149,7 @@
 
 
 ulong lapic_paddr = LAPIC_DEFAULT_PADDR;
-u32 *lapic_vaddr = (u32 *)LAPIC_VADDR;
+static volatile u32 *lapic_vaddr = (u32 *)LAPIC_VADDR;
 
 
 // Records the APCI ID of each processor
@@ -213,6 +213,13 @@ void lapic_eoi()
     lapic_vaddr[APIC_EOI] = 0;
 }
 
+int get_apic_id_by_cpu_id(int cpu_id)
+{
+    assert(cpu_id < num_cpus);
+    
+    return apic_id_map[cpu_id];
+}
+
 int get_cpu_id_by_apic_id(int apic_id)
 {
     int i;
@@ -223,7 +230,7 @@ int get_cpu_id_by_apic_id(int apic_id)
         }
     }
     
-    warn("Unable to find APIC ID: %d", apic_id);
+    panic("Unable to find APIC ID: %d", apic_id);
     
     return -1;
 }
@@ -237,32 +244,41 @@ int get_apic_id()
     return idreg.apic_id;
 }
 
+int get_cpu_id()
+{
+    if (apic_supported) {
+        return get_cpu_id_by_apic_id(get_apic_id());
+    } else {
+        return 0;
+    }
+}
+
 void init_lapic_mp()
 {
     // Insert into APIC ID map
-    int cur_cpu_index = cur_apic_id_map_index++;
-    int cur_apic_id = get_apic_id();
-    apic_id_map[cur_cpu_index] = cur_apic_id;
+//     int cur_cpu_index = cur_apic_id_map_index++;
+//     int cur_apic_id = get_apic_id();
+//     apic_id_map[cur_cpu_index] = cur_apic_id;
+//     
+//     // BSP's APIC ID
+//     if (0 == cur_cpu_index) {
+//         bsp_apic_id = cur_apic_id;
+//     }
     
-    // BSP's APIC ID
-    if (0 == cur_cpu_index) {
-        bsp_apic_id = cur_apic_id;
-    }
-    
-    /* Initialize Local APIC */
+    //Initialize Local APIC */
     u64 msr = 0;
     msr_read(0x1b, &msr);
     
-    if (!(msr & (1 << 11))) {
+    //if (!(msr & (1 << 11))) {
         /*MSR_IA32_APICBASE_ENABLE | APIC_DEFAULT_PHYS_BASE*/
-        msr |= (1 << 11) | 0xfee00000;
+        msr |= (1 << 11) | lapic_paddr;
         
         kprintf("Local APIC reenabled\n");
         
         msr_write(0x1b, &msr);
-    }
+    //}
     
-    /* Initialize LVT Error register. */
+    //Initialize LVT Error register. */
     struct apic_lvt_error_register error;
     
     error.value = lapic_vaddr[APIC_LVT_ERR];
@@ -270,19 +286,19 @@ void init_lapic_mp()
     error.vector = alloc_int_vector(lapic_error_handler);
     lapic_vaddr[APIC_LVT_ERR] = error.value;
     
-    /* Initialize LVT LINT0 register. */
+    //Initialize LVT LINT0 register. */
     struct apic_lvt_lint_register lint;
     
     lint.value = lapic_vaddr[APIC_LVT_LINT0];
     lint.masked = 1;
     lapic_vaddr[APIC_LVT_LINT0] = lint.value;
     
-    /* Initialize LVT LINT1 register. */
+    //Initialize LVT LINT1 register. */
     lint.value = lapic_vaddr[APIC_LVT_LINT1];
     lint.masked = 1;
     lapic_vaddr[APIC_LVT_LINT1] = lint.value;
     
-    /* Task Priority Register initialization. */
+    //Task Priority Register initialization. */
     struct apic_task_priority_register tpr;
     
     tpr.value = lapic_vaddr[APIC_TPR];
@@ -290,7 +306,7 @@ void init_lapic_mp()
     tpr.pri = 0;
     lapic_vaddr[APIC_TPR] = tpr.value;
     
-    /* Spurious-Interrupt Vector Register initialization. */
+    //Spurious-Interrupt Vector Register initialization. */
     struct apic_spurious_vector_register svr;
     
     svr.value = lapic_vaddr[APIC_SVR];
@@ -302,7 +318,7 @@ void init_lapic_mp()
     //if (CPU->arch.family >= 6)
     //enable_lapic_in_msr();
     
-    /* Interrupt Command Register initialization. */
+    //Interrupt Command Register initialization. */
     //struct apic_interupt_command_register icr;
     
     //icr.value_low = lapic_vaddr[APIC_ICR_LO];
@@ -313,14 +329,14 @@ void init_lapic_mp()
     //icr.trigger_mode = APIC_TRIGMOD_LEVEL;
     //lapic_vaddr[APIC_ICR_LO] = icr.value_low;
     
-    /* Initialize Logical Destination Register, though we actually do not use it. */
+    //Initialize Logical Destination Register, though we actually do not use it. */
     struct apic_logical_destination_register ldr;
     
     ldr.value = lapic_vaddr[APIC_LDR];
-    ldr.id = cur_cpu_index;
+    ldr.id = get_cpu_id_by_apic_id(get_apic_id());
     lapic_vaddr[APIC_LDR] = ldr.value;
     
-    /* Initialize Destination Format Register as Flat mode. */
+    //Initialize Destination Format Register as Flat mode. */
     struct apic_destination_format_register dfr;
     
     dfr.value = lapic_vaddr[APIC_DFR];
@@ -348,13 +364,129 @@ void init_lapic()
     get_bootparam()->hal_vspace_end -= PAGE_SIZE;
     kprintf("\tLocal APIC mapped: %p -> %p\n", lapic_vaddr, lapic_paddr);
     
+    // Get BSP's APIC ID
+    bsp_apic_id = get_apic_id();
+    
     // Alloc APICID map
     int i;
+    struct acpi_madt_lapic *entry = NULL;
     apic_id_map = kalloc(sizeof(ulong) * num_cpus);
     for (i = 0; i < num_cpus; i++) {
-        apic_id_map[i] = -1;
+        int usable = -1;
+        int apic_id = -1;
+        
+        if (acpi_supported && madt_supported) {
+            entry = get_next_acpi_lapic_entry(entry, &usable);
+            assert(entry);
+            apic_id = entry->apic_id;
+        }
+        
+        assert(apic_id != -1);
+        kprintf("\t APIC ID added: %d, index: %d\n", apic_id, i);
+        apic_id_map[i] = apic_id;
+    }
+    
+    // Move BSP to the first entry
+    for (i = 0; i < num_cpus; i++) {
+        if (i && apic_id_map[i] == bsp_apic_id) {
+            apic_id_map[i] = apic_id_map[0];
+            apic_id_map[0] = bsp_apic_id;
+            break;
+        }
     }
     
     // Init LAPIC on BSP
     init_lapic_mp();
+}
+
+static void hal_time_delay(int ms)
+{
+    int i;
+    for (i = 0; i < ms * 100000; i++) {
+        __asm__ __volatile__ ( "pause;" : : );
+    }
+}
+
+/*
+ * Return
+ *      0 = Failed
+ *      1 = Succeed
+ */
+int ipi_send_startup(int apicid)
+{
+    volatile struct apic_interupt_command_register icr;
+    
+    // Send an INIT IPI
+    icr.value_low = lapic_vaddr[APIC_ICR_LO];
+    icr.value_high = lapic_vaddr[APIC_ICR_HI];
+    
+    icr.delmod = APIC_DELMOD_INIT;
+    icr.destmod = APIC_DESTMOD_LOGIC;
+    icr.level = APIC_LEVEL_ASSERT;
+    icr.trigger_mode = APIC_TRIGMOD_LEVEL;
+    icr.shorthand = APIC_SHORTHAND_NONE;
+    icr.vector = 0;
+    icr.dest = apicid;
+    
+    lapic_vaddr[APIC_ICR_HI] = icr.value_high;
+    lapic_vaddr[APIC_ICR_LO] = icr.value_low;
+    
+    // Wait for 10ms, according to MP Specification
+    hal_time_delay(10);
+    
+    // If there are errors
+    if (!check_lapic()) {
+        panic("Could send initialization IPI!");
+    }
+    
+    // Check IPI delivery status
+    icr.value_low = lapic_vaddr[APIC_ICR_LO];
+    if (icr.delivs == APIC_DELIVS_PENDING) {
+        kprintf("IPI is pending.\n");
+        panic("Could send initialization IPI!");
+    }
+    
+    // Try to send INIT IPI again
+    icr.value_low = lapic_vaddr[APIC_ICR_LO];
+    icr.value_high = lapic_vaddr[APIC_ICR_HI];
+    
+    icr.delmod = APIC_DELMOD_INIT;
+    icr.destmod = APIC_DESTMOD_LOGIC;
+    icr.level = APIC_LEVEL_DEASSERT;
+    icr.shorthand = APIC_SHORTHAND_NONE;
+    icr.trigger_mode = APIC_TRIGMOD_LEVEL;
+    icr.vector = 0;
+    icr.dest = apicid;
+    
+    lapic_vaddr[APIC_ICR_HI] = icr.value_high;
+    lapic_vaddr[APIC_ICR_LO] = icr.value_low;
+    
+    // Wait 10ms as MP Specification specifies
+    hal_time_delay(10);
+    
+    kprintf("AP Entry: %p\n", get_bootparam()->ap_entry_addr);
+    
+    if (!APIC_IS_LAPIC_82489DX(lapic_vaddr[APIC_LAVR])) {
+        // If this is not 82489DX-based lapic_vaddr we must send two STARTUP IPI's
+        u32 i;
+        for (i = 0; i < 2; i++) {
+            icr.value_low = lapic_vaddr[APIC_ICR_LO];
+            icr.value_high = lapic_vaddr[APIC_ICR_HI];
+            
+            icr.vector = (u8)(get_bootparam()->ap_entry_addr >> 12); // calculate the reset vector
+            icr.delmod = APIC_DELMOD_STARTUP;
+            icr.destmod = APIC_DESTMOD_LOGIC;
+            icr.level = APIC_LEVEL_ASSERT;
+            icr.shorthand = APIC_SHORTHAND_NONE;
+            icr.trigger_mode = APIC_TRIGMOD_LEVEL;
+            icr.dest = apicid;
+            lapic_vaddr[APIC_ICR_HI] = icr.value_high;
+            lapic_vaddr[APIC_ICR_LO] = icr.value_low;
+            
+            //According to MP Specification, we should wait for 200us
+            hal_time_delay(1);
+        }
+    }
+    
+    return check_lapic();
 }

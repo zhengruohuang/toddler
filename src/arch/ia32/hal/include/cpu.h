@@ -31,15 +31,15 @@ extern void msr_timestamp(u64* value);
  * Per-CPU var
  */
 #ifndef dec_per_cpu
-#define dec_per_cpu(type, name) int __##name##_per_cpu_id = -1
+#define dec_per_cpu(type, name) int __##name##_per_cpu_offset = -1
 #endif
 
 #ifndef ext_per_cpu
-#define ext_per_cpu(type, name) extern int __##name##_per_cpu_id
+#define ext_per_cpu(type, name) extern int __##name##_per_cpu_offset
 #endif
 
 #ifndef get_per_cpu
-#define get_per_cpu(type, name)   ((type *)access_per_cpu_var(&__##name##_per_cpu_index, sizeof(type)))
+#define get_per_cpu(type, name)   ((type *)access_per_cpu_var(&__##name##_per_cpu_offset, sizeof(type)))
 #endif
 
 extern void *access_per_cpu_var(int *id, size_t size);
@@ -57,9 +57,7 @@ extern void init_topo();
  * MP
  */
 extern ulong get_per_cpu_area_start_vaddr(int cpu_id);
-extern ulong get_per_cpu_lapic_vaddr(int cpu_id);
-extern ulong get_per_cpu_stack_top(int cpu_id);
-extern ulong get_per_cpu_data_vaddr(int cpu_id);
+extern ulong get_my_cpu_area_start_vaddr();
 
 extern void init_mp();
 extern void bringup_mp();

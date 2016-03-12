@@ -371,8 +371,10 @@ static void no_inline build_bootparam()
     
     // Loader functions
     boot_param->loader_func_type_ptr = loader_var->loader_func_type_ptr;
-    boot_param->ap_entry_addr_ptr = loader_var->ap_entry_addr_ptr;
-    boot_param->bios_invoker_addr_ptr = loader_var->bios_invoker_addr_ptr;
+    boot_param->ap_entry_addr = loader_var->ap_entry_addr;
+    boot_param->bios_invoker_addr = loader_var->bios_invoker_addr;
+    boot_param->ap_page_dir_pfn_ptr = loader_var->ap_page_dir_pfn_ptr;
+    boot_param->ap_stack_top_ptr = loader_var->ap_stack_top_ptr;
     print_string("|.");
     
     // HAL start flag

@@ -1,25 +1,37 @@
 #include "common/include/data.h"
 #include "hal/include/print.h"
+#include "hal/include/mem.h"
+#include "hal/include/lib.h"
 #include "hal/include/int.h"
 
 
 static struct idt int_idt;
 
 
-static void idt_entry(ulong vector, ulong desc_type, void* handler, ulong privilege)
+static void idt_entry(ulong vector, ulong desc_type, void *handler, ulong privilege)
 {
-    struct idt_gate *p_gate      = (struct idt_gate*)(&int_idt.entries[vector]);
+    struct idt_gate *p_gate = (struct idt_gate*)(&int_idt.entries[vector]);
     ulong base = (ulong)handler;
     p_gate->offset_low      = base & 0xFFFF;
-    p_gate->selector        = 0;    // hal_gdt_static.selectors.code_kernel; //SELECTOR_RUN;    //FIXME
+    p_gate->selector        = GDT_SELECTOR_CODE_K;
     p_gate->dcount          = 0;
     p_gate->attr            = desc_type | (privilege << 5);
     p_gate->offset_high     = (base >> 16) & 0xFFFF;
 }
 
+static void load_idt()
+{
+    __asm__ __volatile__
+    (
+        "lidt   (%%ebx);"
+        :
+        : "b" (&(int_idt.idtr_value))
+    );
+}
 
 void init_idt_mp()
 {
+    load_idt();
     // Load IDT
     __asm__ __volatile__
     (
@@ -57,7 +69,7 @@ void init_idt()
     idt_entry(VEC_SIMD,             DA_IntGate, int_handler_simd_error,             PRIVILEGE_KRNL);
     
     // Generate Handlers
-    kprintf("\tConstructing interrupt handlers\n");
+    kprintf("\tSetting up interrupt handlers\n");
     u8 *temp = (u8 *)int_handler_template_begin;
     ulong template_size = (ulong)int_handler_template_end - (ulong)int_handler_template_begin;
     int vec_num_offset = 0;
@@ -75,16 +87,17 @@ void init_idt()
         }
     }
     
-    kprintf("\t\tTemplate Begin %p, End %p, Size %d\n",
+    kprintf("\tTemplate Begin %p, End %p, Size %d\n",
             int_handler_template_begin, int_handler_template_end,
-            (int)template_size);
-    kprintf("\t\tVector Number Offset %d\n", vec_num_offset);
+            (int)template_size
+    );
+    kprintf("\tVector Number Offset %d\n", vec_num_offset);
     
     if (!vec_num_offset) {
-        //panic("Interrupt: Could not initialize interrupt handlers!");
+        panic("Unable to initialize interrupt handlers!");
     }
     
-    kprintf("\t\tGenerating Handlers ");
+    kprintf("\tSetting handler vector and IDT entries ");
     ulong cur_hdlr_start = (ulong)int_handlers;
     u32 cur_vec = 0;
     for (i = 0; i < IDT_ENTRY_COUNT - VEC_IRQ_START; i++) {
@@ -106,6 +119,9 @@ void init_idt()
     // Initialize the paremter of IDTR
     int_idt.idtr_value.base = (u32)(&int_idt.entries);
     int_idt.idtr_value.limit = IDT_ENTRY_COUNT * sizeof(struct idt_gate) - 1;;
+    
+    // Load IDT
+    init_idt_mp();
     
     kprintf(" Done!\n");
 }

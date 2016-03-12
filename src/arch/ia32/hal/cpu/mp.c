@@ -7,6 +7,9 @@
 #include "hal/include/apic.h"
 
 
+static volatile int ap_bringup_lock = 0;
+
+
 ulong get_per_cpu_area_start_vaddr(int cpu_id)
 {
     assert(cpu_id < num_cpus);
@@ -14,14 +17,9 @@ ulong get_per_cpu_area_start_vaddr(int cpu_id)
     return PER_CPU_AREA_TOP_VADDR - PER_CPU_AREA_SIZE * (cpu_id + 1);
 }
 
-ulong get_per_cpu_stack_top(int cpu_id)
+ulong get_my_cpu_area_start_vaddr()
 {
-    return get_per_cpu_area_start_vaddr(cpu_id) + PER_CPU_AREA_STACK_TOP_OFFSET;
-}
-
-ulong get_per_cpu_data_vaddr(int cpu_id)
-{
-    return get_per_cpu_area_start_vaddr(cpu_id) + PER_CPU_AREA_DATA_START_OFFSET;
+    return get_per_cpu_area_start_vaddr(get_cpu_id());
 }
 
 /*
@@ -39,24 +37,71 @@ void init_mp()
     for (i = 0; i < num_cpus; i++) {
         ulong cur_area_vstart = cur_top_vaddr - PER_CPU_AREA_SIZE;
 
-        // Map per-cpu stack
+        // Map the per-cpu area
         kernel_indirect_map_array(cur_area_vstart, PFN_TO_ADDR(start_pfn), PER_CPU_AREA_SIZE, 1, 0);
         
         // Tell the user
-        kprintf("\tCPU #%d, stack: %p -> %p (%dB)\n", i,
+        kprintf("\tCPU #%d, per-CPU area: %p -> %p (%dB)\n", i,
             cur_area_vstart, PFN_TO_ADDR(start_pfn), PER_CPU_AREA_SIZE
         );
         
-        // Get ready for next iteration
+        // Get ready for the next iteration
         cur_top_vaddr -= PER_CPU_AREA_SIZE;
         start_pfn += PER_CPU_AREA_PAGE_COUNT;
     }
 }
 
+static void bringup_cpu(int cpu_id)
+{
+    kprintf("Bringing up secondary processor #%d\n", cpu_id);
+    
+    // Set the lock
+    ap_bringup_lock = 1;
+    
+    // Set Loader Function
+    u32 *loader_func_type = (u32 *)get_bootparam()->loader_func_type_ptr;
+    *loader_func_type = 2;
+    
+    // Page dir
+    u32 *page_dir_pfn = (u32 *)get_bootparam()->ap_page_dir_pfn_ptr;
+    *page_dir_pfn = KERNEL_PDE_PFN;
+    
+    // Stack top
+    u32 *stack_top = (u32 *)get_bootparam()->ap_stack_top_ptr;
+    *stack_top = get_per_cpu_area_start_vaddr(cpu_id);
+    
+    // HAL start flag
+    get_bootparam()->hal_start_flag = 1;
+    
+    // Send IPI
+    ipi_send_startup(get_apic_id_by_cpu_id(cpu_id));
+    
+    kprintf("\tWaiting for processor's response\n");
+    
+    // Wait until AP is broughtup
+    while (ap_bringup_lock) {
+        __asm__ __volatile__ ( "pause;" : : );
+    }
+    
+    kprintf("\tThe processor has been started\n");
+}
+
 /*
  * This will send IPI to start all APs
+ * This function should be called by AP
  */
 void bringup_mp()
 {
+    kprintf("Bringing up secondary processors\n");
     
+    int i;
+    for (i = 0; i < num_cpus; i++) {
+        if (i == get_cpu_id()) {
+            continue;
+        }
+        
+        bringup_cpu(i);
+    }
+    
+    kprintf("All processors have been successfully brought up\n");
 }

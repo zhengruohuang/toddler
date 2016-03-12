@@ -8,6 +8,7 @@
 #include "hal/include/cpu.h"
 #include "hal/include/mps.h"
 #include "hal/include/apic.h"
+#include "hal/include/task.h"
 
 
 static void hal_entry()
@@ -30,7 +31,6 @@ static void hal_entry()
     
     // Init interrupt
     init_int_handlers();
-    init_idt();
     init_int_vector();
     
     // Init topo
@@ -43,18 +43,25 @@ static void hal_entry()
     init_mp();
     
     // Init TSS
+    init_tss();
     
     // Init GDT
+    init_gdt();
+    
+    // Load TSS
+    load_tss();
     
     // Init IDT
+    init_idt();
     
     // Init kernel
     
-    // Bringup BSP
-    
     // Bringup APs
+    bringup_mp();
     
     // Start to work
+    
+    kprintf("Initialization is done!\n");
 
     
 //     kprintf("We are in HAL!\n");
@@ -74,10 +81,11 @@ static void hal_entry()
 //     } while(1);
 }
 
-// static void ap_entry()
-// {
-// }
-// 
+static void ap_entry()
+{
+    kprintf("Hi!\n");
+}
+
 // static void bios_return()
 // {
 // }
@@ -97,6 +105,7 @@ void asmlinkage _start()
         
     // Start AP
     case 1:
+        ap_entry();
         break;
         
     // Return from BIOS invoker

@@ -73,11 +73,16 @@ LoaderFuncType32    equ     LoaderBase + LoaderFuncType
 ;-------------------------------------------------------------------------------
 
 ;-------------------------------------------------------------------------------
-; Application Processors
+; Application Processors and BIOS invoker
 ;-------------------------------------------------------------------------------
 ApPageDirectoryPfn      dd      0
-ApStartupEntry32        equ     LoaderBase + LoaderOffsetSeg
 ApPageDirectoryPfn32    equ     LoaderBase + ApPageDirectoryPfn
+
+ApStackTop              dd      0
+ApStackTop32            equ     LoaderBase + ApStackTop
+
+ApStartupEntry32        equ     LoaderBase + LoaderOffsetSeg
+BiosInvokerEntry32      equ     LoaderBase + BIOS_INVOKER_ENTRY_32
 ;-------------------------------------------------------------------------------
 
 ;-------------------------------------------------------------------------------
@@ -115,7 +120,7 @@ PRE_INITIALIZATION:
 ; Figure out what to load
     mov     eax, [LoaderFuncType]
     mov     dword [LoaderFuncType], 0
-
+    
     ; Load HAL?
     cmp     eax, 1
     jz      START
@@ -192,6 +197,12 @@ AP_STARTUP_ENTRY:
 ; 16-bit code: move to protected mode
     cli
 
+        mov     ax, 0600h       ; ah = 6,  al = 0h
+    mov     bx, 0700h       ; Backcolor: Black, Forecolor: White (BL = 07h)
+    mov     cx, 0           ; (Left, Top): (0, 0)
+    mov     dx, 184fh       ; (Right, Bottom): (25, 80)
+    int     10h             ; Call int 10h to clear the screen
+    
     lgdt    [GdtAddress]
 
     ; Prepare to move to the Protected Mode
@@ -322,7 +333,15 @@ START_32:
 
     ; BIOS_INVOKER_ENTRY_32
     mov     edi, LoaderBase + LoaderVariableStartOffset + 16
-    mov     dword [edi], LoaderBase + BIOS_INVOKER_ENTRY_32
+    mov     dword [edi], BiosInvokerEntry32
+    
+    ; AP page dir PFN
+    mov     edi, LoaderBase + LoaderVariableStartOffset + 20
+    mov     dword [edi], ApPageDirectoryPfn32
+    
+    ; AP stack top
+    mov     edi, LoaderBase + LoaderVariableStartOffset + 24
+    mov     dword [edi], ApStackTop32
 
     ; Jump to C entry
     mov     ebx, LoaderProtectedSetupEntry
@@ -382,6 +401,9 @@ AP_STARTUP_ENTRY_32:
 
 .EnablePagedAddressApStartup:
     nop
+    
+; Setup stack
+    ;mov     esp, [ApStackTop32]
 
 ; Jump to MP initialization Entry in HAL
     mov     ebx, [HalEntry32]

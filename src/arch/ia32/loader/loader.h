@@ -28,11 +28,13 @@ struct e820_entry {
 
 struct loader_variables {
     // Always the first fields in this struct
-    ulong return_addr;
-    ulong hal_entry_addr_ptr;
-    ulong loader_func_type_ptr;
-    ulong ap_entry_addr_ptr;
-    ulong bios_invoker_addr_ptr;
+    u32 return_addr;
+    u32 hal_entry_addr_ptr;
+    u32 loader_func_type_ptr;
+    u32 ap_entry_addr;
+    u32 bios_invoker_addr;
+    u32 ap_page_dir_pfn_ptr;
+    u32 ap_stack_top_ptr;
     
     // Memory
     u32 mem_part_count;

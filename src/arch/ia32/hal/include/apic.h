@@ -119,7 +119,7 @@
 
 struct apic_interupt_command_register {
     union {
-        u32             value_low;
+        u32         value_low;
         struct {
             u32     vector          : 8;            /* < Interrupt Vector. */
             u32     delmod          : 3;            /* < Delivery Mode. */
@@ -131,14 +131,14 @@ struct apic_interupt_command_register {
             u32     reserved_2      : 2;            /* < Reserved. */
             u32     shorthand       : 2;            /* < Destination Shorthand. */
             u32     reserved_3      : 12;           /* < Reserved. */
-        } packedstruct;
+        };
     };
     union {
-        u32             value_high;
+        u32         value_high;
         struct {
             u32     reserved        : 24;           /* < Reserved. */
             u8      dest;                           /* < Destination field. */
-        } packedstruct;
+        };
     };
 } packedstruct;
 /******************************************************************************/
@@ -457,10 +457,18 @@ extern void init_ioapic();
 extern ulong lapic_paddr;
 
 extern void lapic_eoi();
+extern int get_apic_id_by_cpu_id(int cpu_id);
 extern int get_cpu_id_by_apic_id(int apic_id);
 extern int get_apic_id();
+extern int get_cpu_id();
 extern void init_lapic_mp();
 extern void init_lapic();
+
+
+/*
+ * IPI
+ */
+extern int ipi_send_startup(int apicid);
 
 
 /*

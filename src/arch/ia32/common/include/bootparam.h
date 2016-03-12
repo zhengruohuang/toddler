@@ -16,10 +16,14 @@ struct boot_parameters {
     u32 boot_dev;
     u32 boot_dev_info;
     
-    // Pointers
+    // Loader
     ulong loader_func_type_ptr;
-    ulong ap_entry_addr_ptr;
-    ulong bios_invoker_addr_ptr;
+    
+    // AP and BIOS invoker
+    ulong ap_entry_addr;
+    ulong bios_invoker_addr;
+    ulong ap_page_dir_pfn_ptr;
+    ulong ap_stack_top_ptr;
     
     // HAL
     u32 hal_start_flag;

@@ -47,10 +47,11 @@
 #define GDT_INDEX_CODE_U    3
 #define GDT_INDEX_DATA_U    4
 
-#define GDT_INDEX_TSS       5
+#define GDT_INDEX_TSS_USER  5
+#define GDT_INDEX_TSS_IOPB  6
 
-#define GDT_INDEX_PER_CPU_K 6
-#define GDT_INDEX_PER_CPU_U 6
+#define GDT_INDEX_PER_CPU_K 7
+#define GDT_INDEX_PER_CPU_U 8
 
 
 /*
@@ -62,7 +63,8 @@
 #define GDT_SELECTOR_CODE_U ((sizeof(struct gdt_descriptor) * (GDT_INDEX_CODE_U - GDT_INDEX_START)) | GDT_SA_RPL_USER)
 #define GDT_SELECTOR_DATA_U ((sizeof(struct gdt_descriptor) * (GDT_INDEX_DATA_U - GDT_INDEX_START)) | GDT_SA_RPL_USER)
 
-#define GDT_SELECTOR_TSS    (sizeof(struct gdt_descriptor) * (GDT_INDEX_TSS - GDT_INDEX_START))
+#define GDT_SELECTOR_TSS_USER   (sizeof(struct gdt_descriptor) * (GDT_INDEX_TSS_USER - GDT_INDEX_START))
+#define GDT_SELECTOR_TSS_IOPB   (sizeof(struct gdt_descriptor) * (GDT_INDEX_TSS_IOPB - GDT_INDEX_START))
 
 #define GDT_SELECTOR_PER_CPU_K  (sizeof(struct gdt_descriptor) * (GDT_INDEX_PER_CPU_K - GDT_INDEX_START))
 #define GDT_SELECTOR_PER_CPU_U  ((sizeof(struct gdt_descriptor) * (GDT_INDEX_PER_CPU_U - GDT_INDEX_START)) | GDT_SA_RPL_USER)
@@ -74,7 +76,8 @@ struct gdt_selectors {
     u16     code_user;
     u16     data_user;
     
-    u16     tss;
+    u16     tss_user;
+    u16     tss_iopb;
     
     u16     per_cpu_area_kernel;
     u16     per_cpu_area_user;

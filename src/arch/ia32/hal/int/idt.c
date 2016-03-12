@@ -19,26 +19,18 @@ static void idt_entry(ulong vector, ulong desc_type, void *handler, ulong privil
     p_gate->offset_high     = (base >> 16) & 0xFFFF;
 }
 
-static void load_idt()
+void load_idt()
 {
+    kprintf("\tLoading IDT: %x ... ", int_idt.idtr_value);
+    
     __asm__ __volatile__
     (
         "lidt   (%%ebx);"
         :
         : "b" (&(int_idt.idtr_value))
     );
-}
-
-void init_idt_mp()
-{
-    load_idt();
-    // Load IDT
-    __asm__ __volatile__
-    (
-        "lidt   (%%ebx);"
-        :
-        : "b" (&int_idt.idtr_value)
-    );
+    
+    kprintf("Done!\n");
 }
 
 void init_idt()
@@ -121,7 +113,7 @@ void init_idt()
     int_idt.idtr_value.limit = IDT_ENTRY_COUNT * sizeof(struct idt_gate) - 1;;
     
     // Load IDT
-    init_idt_mp();
+    load_idt();
     
     kprintf(" Done!\n");
 }

@@ -21,7 +21,7 @@ static void construct_entry(int entry_index, u32 base, u32 limit, u16 attri)
     entry->base_high = ((u8)(base >> 24)) & 0xff;
 }
 
-void init_gdt_mp()
+static void construct_gdt()
 {
     // Get current GDT
     struct gdt *cur_gdt = get_per_cpu(struct gdt, system_gdt);
@@ -63,7 +63,7 @@ void init_gdt_mp()
     construct_entry(
         GDT_INDEX_TSS_USER,
         *get_per_cpu(u32, tss_user_base), *get_per_cpu(u32, tss_user_limit),
-        GDT_DA_TSS
+                    GDT_DA_TSS
     );
     
     // TSS with IOPB
@@ -130,8 +130,15 @@ void init_gdt_mp()
     );
 }
 
+void init_gdt_mp()
+{
+    kprintf("\tInitializing GDT\n");
+    construct_gdt();
+ 
+}
+
 void init_gdt()
 {
     kprintf("Initializing GDT\n");
-    init_gdt_mp();
+    construct_gdt();
 }

@@ -206,6 +206,13 @@ static ulong cpu_apic_present()
     return (reg.d & (0x1 << 9));
 }
 
+void init_apic_mp()
+{
+    assert(cpu_apic_present() && apic_supported);
+    
+    init_lapic_mp();
+}
+
 void init_apic()
 {
     kprintf("Initializing interupt controller\n");

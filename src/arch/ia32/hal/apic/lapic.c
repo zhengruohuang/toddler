@@ -265,18 +265,20 @@ void init_lapic_mp()
 //         bsp_apic_id = cur_apic_id;
 //     }
     
+    kprintf("\tSetting up local APIC\n");
+    
     //Initialize Local APIC */
     u64 msr = 0;
     msr_read(0x1b, &msr);
     
-    //if (!(msr & (1 << 11))) {
+    if (!(msr & (1 << 11))) {
         /*MSR_IA32_APICBASE_ENABLE | APIC_DEFAULT_PHYS_BASE*/
         msr |= (1 << 11) | lapic_paddr;
         
         kprintf("Local APIC reenabled\n");
         
         msr_write(0x1b, &msr);
-    //}
+    }
     
     //Initialize LVT Error register. */
     struct apic_lvt_error_register error;
@@ -402,7 +404,7 @@ void init_lapic()
 static void hal_time_delay(int ms)
 {
     int i;
-    for (i = 0; i < ms * 100000; i++) {
+    for (i = 0; i < ms * 20000; i++) {
         __asm__ __volatile__ ( "pause;" : : );
     }
 }
@@ -416,14 +418,16 @@ int ipi_send_startup(int apicid)
 {
     volatile struct apic_interupt_command_register icr;
     
+    kprintf("\tTo send init IPI to: %d\n", apicid);
+    
     // Send an INIT IPI
     icr.value_low = lapic_vaddr[APIC_ICR_LO];
     icr.value_high = lapic_vaddr[APIC_ICR_HI];
     
     icr.delmod = APIC_DELMOD_INIT;
-    icr.destmod = APIC_DESTMOD_LOGIC;
+    icr.destmod = APIC_DESTMOD_PHYS;
     icr.level = APIC_LEVEL_ASSERT;
-    icr.trigger_mode = APIC_TRIGMOD_LEVEL;
+    icr.trigger_mode = APIC_TRIGMOD_EDGE;
     icr.shorthand = APIC_SHORTHAND_NONE;
     icr.vector = 0;
     icr.dest = apicid;
@@ -451,20 +455,18 @@ int ipi_send_startup(int apicid)
     icr.value_high = lapic_vaddr[APIC_ICR_HI];
     
     icr.delmod = APIC_DELMOD_INIT;
-    icr.destmod = APIC_DESTMOD_LOGIC;
+    icr.destmod = APIC_DESTMOD_PHYS;
     icr.level = APIC_LEVEL_DEASSERT;
     icr.shorthand = APIC_SHORTHAND_NONE;
-    icr.trigger_mode = APIC_TRIGMOD_LEVEL;
+    icr.trigger_mode = APIC_TRIGMOD_EDGE;
     icr.vector = 0;
     icr.dest = apicid;
     
     lapic_vaddr[APIC_ICR_HI] = icr.value_high;
     lapic_vaddr[APIC_ICR_LO] = icr.value_low;
     
-    // Wait 10ms as MP Specification specifies
+    // Wait 10ms as is specified by MP Specification
     hal_time_delay(10);
-    
-    kprintf("AP Entry: %p\n", get_bootparam()->ap_entry_addr);
     
     if (!APIC_IS_LAPIC_82489DX(lapic_vaddr[APIC_LAVR])) {
         // If this is not 82489DX-based lapic_vaddr we must send two STARTUP IPI's
@@ -475,10 +477,10 @@ int ipi_send_startup(int apicid)
             
             icr.vector = (u8)(get_bootparam()->ap_entry_addr >> 12); // calculate the reset vector
             icr.delmod = APIC_DELMOD_STARTUP;
-            icr.destmod = APIC_DESTMOD_LOGIC;
+            icr.destmod = APIC_DESTMOD_PHYS;
             icr.level = APIC_LEVEL_ASSERT;
             icr.shorthand = APIC_SHORTHAND_NONE;
-            icr.trigger_mode = APIC_TRIGMOD_LEVEL;
+            icr.trigger_mode = APIC_TRIGMOD_EDGE;
             icr.dest = apicid;
             lapic_vaddr[APIC_ICR_HI] = icr.value_high;
             lapic_vaddr[APIC_ICR_LO] = icr.value_low;

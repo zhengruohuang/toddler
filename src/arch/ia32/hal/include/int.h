@@ -134,8 +134,8 @@ extern int int_handler_device(u32 vector_num, u32 error_code, u32 eip, u32 cs, u
 /*
  * IDT functions
  */
+extern void load_idt();
 extern void init_idt();
-extern void init_idt_mp();
 
 
 /*

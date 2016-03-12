@@ -493,6 +493,7 @@ extern int apic_present;
 extern ulong lapic_paddr;
 
 extern void init_apic();
+extern void init_apic_mp();
 
 
 #endif

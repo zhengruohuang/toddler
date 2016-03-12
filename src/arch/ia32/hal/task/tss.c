@@ -19,7 +19,7 @@ void load_tss()
 {
     u32 selector = GDT_SELECTOR_TSS_USER;
 
-    kprintf("Loading TSS, selector: %x ... ", selector);
+    kprintf("\tLoading TSS, selector: %x ... ", selector);
     
     __asm__ __volatile__
     (
@@ -31,7 +31,7 @@ void load_tss()
     kprintf("Done\n");
 }
 
-void init_tss_mp()
+static void construct_tss()
 {
     struct tss *cur_user = get_per_cpu(struct tss, tss_user);
     u32 *cur_user_base = get_per_cpu(u32, tss_user_base);
@@ -64,9 +64,14 @@ void init_tss_mp()
     *cur_iopb_limit = sizeof(struct tss) - 1;
 }
 
+void init_tss_mp()
+{
+    kprintf("\tConstructing TSS\n");
+    construct_tss();
+}
+
 void init_tss()
 {
-    kprintf("Initializing TSS\n");
-    
+    kprintf("\tConstructing TSS\n");
     init_tss_mp();
 }

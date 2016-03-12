@@ -196,12 +196,6 @@ STOP:
 AP_STARTUP_ENTRY:
 ; 16-bit code: move to protected mode
     cli
-
-        mov     ax, 0600h       ; ah = 6,  al = 0h
-    mov     bx, 0700h       ; Backcolor: Black, Forecolor: White (BL = 07h)
-    mov     cx, 0           ; (Left, Top): (0, 0)
-    mov     dx, 184fh       ; (Right, Bottom): (25, 80)
-    int     10h             ; Call int 10h to clear the screen
     
     lgdt    [GdtAddress]
 
@@ -377,6 +371,8 @@ STOP_32:
 AP_STARTUP_ENTRY_32:
 ; Setup segment registers
     xor     eax, eax
+    
+    xchg    bx, bx
 
     mov     ax, SelectorRW
     mov     ds, ax
@@ -403,7 +399,7 @@ AP_STARTUP_ENTRY_32:
     nop
     
 ; Setup stack
-    ;mov     esp, [ApStackTop32]
+    mov     esp, [ApStackTop32]
 
 ; Jump to MP initialization Entry in HAL
     mov     ebx, [HalEntry32]

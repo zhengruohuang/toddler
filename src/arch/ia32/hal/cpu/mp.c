@@ -53,7 +53,8 @@ void init_mp()
 
 static void bringup_cpu(int cpu_id)
 {
-    kprintf("Bringing up secondary processor #%d\n", cpu_id);
+    int apic_id = get_apic_id_by_cpu_id(cpu_id);
+    kprintf("Bringing up secondary processor #%d, APIC ID: %d\n", cpu_id, apic_id);
     
     // Set the lock
     ap_bringup_lock = 1;
@@ -62,28 +63,30 @@ static void bringup_cpu(int cpu_id)
     u32 *loader_func_type = (u32 *)get_bootparam()->loader_func_type_ptr;
     *loader_func_type = 2;
     
+    // HAL start flag
+    get_bootparam()->hal_start_flag = 1;
+    
     // Page dir
     u32 *page_dir_pfn = (u32 *)get_bootparam()->ap_page_dir_pfn_ptr;
     *page_dir_pfn = KERNEL_PDE_PFN;
     
     // Stack top
     u32 *stack_top = (u32 *)get_bootparam()->ap_stack_top_ptr;
-    *stack_top = get_per_cpu_area_start_vaddr(cpu_id);
-    
-    // HAL start flag
-    get_bootparam()->hal_start_flag = 1;
+    *stack_top = get_per_cpu_area_start_vaddr(cpu_id) + PER_CPU_STACK_TOP_OFFSET;
     
     // Send IPI
-    ipi_send_startup(get_apic_id_by_cpu_id(cpu_id));
-    
-    kprintf("\tWaiting for processor's response\n");
+    ipi_send_startup(apic_id);
     
     // Wait until AP is broughtup
     while (ap_bringup_lock) {
         __asm__ __volatile__ ( "pause;" : : );
     }
     
-    kprintf("\tThe processor has been started\n");
+    // Restore loader function and HAL start flag
+    *loader_func_type = -1;
+    get_bootparam()->hal_start_flag = -1;
+    
+    kprintf("\tProcessor #%d has been started\n", cpu_id);
 }
 
 /*
@@ -94,6 +97,7 @@ void bringup_mp()
 {
     kprintf("Bringing up secondary processors\n");
     
+    // Bring up all processors
     int i;
     for (i = 0; i < num_cpus; i++) {
         if (i == get_cpu_id()) {
@@ -104,4 +108,19 @@ void bringup_mp()
     }
     
     kprintf("All processors have been successfully brought up\n");
+}
+
+/*
+ * Secondary processor initializaton started
+ */
+void ap_init_started()
+{
+}
+
+/*
+ * Secondary processor initializaton done
+ */
+void ap_init_done()
+{
+    ap_bringup_lock = 0;
 }

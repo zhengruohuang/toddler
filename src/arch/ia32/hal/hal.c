@@ -64,18 +64,6 @@ static void hal_entry()
     kprintf("Initialization is done!\n");
 
     
-//     kprintf("We are in HAL!\n");
-//     kprintf("We are in HAL!\n");
-//     kprintf("We are in HAL!\n");
-//     kprintf("We are in HAL!\n");
-//     kprintf("We are in HAL!\n");
-//     kprintf("We are in HAL!\n");
-//     kprintf("We are in HAL!\n");
-//     kprintf("We are in HAL!\n");
-//     kprintf("We are in HAL!\n");
-//     kprintf("We are in HAL!\n");
-//     kprintf("We are in HAL!\n");
-    
 //     do {
 //         kprintf("We are in HAL!\n");
 //     } while(1);
@@ -83,12 +71,34 @@ static void hal_entry()
 
 static void ap_entry()
 {
-    kprintf("Hi!\n");
+    kprintf("\tSecondary processor is up!\n");
+    
+    // AP init started
+    ap_init_started();
+    
+    // Init APIC
+    init_apic_mp();
+    
+    // Init TSS
+    init_tss_mp();
+    
+    // Init GDT
+    init_gdt_mp();
+    
+    // Load TSS
+    load_tss();
+    
+    // Init IDT
+    load_idt();
+    
+    // AP init done
+    ap_init_done();
 }
 
-// static void bios_return()
-// {
-// }
+static void bios_return()
+{
+    panic("BIOS invoker not supported!");
+}
 
 /*
  * This is the entry point of HAL
@@ -110,6 +120,7 @@ void asmlinkage _start()
         
     // Return from BIOS invoker
     case 2:
+        bios_return();
         break;
         
     // Undefined
@@ -120,5 +131,6 @@ void asmlinkage _start()
     }
     
     // Should never reach here
+    //panic("Should never reach here!");
     halt();
 }

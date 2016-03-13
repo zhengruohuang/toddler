@@ -339,7 +339,10 @@ static void no_inline build_bootparam()
         }
         
         // Add to boot param list
-        if (1 == current_type || 3 == current_type) {
+        if (
+            1 == current_type       // usable
+            //|| 3 == current_type  // ACPI reclaimable
+        ) {
             boot_param->mem_zones[zone_count].start_paddr = current_base_address;
             boot_param->mem_zones[zone_count].len = current_length;
             boot_param->mem_zones[zone_count].type = current_type;

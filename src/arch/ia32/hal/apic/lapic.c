@@ -145,6 +145,7 @@
 #include "hal/include/mem.h"
 #include "hal/include/cpu.h"
 #include "hal/include/int.h"
+#include "hal/include/time.h"
 #include "hal/include/apic.h"
 
 
@@ -401,14 +402,6 @@ void init_lapic()
     init_lapic_mp();
 }
 
-static void hal_time_delay(int ms)
-{
-    int i;
-    for (i = 0; i < ms * 20000; i++) {
-        __asm__ __volatile__ ( "pause;" : : );
-    }
-}
-
 /*
  * Return
  *      0 = Failed
@@ -436,7 +429,7 @@ int ipi_send_startup(int apicid)
     lapic_vaddr[APIC_ICR_LO] = icr.value_low;
     
     // Wait for 10ms, according to MP Specification
-    hal_time_delay(10);
+    blocked_delay(10);
     
     // If there are errors
     if (!check_lapic()) {
@@ -466,7 +459,7 @@ int ipi_send_startup(int apicid)
     lapic_vaddr[APIC_ICR_LO] = icr.value_low;
     
     // Wait 10ms as is specified by MP Specification
-    hal_time_delay(10);
+    blocked_delay(10);
     
     if (!APIC_IS_LAPIC_82489DX(lapic_vaddr[APIC_LAVR])) {
         // If this is not 82489DX-based lapic_vaddr we must send two STARTUP IPI's
@@ -486,7 +479,7 @@ int ipi_send_startup(int apicid)
             lapic_vaddr[APIC_ICR_LO] = icr.value_low;
             
             //According to MP Specification, we should wait for 200us
-            hal_time_delay(1);
+            blocked_delay(1);
         }
     }
     

@@ -112,8 +112,8 @@ void init_idt()
     int_idt.idtr_value.base = (u32)(&int_idt.entries);
     int_idt.idtr_value.limit = IDT_ENTRY_COUNT * sizeof(struct idt_gate) - 1;;
     
+    kprintf(" Done!\n");
+    
     // Load IDT
     load_idt();
-    
-    kprintf(" Done!\n");
 }

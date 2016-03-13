@@ -9,6 +9,8 @@
 #include "hal/include/mps.h"
 #include "hal/include/apic.h"
 #include "hal/include/task.h"
+#include "hal/include/time.h"
+#include "hal/include/kernel.h"
 
 
 static void hal_entry()
@@ -54,7 +56,14 @@ static void hal_entry()
     // Init IDT
     init_idt();
     
+    // Init time
+    //init_rtc();
+    //init_blocked_delay();
+    
     // Init kernel
+    init_kmem_zone();
+    init_kernel();
+    halt();
     
     // Bringup APs
     bringup_mp();

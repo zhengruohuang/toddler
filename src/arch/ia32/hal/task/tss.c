@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
+#include "hal/include/print.h"
 #include "hal/include/cpu.h"
 #include "hal/include/mem.h"
 #include "hal/include/lib.h"

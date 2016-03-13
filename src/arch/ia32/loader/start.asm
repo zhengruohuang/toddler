@@ -371,8 +371,6 @@ STOP_32:
 AP_STARTUP_ENTRY_32:
 ; Setup segment registers
     xor     eax, eax
-    
-    xchg    bx, bx
 
     mov     ax, SelectorRW
     mov     ds, ax

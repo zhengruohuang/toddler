@@ -6,27 +6,31 @@
 
 
 #ifndef PAGE_SIZE
-#define PAGE_SIZE 4096
+#define PAGE_SIZE   4096
+#endif
+
+#ifndef PAGE_BITS
+#define PAGE_BITS   12
 #endif
 
 #ifndef PAGE_ENTRY_COUNT
-#define PAGE_ENTRY_COUNT 1024
+#define PAGE_ENTRY_COUNT    1024
 #endif
 
 #ifndef PAGE_LEVEL
-#define PAGE_LEVEL 2
+#define PAGE_LEVEL  2
 #endif
 
 #ifndef ALIGN_MIN
-#define ALIGN_MIN 1
+#define ALIGN_MIN   1
 #endif
 
 #ifndef ALIGN_MAX
-#define ALIGN_MAX 2048
+#define ALIGN_MAX   2048
 #endif
 
 #ifndef ALIGN_DEFAULT
-#define ALIGN_DEFAULT 4
+#define ALIGN_DEFAULT   4
 #endif
 
 #ifndef PFN_TO_ADDR

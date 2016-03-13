@@ -3,6 +3,7 @@
 
 
 #include "common/include/data.h"
+#include "common/include/memory.h"
 
 
 /*
@@ -10,6 +11,21 @@
  */
 struct kernel_exports {
     ulong (*alloc_page)(int count, int tag);
+};
+
+
+/*
+ * Structures needed by HAL exports
+ */
+struct kernel_mem_zone {
+    ulong start;
+    ulong len;
+    int usable;
+    int mapped;
+    int tag;
+    int inuse;
+    int kernel;
+    int swappable;
 };
 
 
@@ -30,10 +46,9 @@ struct hal_exports {
     // Physical memory info
     ulong free_mem_start_addr;
     ulong paddr_space_end;
-    int asmlinkage (*get_next_mem_zone)(ulong *start, ulong *len, int *usable, int *mapped, int *tag);
+    int asmlinkage (*get_next_mem_zone)(struct kernel_mem_zone *cur);
     
     // Mapping
-    void asmlinkage (*kernel_map)(ulong addr, size_t size);
     int asmlinkage (*user_map)(ulong page_dir, ulong vaddr, ulong paddr, size_t size, int exec, int write, int cacheable);
     
     // Addr space

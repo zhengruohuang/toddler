@@ -1,19 +1,18 @@
 #include "common/include/data.h"
 #include "common/include/bootparam.h"
+#include "common/include/memory.h"
 #include "hal/include/print.h"
+#include "hal/include/mem.h"
 #include "hal/include/lib.h"
+
+#ifndef __HAL__
+#define __HAL__
+#endif
+#include "kernel/include/hal.h"
 
 
 #define MAX_KERNEL_MEM_ZONE_COUNT   32
 
-
-struct kernel_mem_zone {
-    ulong start;
-    ulong len;
-    int usable;
-    int mapped;
-    int tag;
-};
 
 static int mem_zone_count = 0;
 static struct kernel_mem_zone mem_zones[MAX_KERNEL_MEM_ZONE_COUNT];
@@ -21,21 +20,31 @@ static struct kernel_mem_zone mem_zones[MAX_KERNEL_MEM_ZONE_COUNT];
 ulong paddr_space_end = 0x400000;
 
 
-int asmlinkage get_next_mem_zone(ulong *start, ulong *len, int *usable, int *mapped, int *tag)
+int asmlinkage get_next_mem_zone(struct kernel_mem_zone *cur)
 {
     int i;
     
-    if (!start) {
+    if (!cur) {
         return 0;
     }
     
+//     u32 start = (u32)cur->start;
+//     u32 len = (u32)cur->len;
+//     u32 end = start + len;
+//     kprintf("Cur start: %p, len: %p, end: %p\n", start, len, end);
+    
     for (i = 0; i < mem_zone_count; i++) {
-        if (mem_zones[i].start > *start || 0 == *start) {
-            if (start)  *start = mem_zones[i].start;
-            if (len)    *len = mem_zones[i].len;
-            if (usable) *usable = mem_zones[i].usable;
-            if (mapped) *mapped = mem_zones[i].mapped;
-            if (tag)    *tag = mem_zones[i].tag;
+        if (
+            mem_zones[i].start > cur->start ||
+            (0 == cur->start && 0 == cur->len)
+        ) {
+            cur->start = mem_zones[i].start;
+            cur->len = mem_zones[i].len;
+            cur->usable = mem_zones[i].usable;
+            cur->mapped = mem_zones[i].mapped;
+            cur->tag = mem_zones[i].tag;
+            cur->inuse = mem_zones[i].inuse;
+            
             return 1;
         }
     }
@@ -65,20 +74,37 @@ void init_kmem_zone()
     /*
      * Generate PFN DB zones
      */
-    // Zone 0: Low 1MB, unusable, mapped
+    // Zone 0: Low 1MB, unusable, mapped, inuse
     mem_zones[0].start = 0;
     mem_zones[0].len = 0x100000;
     mem_zones[0].usable = 0;
     mem_zones[0].mapped = 1;
     mem_zones[0].tag = -1;
+    mem_zones[0].inuse = 1;
+    mem_zones[0].kernel = 1;
+    mem_zones[0].swappable = 0;
     mem_zone_count++;
     
-    // Zone 1: 1MB ~ 4MB: usable, mapped
+    // Zone 1: 1MB ~ free_pfn: usable, mapped, inuse
     mem_zones[1].start = 0x100000;
-    mem_zones[1].len = 0x300000;
+    mem_zones[1].len = PFN_TO_ADDR(get_bootparam()->free_pfn_start) - 0x100000;
     mem_zones[1].usable = 1;
     mem_zones[1].mapped = 1;
     mem_zones[1].tag = 0;
+    mem_zones[1].inuse = 1;
+    mem_zones[0].kernel = 1;
+    mem_zones[0].swappable = 0;
+    mem_zone_count++;
+    
+    // Zone 1: free_pfn ~ 4MB: usable, mapped, not inuse
+    mem_zones[2].start = PFN_TO_ADDR(get_bootparam()->free_pfn_start);
+    mem_zones[2].len = 0x400000 - PFN_TO_ADDR(get_bootparam()->free_pfn_start);
+    mem_zones[2].usable = 1;
+    mem_zones[2].mapped = 1;
+    mem_zones[2].tag = 0;
+    mem_zones[2].inuse = 0;
+    mem_zones[0].kernel = 0;
+    mem_zones[0].swappable = 1;
     mem_zone_count++;
     
     // Other zones: go through BIOS mem zones, usable, unmapped
@@ -108,6 +134,9 @@ void init_kmem_zone()
         mem_zones[mem_zone_count].usable = 1;
         mem_zones[mem_zone_count].mapped = 0;
         mem_zones[mem_zone_count].tag = 0;
+        mem_zones[mem_zone_count].inuse = 0;
+        mem_zones[mem_zone_count].kernel = 0;
+        mem_zones[mem_zone_count].swappable = 1;
         mem_zone_count++;
         
         // Update physical address space boundary
@@ -131,8 +160,8 @@ void init_kmem_zone()
         u32 len = (u32)mem_zones[i].len;
         u32 end = start + len;
         
-        kprintf("\t\tZone #%d, Start: %x, Len: %x, End: %x, Usable: %d, Mapped: %d, Tag: %d\n",
-            i, start, len, end, mem_zones[i].usable, mem_zones[i].mapped, mem_zones[i].tag
+        kprintf("\t\tZone #%d, Start: %x, Len: %x, End: %x, Usable: %d, Mapped: %d, Tag: %d, Inuse: %d\n",
+            i, start, len, end, mem_zones[i].usable, mem_zones[i].mapped, mem_zones[i].tag, mem_zones[i].inuse
         );
     }
 }

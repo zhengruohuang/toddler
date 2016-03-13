@@ -4,6 +4,11 @@
 
 #include "common/include/data.h"
 
+#ifndef __HAL__
+#define __HAL__
+#endif
+#include "kernel/include/hal.h"
+
 
 /*
  * Wrappers
@@ -18,7 +23,7 @@ extern void asmlinkage wrap_halt();
  */
 extern ulong paddr_space_end;
 
-extern int asmlinkage get_next_mem_zone(ulong *start, ulong *len, int *usable, int *mapped, int *tag);
+extern int asmlinkage get_next_mem_zone(struct kernel_mem_zone *cur);
 extern void init_kmem_zone();
 
 

@@ -43,6 +43,9 @@ static struct palloc_node *nodes;
 static struct palloc_bucket buckets[PALLOC_BUCKET_COUNT];
 
 
+/*
+ * Node manipulation
+ */
 static struct palloc_node *get_node_by_paddr(ulong paddr)
 {
     if (paddr >= hal->paddr_space_end) {
@@ -72,6 +75,98 @@ static void insert_node(ulong pfn, int tag, int order)
     buckets[tag].buddies[order].next = pfn;
 }
 
+static void remove_node(ulong pfn, int tag, int order)
+{
+    ulong cur_pfn = buckets[tag].buddies[order].next;
+    struct palloc_node *cur = get_node_by_pfn(cur_pfn);
+    struct palloc_node *prev = NULL;
+
+    // If the node is the first one
+    if (cur_pfn == pfn) {
+        buckets[tag].buddies[order].has_next = cur->has_next;
+        buckets[tag].buddies[order].next = cur->next;
+        
+        cur->has_next = 0;
+        cur->next = 0;
+        
+        return;
+    }
+    
+    // Otherwise we have to go through the list
+    assert(cur->has_next);
+    
+    do {
+        prev = cur;
+        cur_pfn = cur->next;
+        cur = get_node_by_pfn(cur_pfn);
+        
+        if (cur_pfn == pfn) {
+            prev->has_next = cur->has_next;
+            prev->next = cur->next;
+            
+            cur->has_next = 0;
+            cur->next = 0;
+            
+            return;
+        }
+    } while (cur->has_next);
+    
+    panic("Unable to remove node from list, pfn: %p, tag: %d, order: %d\n", pfn, tag, order);
+}
+
+
+/*
+ * Helper functions
+ */
+static int calc_order(int count)
+{
+    int order;
+    for (order = PALLOC_MIN_ORDER; order <= PALLOC_MAX_ORDER; order++) {
+        if ((0x1 << order) >= count) {
+            return order;
+        }
+    }
+    
+    panic("Too many pages to allocate: %d", count);
+    return -1;
+}
+
+static void buddy_print()
+{
+    int tag;
+    for (tag = 0; tag < PALLOC_BUCKET_COUNT; tag++) {
+        if (
+            tag == PALLOC_DUMMY_BUCKET ||
+            0 == buckets[tag].avail_pages
+        ) {
+            continue;
+        }
+        
+        kprintf("\tBuddy in Bucket #%d\n", tag);
+        
+        int order;
+        for (order = PALLOC_MIN_ORDER; order <= PALLOC_MAX_ORDER; order++) {
+            int count = 0;
+            
+            int has_next = buckets[tag].buddies[order].has_next;
+            struct palloc_node *cur = get_node_by_pfn(buckets[tag].buddies[order].next);
+            
+            while (has_next) {
+                count++;
+                
+                has_next = cur->has_next;
+                cur = get_node_by_pfn(cur->next);
+            }
+            
+            kprintf("\t\tOrder: %d, Count: %d\n", order, count);
+        }
+    }
+}
+
+
+/*
+ * Initialization
+ */
 static void init_bucket(ulong start, ulong len, int tag)
 {
     kprintf("\tInitializing bucket, start: %p, len: %p, tag: %d\n", start, len, tag);
@@ -183,21 +278,14 @@ void init_palloc()
     if (recording) {
         init_bucket(cur_bucket_start, hal->paddr_space_end - cur_bucket_start, cur_tag);
     }
-}
-
-static int calc_order(int count)
-{
-    int order;
-    for (order = PALLOC_MIN_ORDER; order <= PALLOC_MAX_ORDER; order++) {
-        if ((0x1 << order) >= count) {
-            return order;
-        }
-    }
     
-    panic("Too many pages to allocate: %d", count);
-    return -1;
+    // Print the buddy
+    buddy_print();
 }
 
+/*
+ * Buddy
+ */
 static int buddy_split(int order, int tag)
 {
     assert(tag < PALLOC_BUCKET_COUNT && tag != PALLOC_DUMMY_BUCKET);
@@ -248,91 +336,6 @@ static int buddy_split(int order, int tag)
     insert_node(pfn2, tag, order - 1);
     
     return 0;
-}
-
-ulong palloc_tag(int count, int tag)
-{
-    assert(tag < PALLOC_BUCKET_COUNT && tag != PALLOC_DUMMY_BUCKET);
-    int order = calc_order(count);
-    int order_count = 0x1 << order;
-    
-    // See if this bucket has enough pages to allocate
-    if (buckets[tag].avail_pages < order_count) {
-        return -1;
-    }
-    
-    // If this is the highest order, then we are not able to allocate the pages
-    if (order == PALLOC_MAX_ORDER) {
-        return -1;
-    }
-    
-    // Split higher order buddies if necessary
-    if (!buckets[tag].buddies[order].has_next) {
-        if (-1 == buddy_split(order + 1, tag)) {
-            kprintf("Unable to split buddy");
-            return -1;
-        }
-    }
-    
-    // Now we are safe to allocate, first obtain the palloc node
-    ulong pfn = buckets[tag].buddies[order].next;
-    struct palloc_node *node = get_node_by_pfn(pfn);
-    
-    // Remove the node from the list
-    buckets[tag].buddies[order].next = node->next;
-    buckets[tag].buddies[order].has_next = node->has_next;
-    
-    // Mark the node as allocated
-    node->alloc = 1;
-    node->has_next = 0;
-    node->next = 0;
-    buckets[tag].avail_pages -= order_count;
-    
-    return pfn;
-}
-
-ulong palloc(int count)
-{
-    return palloc_tag(count, PALLOC_DEFAULT_TAG);
-}
-
-static void remove_node(ulong pfn, int tag, int order)
-{
-    ulong cur_pfn = buckets[tag].buddies[order].next;
-    struct palloc_node *cur = get_node_by_pfn(cur_pfn);
-    struct palloc_node *prev = NULL;
-
-    // If the node is the first one
-    if (cur_pfn == pfn) {
-        buckets[tag].buddies[order].has_next = cur->has_next;
-        buckets[tag].buddies[order].next = cur->next;
-        
-        cur->has_next = 0;
-        cur->next = 0;
-        
-        return;
-    }
-    
-    // Otherwise we have to go through the list
-    assert(cur->has_next);
-    
-    do {
-        prev = cur;
-        cur_pfn = cur->next;
-        cur = get_node_by_pfn(cur_pfn);
-        
-        if (cur_pfn == pfn) {
-            prev->has_next = cur->has_next;
-            prev->next = cur->next;
-            
-            cur->has_next = 0;
-            cur->next = 0;
-            
-            return;
-        }
-    } while (cur->has_next);
-    
-    panic("Unable to remove node from list, pfn: %p, tag: %d, order: %d\n", pfn, tag, order);
 }
 
 static void buddy_combine(ulong pfn)
@@ -398,6 +401,56 @@ static void buddy_combine(ulong pfn)
     buddy_combine(higher_pfn);
 }
 
+
+/*
+ * Alloc and free
+ */
+ulong palloc_tag(int count, int tag)
+{
+    assert(tag < PALLOC_BUCKET_COUNT && tag != PALLOC_DUMMY_BUCKET);
+    int order = calc_order(count);
+    int order_count = 0x1 << order;
+    
+    // See if this bucket has enough pages to allocate
+    if (buckets[tag].avail_pages < order_count) {
+        return -1;
+    }
+    
+    // If this is the highest order, then we are not able to allocate the pages
+    if (order == PALLOC_MAX_ORDER) {
+        return -1;
+    }
+    
+    // Split higher order buddies if necessary
+    if (!buckets[tag].buddies[order].has_next) {
+        if (-1 == buddy_split(order + 1, tag)) {
+            kprintf("Unable to split buddy");
+            return -1;
+        }
+    }
+    
+    // Now we are safe to allocate, first obtain the palloc node
+    ulong pfn = buckets[tag].buddies[order].next;
+    struct palloc_node *node = get_node_by_pfn(pfn);
+    
+    // Remove the node from the list
+    buckets[tag].buddies[order].next = node->next;
+    buckets[tag].buddies[order].has_next = node->has_next;
+    
+    // Mark the node as allocated
+    node->alloc = 1;
+    node->has_next = 0;
+    node->next = 0;
+    buckets[tag].avail_pages -= order_count;
+    
+    return pfn;
+}
+
+ulong palloc(int count)
+{
+    return palloc_tag(count, PALLOC_DEFAULT_TAG);
+}
+
 int pfree(ulong pfn)
 {
     // Obtain the node
@@ -431,27 +484,45 @@ int pfree(ulong pfn)
     return order_count;
 }
 
+
+/*
+ * Testing
+ */
+#define PALLOC_TEST_ORDER_COUNT 8
+#define PALLOC_TEST_PER_ORDER   10
+#define PALLOC_TEST_LOOPS       5
+
 void palloc_test()
 {
     kprintf("Testing palloc\n");
     
-    int i, j;
-    ulong results[1][20];
-    
-    for (i = 1; i <= 1; i++) {
-        for (j = 0; j <= 20 - i; j++) {
-            kprintf("Allocating count: %d, index: %d", i, j);
-            ulong pfn = palloc(i);
-            results[i - 1][j] = pfn;
-            kprintf(", PFN: %p\n", pfn);
+    int i, j, k;
+    ulong results[PALLOC_TEST_ORDER_COUNT][PALLOC_TEST_PER_ORDER];
+        
+    for (k = 0; k < PALLOC_TEST_LOOPS; k++) {
+        
+        
+        for (i = 0; i < PALLOC_TEST_ORDER_COUNT; i++) {
+            for (j = 0; j < PALLOC_TEST_PER_ORDER; j++) {
+                int count = 0x1 << i;
+                //kprintf("Allocating count: %d, index: %d", count, j);
+                ulong pfn = palloc(count);
+                results[i][j] = pfn;
+                //kprintf(", PFN: %p\n", pfn);
+            }
+        }
+        
+        for (i = 0; i < PALLOC_TEST_ORDER_COUNT; i++) {
+            for (j = 0; j < PALLOC_TEST_PER_ORDER; j++) {
+                ulong pfn = results[i][j];
+                if (pfn) {
+                    //int count = 0x1 << i;
+                    //kprintf("Freeing count: %d, index: %d, PFN: %p\n", count, j, pfn);
+                    pfree(pfn);
+                }
+            }
         }
     }
     
-    for (i = 1; i <= 1; i++) {
-        for (j = 0; j <= 20 - i; j++) {
-            ulong pfn = results[i - 1][j];
-            kprintf("Freeing count: %d, index: %d, PFN: %p\n", i, j, pfn);
-            pfree(pfn);
-        }
-    }
+    buddy_print();
 }

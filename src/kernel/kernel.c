@@ -17,6 +17,8 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     init_pfndb();
     
     // Init page allocator
+    init_palloc();
+    palloc_test();
     
     // Init kernel malloc
     

@@ -1,22 +1,7 @@
 #include "common/include/data.h"
+#include "common/include/memory.h"
 #include "kernel/include/hal.h"
-
-
-struct pfndb_entry {
-    union {
-        u16 flags;
-        
-        struct {
-            u16 usable      : 1;
-            u16 mapped      : 1;
-            u16 tag         : 4;
-            u16 inuse       : 1;
-            u16 zeroed      : 1;
-            u16 kernel      : 1;
-            u16 swappable   : 1;
-        };
-    };
-} packedstruct;
+#include "kernel/include/mem.h"
 
 
 static struct pfndb_entry *pfndb;
@@ -33,6 +18,27 @@ struct pfndb_entry *get_pfn_entry_by_paddr(ulong paddr)
     return &pfndb[pfn];
 }
 
+void reserve_pfndb_mem(ulong start, ulong size)
+{
+    kprintf("\tReserving memory ...");
+    
+    ulong i;
+    ulong end = start + size;
+    for (i = start; i < end; i += PAGE_SIZE) {
+        struct pfndb_entry *entry = get_pfn_entry_by_paddr(i);
+        
+        entry->inuse = 1;
+        entry->zeroed = 0;
+        entry->kernel = 1;
+        entry->swappable = 0;
+        entry->tag = 9;
+        
+        kprintf(".");
+    }
+    
+    kprintf("\n");
+}
+
 void init_pfndb()
 {
     kprintf("Initializing PFN database\n");
@@ -44,7 +50,6 @@ void init_pfndb()
     
     // Allocate memory
     pfndb = (struct pfndb_entry *)hal->free_mem_start_addr;
-    hal->free_mem_start_addr += pfndb_size;
     
     // Init the PFN DB
     kprintf("\tConstructing PFN database ...");
@@ -74,7 +79,7 @@ void init_pfndb()
             
             // Show progress
             if (0 == count++ % (total_entries / 10)) {
-                kprintf(".");
+                kprintf("_");
             }
         }
         
@@ -95,7 +100,30 @@ void init_pfndb()
                 kprintf(".");
             }
         }
+        
+        prev_end = cur.start + cur.len;
+    }
+    
+    kprintf("\n\tRemaining: %p, End: %p ...", prev_end, hal->paddr_space_end);
+    
+    // Fill the rest of the PFN database
+    for (i = prev_end; i < hal->paddr_space_end; i += PAGE_SIZE) {
+        entry = get_pfn_entry_by_paddr(i);
+        
+        entry->usable = 0;
+        entry->mapped = 0;
+        entry->tag = -1;
+        entry->inuse = 1;
+        entry->zeroed = 0;
+        entry->kernel = 1;
+        entry->swappable = 0;
+        
+        kprintf(".");
     }
     
     kprintf("\n");
+    
+    // Mark PFN database memory as inuse
+    reserve_pfndb_mem(hal->free_mem_start_addr, pfndb_size);
+    hal->free_mem_start_addr += pfndb_size;
 }

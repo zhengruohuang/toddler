@@ -17,7 +17,7 @@ static void construct_entry(int entry_index, u32 base, u32 limit, u16 attri)
     entry->base_low = ((u16)base) & 0xffff;
     entry->base_mid = ((u8)(base >> 16)) & 0xff;
     entry->attri1 = ((u8)attri) & 0xFF;
-    entry->limit_high_attri2 = (((u8)(limit >> 16)) & 0x0F) | ((u8)(attri >> 8)) & 0xF0;
+    entry->limit_high_attri2 = (((u8)(limit >> 16)) & 0x0F) | (((u8)(attri >> 8)) & 0xF0);
     entry->base_high = ((u8)(base >> 24)) & 0xff;
 }
 

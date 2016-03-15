@@ -350,7 +350,7 @@ void init_ioapic()
         
         struct acpi_madt_ioapic *e = NULL;
         int i = 0;
-        while (e = get_next_acpi_ioapic_entry(e, &ioapic_paddr)) {
+        while ((e = get_next_acpi_ioapic_entry(e, &ioapic_paddr)) != NULL) {
             assert(ioapic_paddr);
             ioapic_vaddr -= PAGE_SIZE;
             
@@ -371,7 +371,7 @@ void init_ioapic()
         
         struct mps_ioapic *e = NULL;
         int i = 0;
-        while (e = get_next_mps_ioapic_entry(e, &ioapic_paddr)) {
+        while ((e = get_next_mps_ioapic_entry(e, &ioapic_paddr)) != NULL) {
             assert(ioapic_paddr);
             ioapic_vaddr -= PAGE_SIZE;
             
@@ -387,6 +387,7 @@ void init_ioapic()
     
     // Update HAL virtual space boundary
     get_bootparam()->hal_vspace_end -= PAGE_SIZE * ioapic_count;
+    //panic("get_bootparam()->hal_vspace_end: %p\n", get_bootparam()->hal_vspace_end);
     
     // Override IO APIC using MADT or MPS
     int i;

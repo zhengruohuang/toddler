@@ -26,11 +26,11 @@
 #endif
 
 #ifndef ALIGN_MAX
-#define ALIGN_MAX   2048
+#define ALIGN_MAX   64
 #endif
 
 #ifndef ALIGN_DEFAULT
-#define ALIGN_DEFAULT   4
+#define ALIGN_DEFAULT   8
 #endif
 
 #ifndef PFN_TO_ADDR

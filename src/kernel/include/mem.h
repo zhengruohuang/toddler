@@ -33,8 +33,32 @@ extern void init_pfndb();
 /*
  * Page frame allocator
  */
+extern int calc_palloc_order(int count);
 extern void init_palloc();
-extern void palloc_test();
+extern ulong palloc_tag(int count, int tag);
+extern ulong palloc(int count);
+extern int pfree(ulong pfn);
+extern void test_palloc();
+
+
+/*
+ * Struct allocator
+ */
+typedef void (*salloc_callback_t)(void* entry);
+
+extern void init_salloc();
+extern int salloc_create(size_t size, size_t align, int count, salloc_callback_t construct, salloc_callback_t destruct);
+extern void *salloc(int obj_id);
+extern void sfree(void *ptr);
+
+
+/*
+ * General memory allocator
+ */
+extern void init_malloc();
+extern void *malloc(size_t size);
+extern void free(void *ptr);
+extern void test_malloc();
 
 
 #endif

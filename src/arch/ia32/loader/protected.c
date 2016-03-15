@@ -355,13 +355,13 @@ static void no_inline build_bootparam()
         print_char('.');
     } while (1);
     
-    // Free PFN start
-    if (boot_param->free_pfn_start) {
-        boot_param->free_pfn_start++;
-    } else {
-        boot_param->free_pfn_start = KERNEL_INIT_PTE_START_PFN;
-    }
-    print_string("|.");
+//     // Free PFN start
+//     if (boot_param->free_pfn_start) {
+//         boot_param->free_pfn_start++;
+//     } else {
+//         boot_param->free_pfn_start = KERNEL_INIT_PTE_START_PFN;
+//     }
+//     print_string("|.");
     
     // Memory size
     if (memory_size % (1024 * 1024)) {
@@ -385,6 +385,26 @@ static void no_inline build_bootparam()
     print_string("|.");
     
     print_done();
+}
+
+static u32 no_opt no_inline page_alloc()
+{
+    // Init boot param
+    if (!boot_param->free_pfn_start) {
+        boot_param->free_pfn_start = KERNEL_INIT_PTE_START_PFN;
+    }
+    
+    u32 result = boot_param->free_pfn_start;
+    boot_param->free_pfn_start++;
+
+    // Zero the page
+    struct page_frame *pg = (struct page_frame *)PFN_TO_ADDR(result);
+    u32 i;
+    for (i = 0; i < 1024; i++) {
+        pg->value_u32[i] = 0;
+    }
+    
+    return result;
 }
 
 static void no_opt no_inline setup_paging()
@@ -460,39 +480,37 @@ static void no_opt no_inline setup_paging()
     u32 fb_start = boot_param->framebuffer_addr;
     u32 fb_end = boot_param->framebuffer_addr + boot_param->bytes_per_line * boot_param->res_y;
     
-    u32 fb_start_pfn = fb_start / PAGE_SIZE;
-    u32 fb_end_pfn = fb_end / PAGE_SIZE + 1;
+    // Round down fb_start
+    fb_start /= PAGE_SIZE;
+    fb_start *= PAGE_SIZE;
     
-    boot_param->free_pfn_start = 0;
+    // Round up fb_end
+    if (fb_end % PAGE_SIZE) {
+        fb_end /= PAGE_SIZE;
+        fb_end++;
+        fb_end *= PAGE_SIZE;
+    }
     
-    u32 fb_pfn;
+    boot_param->free_pfn_start = KERNEL_INIT_PTE_START_PFN;
     
-    for (fb_pfn = fb_start_pfn; fb_pfn <= fb_end_pfn; fb_pfn++) {
-        u32 pde_index = fb_pfn / PAGE_ENTRY_COUNT;
-        u32 pte_index = fb_pfn % PAGE_ENTRY_COUNT;
+    u32 fb;
+    for (fb = fb_start; fb < fb_end; fb += PAGE_SIZE) {
+        u32 pde_index = GET_PDE_INDEX(fb);
+        u32 pte_index = GET_PTE_INDEX(fb);
         
         if (!dir->value_u32[pde_index]) {
-            if (boot_param->free_pfn_start) {
-                boot_param->free_pfn_start++;
-            } else {
-                boot_param->free_pfn_start = KERNEL_INIT_PTE_START_PFN;
-            }
-            dir->value_pde[pde_index].pfn = boot_param->free_pfn_start;
+            dir->value_pde[pde_index].pfn = page_alloc();
             dir->value_pde[pde_index].present = 1;
             dir->value_pde[pde_index].rw = 1;
             dir->value_pde[pte_index].cache_disabled = 1;
         }
         
-        pg = (struct page_frame *)(PFN_TO_ADDR(boot_param->free_pfn_start));
+        pg = (struct page_frame *)(PFN_TO_ADDR(dir->value_pde[pde_index].pfn));
         pg->value_u32[pte_index] = 0;
-        pg->value_pte[pte_index].pfn = fb_pfn;
+        pg->value_pte[pte_index].pfn = ADDR_TO_PFN(fb);
         pg->value_pte[pte_index].present = 1;
         pg->value_pte[pte_index].rw = 1;
         pg->value_pte[pte_index].cache_disabled = 1;
-    }
-    
-    if (!boot_param->free_pfn_start) {
-        boot_param->free_pfn_start = KERNEL_INIT_PTE_START_PFN;
     }
     
     /*

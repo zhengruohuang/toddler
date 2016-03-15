@@ -143,6 +143,12 @@ void init_kmem_zone()
         paddr_space_end = start + len;
     }
     
+    // Full direct map for kernel
+    for (i = PFN_TO_ADDR(get_bootparam()->free_pfn_start); i < paddr_space_end; i += PAGE_SIZE) {
+        //kprintf("\tDirect mapping: %p\n", i);
+        kernel_direct_map(i, 0);
+    }
+    
     // Round up the physical address space boundary
     if (paddr_space_end % 0x400000) {
         paddr_space_end /= 0x400000;
@@ -164,4 +170,9 @@ void init_kmem_zone()
             i, start, len, end, mem_zones[i].usable, mem_zones[i].mapped, mem_zones[i].tag, mem_zones[i].inuse
         );
     }
+}
+
+void full_direct_map()
+{
+    
 }

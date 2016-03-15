@@ -1,3 +1,8 @@
+/*
+ * Page Frame Allocator
+ */
+
+
 #include "common/include/data.h"
 #include "common/include/memory.h"
 #include "kernel/include/hal.h"
@@ -118,7 +123,7 @@ static void remove_node(ulong pfn, int tag, int order)
 /*
  * Helper functions
  */
-static int calc_order(int count)
+int calc_palloc_order(int count)
 {
     int order;
     for (order = PALLOC_MIN_ORDER; order <= PALLOC_MAX_ORDER; order++) {
@@ -408,7 +413,7 @@ static void buddy_combine(ulong pfn)
 ulong palloc_tag(int count, int tag)
 {
     assert(tag < PALLOC_BUCKET_COUNT && tag != PALLOC_DUMMY_BUCKET);
-    int order = calc_order(count);
+    int order = calc_palloc_order(count);
     int order_count = 0x1 << order;
     
     // See if this bucket has enough pages to allocate
@@ -492,7 +497,7 @@ int pfree(ulong pfn)
 #define PALLOC_TEST_PER_ORDER   10
 #define PALLOC_TEST_LOOPS       5
 
-void palloc_test()
+void test_palloc()
 {
     kprintf("Testing palloc\n");
     
@@ -524,5 +529,7 @@ void palloc_test()
         }
     }
     
-    buddy_print();
+    //buddy_print();
+    
+    kprintf("Successfully passed the test!\n");
 }

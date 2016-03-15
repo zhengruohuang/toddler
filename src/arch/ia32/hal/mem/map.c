@@ -7,6 +7,16 @@
 
 void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int override)
 {
+    ulong compare = ADDR_TO_PFN(paddr);
+    if (compare == 0xfd000) {
+        panic("Stop!");
+    }
+    
+    compare = ADDR_TO_PFN(vaddr);
+    if (compare == 0xfd000) {
+        panic("Stop!");
+    }
+    
     // PDE
     struct page_frame *page = (struct page_frame *)KERNEL_PDE_PADDR;
     int index = GET_PDE_INDEX(vaddr);
@@ -22,6 +32,11 @@ void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int overri
     index = GET_PTE_INDEX(vaddr);
     
     if (page->value_u32[index] && !override) {
+        if (page->value_pte[index].pfn != ADDR_TO_PFN(paddr)) {
+            kprintf("Framebuffer: %p\n", get_bootparam()->framebuffer_addr);
+            kprintf("Inconsistency detected, original PFN: %p, new PFN: %p\n", page->value_pte[index].pfn, ADDR_TO_PFN(paddr));
+        }
+        
         assert(
             page->value_pte[index].pfn == ADDR_TO_PFN(paddr) &&
             page->value_pde[index].present &&
@@ -36,6 +51,10 @@ void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int overri
         page->value_pde[index].present = 1;
         page->value_pde[index].rw = 1;
         page->value_pde[index].cache_disabled = disable_cache;
+    }
+    
+    if (page->value_pte[index].pfn == 0xfd000) {
+        panic("Stop!");
     }
 }
 

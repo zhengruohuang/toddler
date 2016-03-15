@@ -62,6 +62,7 @@ static void hal_entry()
     
     // Init kernel
     init_kmem_zone();
+    full_direct_map();
     init_kernel();
     halt();
     

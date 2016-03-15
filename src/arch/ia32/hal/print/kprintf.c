@@ -262,8 +262,8 @@ int asmlinkage kprintf(char *fmt, ...)
     char *c = fmt;
     int ftype = 0, ft_count, param_size, prefix, upper, has_sign;
     
-    u32 arg4;
-    u64 arg8;
+    u32 arg4 = 0;
+    u64 arg8 = 0;
     ulong va = (ulong)&fmt + sizeof(char *);
     
     while (*c) {

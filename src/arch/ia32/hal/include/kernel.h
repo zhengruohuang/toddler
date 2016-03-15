@@ -25,7 +25,7 @@ extern ulong paddr_space_end;
 
 extern int asmlinkage get_next_mem_zone(struct kernel_mem_zone *cur);
 extern void init_kmem_zone();
-
+extern void full_direct_map();
 
 /*
  * Init kernel

@@ -18,11 +18,14 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     
     // Init page allocator
     init_palloc();
-    palloc_test();
+    test_palloc();
     
     // Init kernel malloc
+    init_salloc();
+    init_malloc();
+    test_malloc();
     
-    // Init context switch
+    // Init process mgr
     
     // Init namespace dispatcher
     

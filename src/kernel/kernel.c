@@ -1,5 +1,6 @@
 #include "kernel/include/hal.h"
 #include "kernel/include/mem.h"
+#include "kernel/include/proc.h"
 
 
 struct hal_exports *hal;
@@ -26,6 +27,8 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     test_malloc();
     
     // Init process mgr
+    init_process();
+    init_thread();
     
     // Init namespace dispatcher
     

@@ -19,13 +19,22 @@ struct context_info {
 enum thread_state {
     thread_enter,
     thread_ready,
-    thread_running,
-    thread_sleep,
+    thread_run,
+    thread_stall,
+    thread_wait,
     thread_exit,
 };
 
 
 struct thread_memory {
+    ulong thread_block_base;
+    
+    ulong stack_top_offset;
+    ulong stack_limit_offset;
+    ulong tls_start_offset;
+    
+    ulong msg_recv_offset;
+    ulong msg_send_offset;
 };
 
 struct thread {
@@ -44,6 +53,9 @@ struct thread {
     
     // Context
     struct context_info context;
+    
+    // CPU affinity
+    int pin_cpu_id;
     
     // Scheduling
     ulong sched_id;
@@ -80,9 +92,6 @@ struct process_memory {
     // Entry point
     ulong entry_point;
     
-    // Page table
-    ulong page_table_pfn;
-    
     // Memory layout
     ulong program_start;
     ulong program_end;
@@ -99,16 +108,21 @@ struct process {
     struct process *next;
     struct process *prev;
     
-    // Process ID, -1 = Not Available
+    // Process ID, -1 = No parent
     ulong proc_id;
     ulong parent_id;
     
-    // Name
+    // Name and URL
     char *name;
+    char *url;
     
     // Type and state
     enum process_type type;
     enum process_state state;
+    int user_mode;
+    
+    // Page table
+    ulong page_dir_pfn;
     
     // Virtual memory
     struct process_memory memory;
@@ -121,6 +135,7 @@ struct process {
 };
 
 struct process_list {
+    ulong count;
     struct process  *next;
 };
 
@@ -135,7 +150,25 @@ struct thread_control_block {
     int cpu_id;
     
     void *tls;
+    void *msg_recv;
+    void *msg_send;
 };
+
+
+
+/*
+ * Process
+ */
+extern struct process *kernel_proc;;
+
+extern void init_process();
+
+
+/*
+ * Thread
+ */
+extern void init_thread();
+extern void kernel_dummy_thread(ulong param);
 
 
 #endif

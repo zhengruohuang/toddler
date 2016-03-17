@@ -38,9 +38,21 @@ struct thread *create_thread(
     t->state = thread_enter;
     
     // Thread memory
-    
+    if (p->type == process_kernel) {
+        t->memory.thread_block_base = PFN_TO_ADDR(palloc(4));
+        
+        t->memory.msg_send_offset = 0;
+        t->memory.msg_recv_offset = PAGE_SIZE;
+        
+        t->memory.tls_start_offset = PAGE_SIZE * 2;
+        
+        t->memory.stack_limit_offset = PAGE_SIZE * 3;
+        t->memory.stack_top_offset = PAGE_SIZE * 4;
+    } else {
+    }
     
     // Context
+    hal->init_context(&t->context, entry_point, t->memory.thread_block_base + t->memory.stack_top_offset, p->user_mode);
     
     // Scheduling
     t->pin_cpu_id = pin_cpu_id;
@@ -61,7 +73,7 @@ void init_thread()
     int i;
     for (i = 0; i < hal->num_cpus; i++) {
         ulong param = i;
-        create_thread(kernel_proc, &kernel_dummy_thread, param, i, 0, 0);
+        create_thread(kernel_proc, (ulong)&kernel_dummy_thread, param, i, 0, 0);
     }
     
     kprintf("\tThread salloc ID: %d\n", thread_salloc_id);

@@ -3,15 +3,8 @@
 
 
 #include "common/include/data.h"
+#include "common/include/context.h"
 
-
-/*
- * Context
- */
-struct context_info {
-
-    
-};
 
 /*
  * Thread
@@ -52,7 +45,7 @@ struct thread {
     struct process *proc;
     
     // Context
-    struct context_info context;
+    struct context context;
     
     // CPU affinity
     int pin_cpu_id;

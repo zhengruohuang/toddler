@@ -4,6 +4,7 @@
 
 #include "common/include/data.h"
 #include "common/include/memory.h"
+#include "common/include/context.h"
 
 
 /*
@@ -52,6 +53,7 @@ struct hal_exports {
     int asmlinkage (*user_map)(ulong page_dir, ulong vaddr, ulong paddr, size_t size, int exec, int write, int cacheable);
     
     // Addr space
+    void asmlinkage (*init_context)(struct context *context, ulong entry, ulong stack_top, int user_mode);
     
     // Task
 };

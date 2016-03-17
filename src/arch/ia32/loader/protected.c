@@ -446,21 +446,28 @@ static void no_opt no_inline setup_paging()
         pg->value_pte[i].cache_disabled = 1;
     }
     
+    
+    /*
+     * Page table for high 4MB
+     */
+    pg = (struct page_frame *)KERNEL_PTE_HI4_PADDR;
+    
+    
+    // Zero the page
+    for (i = 0; i < 1024; i++) {
+        pg->value_u32[i] = 0;
+    }
+    
     /*
      * Page table for HAL
      *  The highest 512KB is mapped to HAL loading area
-     *  However, reserved PDE and PTEs at the last 12KB are not mapped
      */
-    pg = (struct page_frame *)KERNEL_PTE_HI4_PADDR;
     for (i = 896; i < 1024; i++) {
         pg->value_u32[i] = 0;
         pg->value_pte[i].pfn = HAL_EXEC_START_PFN + i - 896;
         pg->value_pte[i].present = 1;
         pg->value_pte[i].rw = 1;
     }
-    pg->value_u32[1023] = 0;
-    pg->value_u32[1022] = 0;
-    pg->value_u32[1021] = 0;
     
     /*
      * Page table for Kernel

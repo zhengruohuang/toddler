@@ -15,3 +15,9 @@ void kernel_dummy_thread(ulong param)
     do {
     } while (1);
 }
+
+void kernel_demo_thread(ulong param)
+{
+    do {
+    } while (1);
+}

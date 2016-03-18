@@ -3,7 +3,46 @@
 
 
 #include "common/include/data.h"
-#include "common/include/context.h"
+#include "common/include/task.h"
+
+
+/*
+ * Scheduling
+ */
+enum sched_state {
+    sched_enter,
+    sched_ready,
+    sched_run,
+    sched_exit,
+};
+
+struct sched {
+    // Sched list
+    struct sched *prev;
+    struct sched *next;
+    
+    // Sched control info
+    ulong sched_id;
+    enum sched_state state;
+    
+    // Priority
+    int base_priority;
+    int priority;
+    
+    // Containing proc and thread
+    ulong proc_id;
+    struct process *proc;
+    ulong thread_id;
+    struct thread *thread;
+    
+    // Affinity
+    int pin_cpu_id;
+};
+
+struct sched_list {
+    ulong count;
+    struct sched *next;
+};
 
 
 /*
@@ -17,7 +56,6 @@ enum thread_state {
     thread_wait,
     thread_exit,
 };
-
 
 struct thread_memory {
     ulong thread_block_base;
@@ -52,6 +90,7 @@ struct thread {
     
     // Scheduling
     ulong sched_id;
+    struct sched *sched;
 };
 
 struct thread_list {
@@ -162,6 +201,17 @@ extern void init_process();
  */
 extern void init_thread();
 extern void kernel_dummy_thread(ulong param);
+
+
+/*
+ * Scheduling
+ */
+extern void init_sched();
+extern struct sched *enter_sched(struct thread *t);
+extern void read_sched(struct sched *s);
+extern void exit_sched(struct sched *s);
+extern void clean_sched(struct sched *s);
+extern void sched();
 
 
 #endif

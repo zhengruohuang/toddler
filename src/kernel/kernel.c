@@ -27,6 +27,7 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     test_malloc();
     
     // Init process mgr
+    init_sched();
     init_process();
     init_thread();
     

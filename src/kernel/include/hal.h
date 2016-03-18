@@ -44,6 +44,9 @@ struct hal_exports {
     // Topology
     int num_cpus;
     
+    // MP
+    int asmlinkage (*get_cur_cpu_id)();
+    
     // Physical memory info
     ulong free_mem_start_addr;
     ulong paddr_space_end;
@@ -56,6 +59,8 @@ struct hal_exports {
     void asmlinkage (*init_context)(struct context *context, ulong entry, ulong stack_top, int user_mode);
     
     // Task
+    void asmlinkage (*sleep)();
+    void asmlinkage (*switch_context)();
 };
 
 

@@ -55,7 +55,7 @@ struct thread *create_thread(
     hal->init_context(&t->context, entry_point, t->memory.thread_block_base + t->memory.stack_top_offset, p->user_mode);
     
     // Scheduling
-    t->pin_cpu_id = pin_cpu_id;
+    t->sched = enter_sched(t);
     
     // Done
     return t;

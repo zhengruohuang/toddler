@@ -36,7 +36,7 @@ struct process *create_process(
     p->parent_id = parent_id;
     
     // Setup the process
-    p->name = name; // FIXME: need to copy name instead of a simple assign
+    p->name = name; // FIXME: need to duplicate the name instead of a simple assign
     p->url = url;   // FIXME: so does url
     
     p->type = type;

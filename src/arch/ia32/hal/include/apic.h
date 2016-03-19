@@ -481,6 +481,7 @@ extern int lapic_vaddr_ipi_broadcast(int self, int ipi_id);
 /*
  * LAPIC Timer
  */
+extern void init_lapic_timer_mp();
 extern void init_lapic_timer();
 extern void start_lapic_timer();
 extern void stop_lapic_timer();

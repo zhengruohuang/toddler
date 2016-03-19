@@ -8,6 +8,7 @@
 #include "kernel/include/hal.h"
 #include "kernel/include/mem.h"
 #include "kernel/include/lib.h"
+#include "kernel/include/sync.h"
 #include "kernel/include/proc.h"
 
 
@@ -41,21 +42,32 @@ static void init_list(struct sched_list *l)
     l->count = 0;
     l->next = NULL;
     l->prev = NULL;
+    
+    spin_init(&l->lock);
 }
 
 static void push_back(struct sched_list *l, struct sched *s)
 {
+    spin_lock(&l->lock);
+    
     s->next = NULL;
     s->prev = l->prev;
+    
+    if (l->prev) {
+        l->prev->next = s;
+    }
     l->prev = s;
+    
     if (!l->next) {
         l->next = s;
     }
     
     l->count++;
+    
+    spin_unlock(&l->lock);
 }
 
-static void remove(struct sched_list *l, struct sched *s)
+static void inline do_remove(struct sched_list *l, struct sched *s)
 {
     if (s->prev) {
         s->prev->next = s->next;
@@ -76,16 +88,29 @@ static void remove(struct sched_list *l, struct sched *s)
     l->count--;
 }
 
+static void remove(struct sched_list *l, struct sched *s)
+{
+    spin_lock(&l->lock);
+    
+    do_remove(l, s);
+    
+    spin_unlock(&l->lock);
+}
+
 static struct sched *pop_front(struct sched_list *l)
 {
     struct sched *s = NULL;
+    
+    spin_lock(&l->lock);
     
     if (l->count) {
         assert(l->next);
         
         s = l->next;
-        remove(l, s);
+        do_remove(l, s);
     }
+    
+    spin_unlock(&l->lock);
     
     return s;
 }
@@ -261,6 +286,7 @@ void sched()
     // Nothing to run? Get an idle thread
     if (!s) {
         s = pop_front(&idle_queue);
+        //kprintf("Idle\n");
     }
     
     assert(s);
@@ -269,12 +295,12 @@ void sched()
     s->state = sched_run;
     push_back(&run_queue, s);
     
-    //kprintf("Context: eip: %p, esp: %p, cs: %p, ds: %p\n",
-    //        s->thread->context.eip,
-    //        s->thread->context.esp,
-    //        s->thread->context.cs,
-    //        s->thread->context.ds
-    //);
+//     kprintf("Context: eip: %p, esp: %p, cs: %p, ds: %p\n",
+//            s->thread->context.eip,
+//            s->thread->context.esp,
+//            s->thread->context.cs,
+//            s->thread->context.ds
+//     );
     
     // Then tell HAL to do a context switch
     hal->switch_context(s->sched_id, &s->thread->context, s->proc->page_dir_pfn, s->proc->user_mode, 0);

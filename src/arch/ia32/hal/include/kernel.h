@@ -16,6 +16,8 @@
 extern void asmlinkage wrap_kernel_map(ulong addr, size_t size);
 extern int asmlinkage wrap_user_map(ulong page_dir, ulong vaddr, ulong paddr, size_t size, int exec, int write, int cacheable);
 extern void asmlinkage wrap_halt();
+extern void asmlinkage wrap_sleep();
+extern int asmlinkage wrap_get_cur_cpu_id();
 
 
 /*

@@ -11,11 +11,27 @@
 
 int_handler int_handler_list[IDT_ENTRY_COUNT];
 
+static dec_per_cpu(int, interrupt_enabled);
+
 
 /*
- * Disable LOCAL interrupts
+ * LOCAL interrupts
  */
-void disable_local_int()
+int get_local_int_state()
+{
+    volatile int *ptr = get_per_cpu(int, interrupt_enabled);
+    int enabled = *ptr;
+    
+    return enabled;
+}
+
+void set_local_int_state(int enabled)
+{
+    volatile int *ptr = get_per_cpu(int, interrupt_enabled);
+    *ptr = enabled;
+}
+
+int asmlinkage disable_local_int()
 {
     __asm__ __volatile__
     (
@@ -23,12 +39,34 @@ void disable_local_int()
         :
         :
     );
+    
+    int enabled = get_local_int_state();
+    set_local_int_state(0);
+    
+    return enabled;
 }
 
-/*
- * Enable local interrupts
- */
-void enable_local_int()
+void asmlinkage restore_local_int(int enabled)
+{
+    int cur_state = get_local_int_state();
+    
+    if (cur_state) {
+        assert(enabled);
+    }
+    
+    else if (enabled) {
+        __asm__ __volatile__
+        (
+            "sti;"
+            :
+            :
+        );
+        
+        set_local_int_state(1);
+    }
+}
+
+void asmlinkage enable_local_int()
 {
     __asm__ __volatile__
     (
@@ -36,7 +74,24 @@ void enable_local_int()
         :
         :
     );
+    
+    set_local_int_state(1);
 }
+
+
+/*
+ * Initialize interrupt state
+ */
+void init_int_state_mp()
+{
+    set_local_int_state(0);
+}
+
+void init_int_state()
+{
+    set_local_int_state(0);
+}
+
 
 /*
  * Initialize int handlers
@@ -111,6 +166,8 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
     }
     
     panic("Need to implement lazy scheduling!");
+    
+    set_local_int_state(1);
     
     return 0;
 }

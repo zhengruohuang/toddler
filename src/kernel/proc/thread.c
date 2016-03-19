@@ -52,8 +52,17 @@ struct thread *create_thread(
     } else {
     }
     
+    // Prepare the param. Note that for user thread, we have to use indirect map, therefore we can't do a simple mem write
+    if (p->type == process_kernel) {
+        ulong *param_ptr = (ulong *)(t->memory.thread_block_base + t->memory.stack_top_offset - sizeof(ulong));
+        *param_ptr = param;
+    } else {
+    }
+    
     // Context
-    hal->init_context(&t->context, entry_point, t->memory.thread_block_base + t->memory.stack_top_offset, p->user_mode);
+    hal->init_context(&t->context, entry_point,
+                      t->memory.thread_block_base + t->memory.stack_top_offset - sizeof(ulong) * 2,
+                      p->user_mode);
     
     // Scheduling
     t->sched = enter_sched(t);
@@ -98,9 +107,12 @@ void init_thread()
         kprintf("\tKernel idle thread for CPU #%d created, thread ID: %p, thraed block base: %p\n", i, t->thread_id, t->memory.thread_block_base);
     }
     
-    // Create kernel demo thread, only one
-    struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, 0, -1, 0, 0);
-    run_thread(t);
-    
-    kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.thread_block_base);
+    // Create kernel demo threads
+    for (i = 0; i < hal->num_cpus; i++) {
+        ulong param = i;
+        struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, param, -1, 0, 0);
+        run_thread(t);
+        
+        kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.thread_block_base);
+    }
 }

@@ -4,6 +4,7 @@
 
 #include "common/include/data.h"
 #include "common/include/task.h"
+#include "kernel/include/sync.h"
 
 
 /*
@@ -46,6 +47,8 @@ struct sched_list {
     ulong count;
     struct sched *next;
     struct sched *prev;
+    
+    spinlock_t lock;
 };
 
 

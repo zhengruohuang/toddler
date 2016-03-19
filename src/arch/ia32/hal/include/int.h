@@ -127,8 +127,14 @@ extern void int_handlers();
 /*
  * Turn on/off LOCAL interrupts
  */
-extern void disable_local_int();
-extern void enable_local_int();
+extern int get_local_int_state();
+extern void set_local_int_state(int enabled);
+extern int asmlinkage disable_local_int();
+extern void asmlinkage restore_local_int(int enabled);
+extern void asmlinkage enable_local_int();
+
+extern void init_int_state_mp();
+extern void init_int_state();
 
 
 /*

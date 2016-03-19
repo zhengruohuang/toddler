@@ -2,6 +2,7 @@
 #include "hal/include/print.h"
 #include "hal/include/mem.h"
 #include "hal/include/lib.h"
+#include "hal/include/apic.h"
 #include "hal/include/cpu.h"
 
 
@@ -18,4 +19,19 @@ int asmlinkage wrap_user_map(ulong page_dir, ulong vaddr, ulong paddr, ulong siz
 void asmlinkage wrap_halt()
 {
     halt();
+}
+
+void asmlinkage wrap_sleep()
+{
+    __asm__ __volatile__
+    (
+        "hlt;"
+        :
+        :
+    );
+}
+
+int asmlinkage wrap_get_cur_cpu_id()
+{
+    return  get_cpu_id();
 }

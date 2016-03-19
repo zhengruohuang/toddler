@@ -58,6 +58,9 @@ void asmlinkage save_context(struct context *context)
 {
     //kprintf("Saving context\n");
     
+    // Set interrupt state as disabled
+    set_local_int_state(0);
+    
     struct context *dest = get_per_cpu(struct context, cur_context);
     int user_mode = *get_per_cpu(int, cur_in_user_mode);
     
@@ -198,6 +201,9 @@ void asmlinkage no_opt switch_context(ulong sched_id, struct context *context, u
     
     // Renable timer
     //start_lapic_timer();
+    
+    // Set interrupt state as enabled
+    set_local_int_state(1);
     
     if (user_mode) {
         switch_to_user(context);

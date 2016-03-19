@@ -212,6 +212,7 @@ void init_apic_mp()
     assert(has_apic() && apic_supported);
     
     init_lapic_mp();
+    init_lapic_timer_mp();
 }
 
 void init_apic()
@@ -247,7 +248,10 @@ void init_apic()
 void start_working_mp()
 {
     //kprintf("Start working MP!\n");
-    //start_lapic_timer();
+    lapic_eoi();
+    start_lapic_timer();
+    
+    enable_local_int();
 }
 
 void start_working()

@@ -56,12 +56,15 @@ static void hal_entry()
     // Init IDT
     init_idt();
     
+    // Init interrupt state
+    init_int_state();
+    
     // Init context
     init_context();
     
     // Init time
-    //init_rtc();
-    //init_blocked_delay();
+    init_rtc();
+    init_blocked_delay();
     
     // Init kernel
     init_kmem_zone();
@@ -71,7 +74,7 @@ static void hal_entry()
     //halt();
     
     // Bringup APs
-    //bringup_mp();
+    bringup_mp();
     
     // Start to work
     release_mp_lock();
@@ -102,6 +105,9 @@ static void ap_entry()
     // Init IDT
     load_idt();
     
+    // Init interrupt state
+    init_int_state_mp();
+    
     // Init context
     init_context_mp();
     
@@ -109,7 +115,9 @@ static void ap_entry()
     ap_init_done();
     
     // Start working
-    //start_working_mp();
+    //if (get_cpu_id() == 2) {
+        start_working_mp();
+    //}
 }
 
 static void bios_return()

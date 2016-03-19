@@ -6,6 +6,7 @@
 #include "hal/include/lib.h"
 #include "hal/include/cpu.h"
 #include "hal/include/task.h"
+#include "hal/include/int.h"
 #include "hal/include/kernel.h"
 
 #ifndef __HAL__
@@ -40,21 +41,27 @@ void init_kernel()
     // Kernel info
     hexp->kernel_page_dir_pfn = KERNEL_PDE_PFN;
     
-    // Topology
+    // MP
     hexp->num_cpus = num_cpus;
+    hexp->get_cur_cpu_id = wrap_get_cur_cpu_id;
     
     // Physical memory info
     hexp->free_mem_start_addr = PFN_TO_ADDR(get_bootparam()->free_pfn_start);
     hexp->paddr_space_end = paddr_space_end;
     hexp->get_next_mem_zone = get_next_mem_zone;
     
+    // Interrupt
+    hexp->disable_local_interrupt = disable_local_int;
+    hexp->enable_local_interrupt = enable_local_int;
+    hexp->restore_local_interrupt = restore_local_int;
+    
     // Mapping
     hexp->user_map = wrap_user_map;
     
     // AS
     hexp->init_context = init_thread_context;
-    hexp->sleep = wrap_halt;
     hexp->switch_context = switch_context;
+    hexp->sleep = wrap_sleep;
     
     /*
      * Call kernel's entry

@@ -45,10 +45,8 @@ struct hal_exports {
     // Kernel info
     ulong kernel_page_dir_pfn;
     
-    // Topology
-    int num_cpus;
-    
     // MP
+    int num_cpus;
     int asmlinkage (*get_cur_cpu_id)();
     
     // Physical memory info
@@ -56,15 +54,18 @@ struct hal_exports {
     ulong paddr_space_end;
     int asmlinkage (*get_next_mem_zone)(struct kernel_mem_zone *cur);
     
+    // Interrupts
+    int asmlinkage (*disable_local_interrupt)();
+    void asmlinkage (*enable_local_interrupt)();
+    void asmlinkage (*restore_local_interrupt)(int enabled);
+    
     // Mapping
     int asmlinkage (*user_map)(ulong page_dir, ulong vaddr, ulong paddr, size_t size, int exec, int write, int cacheable);
     
-    // Addr space
-    void asmlinkage (*init_context)(struct context *context, ulong entry, ulong stack_top, int user_mode);
-    
     // Task
-    void asmlinkage (*sleep)();
+    void asmlinkage (*init_context)(struct context *context, ulong entry, ulong stack_top, int user_mode);
     void asmlinkage (*switch_context)(ulong sched_id, struct context *context, ulong page_dir_pfn, int user_mode, ulong asid);
+    void asmlinkage (*sleep)();
 };
 
 

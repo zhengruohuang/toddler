@@ -138,6 +138,7 @@
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
 #include "common/include/memory.h"
+#include "common/include/task.h"
 #include "hal/include/print.h"
 #include "hal/include/lib.h"
 #include "hal/include/acpi.h"
@@ -150,7 +151,7 @@
 
 
 ulong lapic_paddr = LAPIC_DEFAULT_PADDR;
-static volatile u32 *lapic_vaddr = (u32 *)LAPIC_VADDR;
+volatile u32 *lapic_vaddr = (u32 *)LAPIC_VADDR;
 
 
 // Records the APCI ID of each processor
@@ -162,17 +163,17 @@ int cur_apic_id_map_index = 0;
 /*
  * Interrupt handlers
  */
- int lapic_error_handler(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags)
+static int lapic_error_handler(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
     return 0;
 }
 
- int lapic_spurious_handler(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags)
+static int lapic_spurious_handler(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
     return 0;
 }
 
- int check_lapic()
+int check_lapic()
 {
     struct apic_error_status_register esr;
     
@@ -256,16 +257,6 @@ int get_cpu_id()
 
 void init_lapic_mp()
 {
-    // Insert into APIC ID map
-//     int cur_cpu_index = cur_apic_id_map_index++;
-//     int cur_apic_id = get_apic_id();
-//     apic_id_map[cur_cpu_index] = cur_apic_id;
-//     
-//     // BSP's APIC ID
-//     if (0 == cur_cpu_index) {
-//         bsp_apic_id = cur_apic_id;
-//     }
-    
     kprintf("\tSetting up local APIC\n");
     
     //Initialize Local APIC */
@@ -400,88 +391,4 @@ void init_lapic()
     
     // Init LAPIC on BSP
     init_lapic_mp();
-}
-
-/*
- * Return
- *      0 = Failed
- *      1 = Succeed
- */
-int ipi_send_startup(int apicid)
-{
-    volatile struct apic_interupt_command_register icr;
-    
-    kprintf("\tTo send init IPI to: %d\n", apicid);
-    
-    // Send an INIT IPI
-    icr.value_low = lapic_vaddr[APIC_ICR_LO];
-    icr.value_high = lapic_vaddr[APIC_ICR_HI];
-    
-    icr.delmod = APIC_DELMOD_INIT;
-    icr.destmod = APIC_DESTMOD_PHYS;
-    icr.level = APIC_LEVEL_ASSERT;
-    icr.trigger_mode = APIC_TRIGMOD_EDGE;
-    icr.shorthand = APIC_SHORTHAND_NONE;
-    icr.vector = 0;
-    icr.dest = apicid;
-    
-    lapic_vaddr[APIC_ICR_HI] = icr.value_high;
-    lapic_vaddr[APIC_ICR_LO] = icr.value_low;
-    
-    // Wait for 10ms, according to MP Specification
-    blocked_delay(10);
-    
-    // If there are errors
-    if (!check_lapic()) {
-        panic("Could send initialization IPI!");
-    }
-    
-    // Check IPI delivery status
-    icr.value_low = lapic_vaddr[APIC_ICR_LO];
-    if (icr.delivs == APIC_DELIVS_PENDING) {
-        kprintf("IPI is pending.\n");
-        panic("Could send initialization IPI!");
-    }
-    
-    // Try to send INIT IPI again
-    icr.value_low = lapic_vaddr[APIC_ICR_LO];
-    icr.value_high = lapic_vaddr[APIC_ICR_HI];
-    
-    icr.delmod = APIC_DELMOD_INIT;
-    icr.destmod = APIC_DESTMOD_PHYS;
-    icr.level = APIC_LEVEL_DEASSERT;
-    icr.shorthand = APIC_SHORTHAND_NONE;
-    icr.trigger_mode = APIC_TRIGMOD_EDGE;
-    icr.vector = 0;
-    icr.dest = apicid;
-    
-    lapic_vaddr[APIC_ICR_HI] = icr.value_high;
-    lapic_vaddr[APIC_ICR_LO] = icr.value_low;
-    
-    // Wait 10ms as is specified by MP Specification
-    blocked_delay(10);
-    
-    if (!APIC_IS_LAPIC_82489DX(lapic_vaddr[APIC_LAVR])) {
-        // If this is not 82489DX-based lapic_vaddr we must send two STARTUP IPI's
-        u32 i;
-        for (i = 0; i < 2; i++) {
-            icr.value_low = lapic_vaddr[APIC_ICR_LO];
-            icr.value_high = lapic_vaddr[APIC_ICR_HI];
-            
-            icr.vector = (u8)(get_bootparam()->ap_entry_addr >> 12); // calculate the reset vector
-            icr.delmod = APIC_DELMOD_STARTUP;
-            icr.destmod = APIC_DESTMOD_PHYS;
-            icr.level = APIC_LEVEL_ASSERT;
-            icr.shorthand = APIC_SHORTHAND_NONE;
-            icr.trigger_mode = APIC_TRIGMOD_EDGE;
-            icr.dest = apicid;
-            lapic_vaddr[APIC_ICR_HI] = icr.value_high;
-            lapic_vaddr[APIC_ICR_LO] = icr.value_low;
-            
-            //According to MP Specification, we should wait for 200us
-            blocked_delay(1);
-        }
-    }
-    
-    return check_lapic();
 }

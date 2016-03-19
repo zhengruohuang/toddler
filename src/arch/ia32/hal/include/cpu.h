@@ -61,6 +61,7 @@ extern ulong get_my_cpu_area_start_vaddr();
 
 extern void init_mp();
 extern void bringup_mp();
+extern void release_mp_lock();
 
 extern void ap_init_started();
 extern void ap_init_done();

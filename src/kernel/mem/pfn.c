@@ -46,7 +46,7 @@ void init_pfndb()
     // Calculate the size of PFN DB
     int pfndb_size = hal->paddr_space_end / PAGE_SIZE * sizeof(struct pfndb_entry);
     int pfndb_pages = pfndb_size / PAGE_SIZE;
-    kprintf("\tPFN database size: %d KB, pages: %d\n", pfndb_size / 1024, pfndb_pages);
+    kprintf("\tPAddr end: %p, PFN database size: %d KB, pages: %d\n", hal->paddr_space_end, pfndb_size / 1024, pfndb_pages);
     
     // Allocate memory
     pfndb = (struct pfndb_entry *)hal->free_mem_start_addr;

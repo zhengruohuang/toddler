@@ -7,6 +7,24 @@ struct hal_exports *hal;
 
 
 /*
+ * Dispatch
+ */
+static void asmlinkage dispatch(ulong sched_id, struct kernel_dispatch_info *int_info)
+{
+    kprintf("Dispatch\n");
+    desched(sched_id, int_info->context);
+    sched();
+}
+
+/*
+ * Kernel exports
+ */
+static void init_kexp()
+{
+    hal->kernel->dispatch = dispatch;
+}
+
+/*
  * This is the entry point of Kernel
  */
 void asmlinkage _start(struct hal_exports *hal_exp)
@@ -36,4 +54,7 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     // Init core image
     
     // Load first user program
+    
+    // Kernel exports
+    init_kexp();
 }

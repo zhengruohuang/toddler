@@ -30,6 +30,8 @@ extern void full_direct_map();
 /*
  * Init kernel
  */
+extern struct kernel_exports *kernel;
+
 extern void init_kernel();
 
 

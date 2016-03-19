@@ -3,6 +3,7 @@
 
 
 #include "common/include/data.h"
+#include "hal/include/int.h"
 
 
 /*******************************************************************************
@@ -455,26 +456,39 @@ extern void init_ioapic();
  * Local APIC
  */
 extern ulong lapic_paddr;
+extern volatile u32 *lapic_vaddr;
 
+extern int check_lapic();
 extern void lapic_eoi();
+extern void init_lapic_mp();
+extern void init_lapic();
+
 extern int get_apic_id_by_cpu_id(int cpu_id);
 extern int get_cpu_id_by_apic_id(int apic_id);
 extern int get_apic_id();
 extern int get_cpu_id();
-extern void init_lapic_mp();
-extern void init_lapic();
 
 
 /*
  * IPI
  */
+extern void init_ipi();
+extern int register_ipi(int_handler handler);
 extern int ipi_send_startup(int apicid);
+extern int lapic_vaddr_ipi_broadcast(int self, int ipi_id);
+
+
+/*
+ * LAPIC Timer
+ */
+extern void init_lapic_timer();
+extern void start_lapic_timer();
+extern void stop_lapic_timer();
 
 
 /*
  * IO APIC
  */
-
 extern void ioapic_start();
 extern void ioapic_init_redirection_table(int chip, int pin, int vector, int trigger, int polarity);
 extern void ioapic_change_io_redirection_table(int chip, int pin, int dest, int vec, u32 flags);
@@ -494,6 +508,9 @@ extern ulong lapic_paddr;
 
 extern void init_apic();
 extern void init_apic_mp();
+
+extern void start_working_mp();
+extern void start_working();
 
 
 #endif

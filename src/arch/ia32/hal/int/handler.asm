@@ -3,7 +3,7 @@
 ;===============================================================================
 ; Imports
 ;===============================================================================
-;extern  hal_task_save_status
+extern  save_context
 extern  int_handler_entry
 ;===============================================================================
 
@@ -51,6 +51,8 @@ global  int_handlers
 ; General Handler
 ;===============================================================================
 int_handler_general:
+    xchg    bx, bx
+
     ; Save all registers
     pushad
 
@@ -63,121 +65,24 @@ int_handler_general:
     push    eax
     mov     ax, gs
     push    eax
-
-    ; Save task status
-    push    esp
-    ;xchg    bx, bx
-    ;call    hal_task_save_status
-    ;xchg    bx, bx
-
-    cmp     eax, 0
-    jz      .restore_stack_normal
-
-    cmp     eax, 1
-    jz      .restore_stack_nested_int
-
-.restore_stack_kernel:
+    
+    ; Save context
     mov     ebx, esp
-    mov     esp, eax
-
-    ; Save stack
     push    ebx
-    add     ebx, 4 + 32 + 16
-
-    ; Make room for empty SS and ESP
-    push    dword 0
-    push    dword 0
-
-    push    dword [ebx + 16]
-    push    dword [ebx + 12]
-    push    dword [ebx + 8]
-    push    dword [ebx + 4]
-    push    dword [ebx]
+    call    save_context
+    
+    ; Prepare to call the handler
+    add     ebx, 32 + 16
+    push    dword [ebx + 4] ; Arg2:
+    push    dword [ebx]     ; Arg1: 
 
     ; Handle the interrupt
     call    int_handler_entry
 
     ; Return from the interrupt
-    add     esp, 28
+    add     esp, 8
     pop     ebx
     mov     esp, ebx
-
-    add     esp, 4
-
-    pop     eax
-    mov     gs, ax
-    pop     eax
-    mov     fs, ax
-    pop     eax
-    mov     es, ax
-    pop     eax
-    mov     ds, ax
-    popad
-
-    add     esp, 8
-
-    iretd
-
-    ; Should never arrive here
-    jmp     $
-
-.restore_stack_normal:
-    mov     ebx, esp
-    add     ebx, 4 + 32 + 16
-
-    push    dword [ebx + 24]
-    push    dword [ebx + 20]
-
-    push    dword [ebx + 16]
-    push    dword [ebx + 12]
-    push    dword [ebx + 8]
-    push    dword [ebx + 4]
-    push    dword [ebx]
-
-    ; Handle the interrupt
-    call    int_handler_entry
-
-    ; Return from the interrupt
-    add     esp, 28 + 4
-
-    mov     cr3, eax
-
-    pop     eax
-    mov     gs, ax
-    pop     eax
-    mov     fs, ax
-    pop     eax
-    mov     es, ax
-    pop     eax
-    mov     ds, ax
-    popad
-
-    add     esp, 8
-
-    iretd
-
-    ; Should never arrive here
-    jmp     $
-
-.restore_stack_nested_int:
-    mov     ebx, esp
-    add     ebx, 4 + 32 + 16
-
-    ; Make room for empty SS and ESP
-    push    dword 0
-    push    dword 0
-
-    push    dword [ebx + 16]
-    push    dword [ebx + 12]
-    push    dword [ebx + 8]
-    push    dword [ebx + 4]
-    push    dword [ebx]
-
-    ; Handle the interrupt
-    call    int_handler_entry
-
-    ; Return from the interrupt
-    add     esp, 28 + 4
 
     pop     eax
     mov     gs, ax

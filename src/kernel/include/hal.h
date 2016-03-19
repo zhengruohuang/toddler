@@ -4,14 +4,15 @@
 
 #include "common/include/data.h"
 #include "common/include/memory.h"
-#include "common/include/context.h"
+#include "common/include/task.h"
 
 
 /*
  * Kernel exported variables and functions
  */
 struct kernel_exports {
-    ulong (*alloc_page)(int count, int tag);
+    ulong asmlinkage (*alloc_page)(int count, int tag);
+    void asmlinkage (*dispatch)(ulong sched_id, struct kernel_dispatch_info *int_info);
 };
 
 
@@ -41,6 +42,9 @@ struct hal_exports {
     int asmlinkage (*kprintf)(char *s, ...);
     void asmlinkage (*halt)();
     
+    // Kernel info
+    ulong kernel_page_dir_pfn;
+    
     // Topology
     int num_cpus;
     
@@ -60,7 +64,7 @@ struct hal_exports {
     
     // Task
     void asmlinkage (*sleep)();
-    void asmlinkage (*switch_context)();
+    void asmlinkage (*switch_context)(ulong sched_id, struct context *context, ulong page_dir_pfn, int user_mode, ulong asid);
 };
 
 

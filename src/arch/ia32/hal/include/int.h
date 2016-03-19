@@ -3,6 +3,7 @@
 
 
 #include "common/include/data.h"
+#include "common/include/task.h"
 
 
 // Number of IDT entries
@@ -76,11 +77,21 @@ struct idt_reg {
 
 struct idt {
     struct idt_reg  idtr_value;
-    struct idt_reg  entries[IDT_ENTRY_COUNT];
+    struct idt_gate  entries[IDT_ENTRY_COUNT];
 } packedstruct;
 
 
-typedef int (*int_handler)(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags);
+/*
+ * Interrupt handler
+ */
+struct int_context {
+    ulong vector;
+    ulong error_code;
+    
+    struct context *context;
+};
+
+typedef int (*int_handler)(struct int_context *intc, struct kernel_dispatch_info *kdi);
 
 
 /*
@@ -125,10 +136,10 @@ extern void enable_local_int();
  */
 extern int_handler int_handler_list[IDT_ENTRY_COUNT];
 extern void init_int_handlers();
-extern int asmlinkage int_handler_entry(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags);
-extern int int_handler_dummy(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags);
-extern int int_handler_exception(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags);
-extern int int_handler_device(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags);
+extern int asmlinkage int_handler_entry(u32 vector_num, u32 error_code);
+extern int int_handler_dummy(struct int_context *intc, struct kernel_dispatch_info *kdi);
+extern int int_handler_exception(struct int_context *intc, struct kernel_dispatch_info *kdi);
+extern int int_handler_device(struct int_context *intc, struct kernel_dispatch_info *kdi);
 
 
 /*

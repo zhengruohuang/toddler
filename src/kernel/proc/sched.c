@@ -7,15 +7,18 @@
 #include "common/include/memory.h"
 #include "kernel/include/hal.h"
 #include "kernel/include/mem.h"
+#include "kernel/include/lib.h"
 #include "kernel/include/proc.h"
 
 
 static int sched_salloc_id;
 
-static sched_list enter_queue;
-static sched_list ready_queue;
-static sched_list run_queue;
-static sched_list exit_queue;
+static struct sched_list enter_queue;
+static struct sched_list ready_queue;
+static struct sched_list stall_queue;
+static struct sched_list idle_queue;
+static struct sched_list run_queue;
+static struct sched_list exit_queue;
 
 
 static ulong gen_sched_id(struct sched *s)
@@ -24,15 +27,32 @@ static ulong gen_sched_id(struct sched *s)
     return id;
 }
 
+static struct sched *get_sched(ulong sched_id)
+{
+    return (struct sched *)sched_id;
+}
+
 
 /*
  * List
  */
-static void insert(struct sched_list *l, struct sched *s)
+static void init_list(struct sched_list *l)
 {
-    s->prev = NULL;
-    s->next = l->next;
-    l->next = s;
+    l->count = 0;
+    l->next = NULL;
+    l->prev = NULL;
+}
+
+static void push_back(struct sched_list *l, struct sched *s)
+{
+    s->next = NULL;
+    s->prev = l->prev;
+    l->prev = s;
+    if (!l->next) {
+        l->next = s;
+    }
+    
+    l->count++;
 }
 
 static void remove(struct sched_list *l, struct sched *s)
@@ -45,13 +65,18 @@ static void remove(struct sched_list *l, struct sched *s)
         s->next->prev = s->prev;
     }
     
+    if (l->prev == s) {
+        l->prev = s->prev;
+    }
+    
     if (l->next == s) {
         l->next = s->next;
     }
+    
     l->count--;
 }
 
-static struct sched *pop(struct sched_list *l)
+static struct sched *pop_front(struct sched_list *l)
 {
     struct sched *s = NULL;
     
@@ -77,17 +102,12 @@ void init_sched()
     sched_salloc_id = salloc_create(sizeof(struct sched), 0, 0, NULL, NULL);
     
     // Init the queues
-    enter_queue.count = 0;
-    enter_queue.next = NULL;
-    
-    ready_queue.count = 0;
-    ready_queue.next = NULL;
-    
-    run_queue.count = 0;
-    run_queue.next = NULL;
-    
-    exit_queue.count = 0;
-    exit_queue.next = NULL;
+    init_list(&enter_queue);
+    init_list(&ready_queue);
+    init_list(&idle_queue);
+    init_list(&run_queue);
+    init_list(&stall_queue);
+    init_list(&exit_queue);
     
     // Done
     kprintf("\tScheduler salloc ID: %d\n", sched_salloc_id);
@@ -114,7 +134,9 @@ struct sched *enter_sched(struct thread *t)
     s->state = sched_enter;
     
     // Insert sched into enter queue
-    insert(&enter_queue, s);
+    push_back(&enter_queue, s);
+    
+    return s;
 }
 
 void ready_sched(struct sched *s)
@@ -125,13 +147,31 @@ void ready_sched(struct sched *s)
     // Remove the entry from its current list
     remove(&enter_queue, s);
     
+    // Setup the sched struct
+    s->is_idle = 0;
+    
     // Insert s into the ready queue
-    insert(&ready_queue, s);
+    push_back(&ready_queue, s);
+}
+
+void idle_sched(struct sched *s)
+{
+    // Before transitioning to ready, the thread must be in enter state
+    assert(s->state == sched_enter);
+    
+    // Remove the entry from its current list
+    remove(&enter_queue, s);
+    
+    // Setup the sched struct
+    s->is_idle = 1;
+    
+    // Insert s into the idle queue
+    push_back(&idle_queue, s);
 }
 
 void exit_sched(struct sched *s)
 {
-    // If the thread is running, we don't insert it into exit list immediately
+    // If the thread is running, we don't push_back it into exit list immediately
     if (s->state == sched_run) {
         // To support lazy sched, we also need to notify the target processor
         // however this is necessary for now
@@ -152,7 +192,7 @@ void exit_sched(struct sched *s)
         }
         
         s->state = sched_exit;
-        insert(&exit_queue, s);
+        push_back(&exit_queue, s);
     }
 }
 
@@ -166,21 +206,74 @@ void clean_sched(struct sched *s)
 
 
 /*
+ * Deschedule current thread
+ */
+void desched(ulong sched_id, struct context *context)
+{
+    if (!sched_id) {
+        return;
+    }
+    
+    // Get the sched struct
+    struct sched *s = get_sched(sched_id);
+    assert(s);
+    assert(s->state == sched_run);
+    remove(&run_queue, s);
+    
+    // Get thread struct
+    struct thread *t = s->thread;
+    
+    // Save context
+    assert(context);
+    memcpy(context, &t->context, sizeof(struct context));
+    
+    // Setup thread state
+    switch (t->state) {
+    case thread_normal:
+        s->state = sched_ready;
+        push_back(&ready_queue, s);
+        break;
+    case thread_stall:
+    case thread_wait:
+        s->state = sched_stall;
+        push_back(&stall_queue, s);
+        break;
+    case thread_exit:
+        s->state = sched_exit;
+        push_back(&exit_queue, s);
+        break;
+    default:
+        panic("Unsupported thread state: %d", t->state);
+        break;
+    }
+}
+
+/*
  * The actual scheduler
  */
 void sched()
 {
-    // We simply pop the first entry in the run queue
-    struct sched *s = pop(&run_queue);
+    // We simply pop_front the first entry in the ready queue
+    struct sched *s = pop_front(&ready_queue);
     
-    if (s) {
-        // Insert it into run queue
-        insert(&run_queue, s);
-        
-        // Then tell HAL to do a context switch
+    // Nothing to run? Get an idle thread
+    if (!s) {
+        s = pop_front(&idle_queue);
     }
     
-    // Nothing to do? switch to the dummy thread
-    else {
-    }
+    assert(s);
+    
+    // Insert it into run queue
+    s->state = sched_run;
+    push_back(&run_queue, s);
+    
+    kprintf("Context: eip: %p, esp: %p, cs: %p, ds: %p\n",
+            s->thread->context.eip,
+            s->thread->context.esp,
+            s->thread->context.cs,
+            s->thread->context.ds
+    );
+    
+    // Then tell HAL to do a context switch
+    hal->switch_context(s->sched_id, &s->thread->context, s->proc->page_dir_pfn, s->proc->user_mode, 0);
 }

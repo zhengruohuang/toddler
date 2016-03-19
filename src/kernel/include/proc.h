@@ -13,6 +13,8 @@ enum sched_state {
     sched_enter,
     sched_ready,
     sched_run,
+    sched_idle,
+    sched_stall,
     sched_exit,
 };
 
@@ -28,6 +30,7 @@ struct sched {
     // Priority
     int base_priority;
     int priority;
+    int is_idle;
     
     // Containing proc and thread
     ulong proc_id;
@@ -42,6 +45,7 @@ struct sched {
 struct sched_list {
     ulong count;
     struct sched *next;
+    struct sched *prev;
 };
 
 
@@ -50,8 +54,7 @@ struct sched_list {
  */
 enum thread_state {
     thread_enter,
-    thread_ready,
-    thread_run,
+    thread_normal,
     thread_stall,
     thread_wait,
     thread_exit,
@@ -200,17 +203,22 @@ extern void init_process();
  * Thread
  */
 extern void init_thread();
-extern void kernel_dummy_thread(ulong param);
+extern void kernel_idle_thread(ulong param);
+extern void kernel_demo_thread(ulong param);
 
 
 /*
  * Scheduling
  */
 extern void init_sched();
+
 extern struct sched *enter_sched(struct thread *t);
-extern void read_sched(struct sched *s);
+extern void ready_sched(struct sched *s);
+extern void idle_sched(struct sched *s);
 extern void exit_sched(struct sched *s);
 extern void clean_sched(struct sched *s);
+
+extern void desched(ulong sched_id, struct context *context);
 extern void sched();
 
 

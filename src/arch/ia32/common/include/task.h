@@ -9,11 +9,13 @@
  * Context
  */
 struct context {
-    // pushad/popad
+    // Manually saved/stored
     u32 gs;
     u32 fs;
     u32 es;
     u32 ds;
+    
+    // pushad/popad
     u32 edi;
     u32 esi;
     u32 ebp;
@@ -23,12 +25,28 @@ struct context {
     u32 ecx;
     u32 eax;
     
+    // Pushed by interrupt handler
+    u32 vector;
+    u32 error_code;
+    
     // Pushed by HW upon an interrupt
     u32 eip;
     u32 cs;
     u32 eflags;
     u32 esp;
     u32 ss;
+} packedstruct;
+
+
+/*
+ * Kernel dispatch info 
+ */
+struct kernel_dispatch_info {
+    int int_type;
+    int vector;
+    ulong extra1, extra2;
+    
+    struct context *context;
 };
 
 

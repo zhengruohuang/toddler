@@ -63,7 +63,7 @@ static void construct_gdt()
     construct_entry(
         GDT_INDEX_TSS_USER,
         *get_per_cpu(u32, tss_user_base), *get_per_cpu(u32, tss_user_limit),
-                    GDT_DA_TSS
+        GDT_DA_TSS
     );
     
     // TSS with IOPB
@@ -106,8 +106,8 @@ static void construct_gdt()
     /*
      * Load our GDT
      */
-    cur_gdt->gdtr_value.limit = sizeof(struct gdt_descriptor) * GDT_ENTRY_COUNT - 1;
     cur_gdt->gdtr_value.base = (u32)&cur_gdt->entries;
+    cur_gdt->gdtr_value.limit = sizeof(struct gdt_descriptor) * GDT_ENTRY_COUNT - 1;
     
     kprintf("\tLoading GDT, dataK: %x, gdtr: %x, perCpuK: %x\n",
             GDT_SELECTOR_DATA_K, cur_gdt->gdtr_value, GDT_SELECTOR_PER_CPU_K);

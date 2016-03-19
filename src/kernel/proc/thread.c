@@ -22,7 +22,8 @@ static ulong gen_thread_id(struct thread *t)
 
 struct thread *create_thread(
     struct process *p, ulong entry_point, ulong param,
-    int pin_cpu_id, ulong stack_size, ulong tls_size
+    int pin_cpu_id,
+    ulong stack_size, ulong tls_size
 )
 {
     // Allocate a thread struct
@@ -57,10 +58,27 @@ struct thread *create_thread(
     // Scheduling
     t->sched = enter_sched(t);
     
+    // Insert the thread into the thread list
+    t->next = p->threads.next;
+    t->prev = NULL;
+    p->threads.next = t;
+    p->threads.count++;
+    
     // Done
     return t;
 }
 
+void run_thread(struct thread *t)
+{
+    t->state = thread_normal;
+    ready_sched(t->sched);
+}
+
+void idle_thread(struct thread *t)
+{
+    t->state = thread_normal;
+    idle_sched(t->sched);
+}
 
 void init_thread()
 {
@@ -68,13 +86,21 @@ void init_thread()
     
     // Create salloc obj
     thread_salloc_id = salloc_create(sizeof(struct thread), 0, 0, NULL, NULL);
+    kprintf("\tThread salloc ID: %d\n", thread_salloc_id);
     
-    // Create dummy kernel threads, one for each CPU
+    // Create idel kernel threads, one for each CPU
     int i;
     for (i = 0; i < hal->num_cpus; i++) {
         ulong param = i;
-        create_thread(kernel_proc, (ulong)&kernel_dummy_thread, param, i, 0, 0);
+        struct thread *t = create_thread(kernel_proc, (ulong)&kernel_idle_thread, param, i, 0, 0);
+        idle_thread(t);
+        
+        kprintf("\tKernel idle thread for CPU #%d created, thread ID: %p\n", i, t->thread_id);
     }
     
-    kprintf("\tThread salloc ID: %d\n", thread_salloc_id);
+    // Create kernel demo thread, only one
+    struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, 0, -1, 0, 0);
+    run_thread(t);
+    
+    kprintf("\tKernel demo thread created, thread ID: %p\n", t->thread_id);
 }

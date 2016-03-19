@@ -1,9 +1,11 @@
 #include "common/include/data.h"
 #include "common/include/memory.h"
+#include "common/include/memlayout.h"
 #include "hal/include/print.h"
 #include "hal/include/mem.h"
 #include "hal/include/lib.h"
 #include "hal/include/cpu.h"
+#include "hal/include/task.h"
 #include "hal/include/kernel.h"
 
 #ifndef __HAL__
@@ -14,6 +16,8 @@
 
 static struct hal_exports *hexp;
 static void asmlinkage (*kernel_entry)(struct hal_exports *exp);
+
+struct kernel_exports *kernel;
 
 
 void init_kernel()
@@ -26,11 +30,15 @@ void init_kernel()
     hexp = (struct hal_exports *)kalloc(sizeof(struct hal_exports));
     
     // Kernel exprts
-    hexp->kernel = (struct kernel_exports *)kalloc(sizeof(struct kernel_exports));
+    kernel = (struct kernel_exports *)kalloc(sizeof(struct kernel_exports));
+    hexp->kernel = kernel;
     
     // General functions
     hexp->kprintf = kprintf;
     hexp->halt = wrap_halt;
+    
+    // Kernel info
+    hexp->kernel_page_dir_pfn = KERNEL_PDE_PFN;
     
     // Topology
     hexp->num_cpus = num_cpus;
@@ -43,6 +51,10 @@ void init_kernel()
     // Mapping
     hexp->user_map = wrap_user_map;
     
+    // AS
+    hexp->init_context = init_thread_context;
+    hexp->sleep = wrap_halt;
+    hexp->switch_context = switch_context;
     
     /*
      * Call kernel's entry

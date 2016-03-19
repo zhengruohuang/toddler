@@ -1,6 +1,7 @@
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
 #include "common/include/memory.h"
+#include "common/include/task.h"
 #include "hal/include/print.h"
 #include "hal/include/lib.h"
 #include "hal/include/acpi.h"
@@ -37,7 +38,7 @@ static struct apic_irq_to_pin vector_map[256];
 int ioapic_count = 8;
 
 
-static int ioapic_handler(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags)
+static int ioapic_handler(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
     //kprintf("IO APIC Interrupt Vector %d, IRQ %d\n", vector_map[vector_num].vector, vector_map[vector_num].irq);
     
@@ -46,7 +47,7 @@ static int ioapic_handler(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 e
     // Dissable IRQ
     //ioapic_disable_irq(vector_map[vector_num].irq);
     
-    switch (vector_map[vector_num].irq) {
+    switch (vector_map[context->vector].irq) {
         case 0:
             //result = hal_interrupt_handler_global_timer();
             break;
@@ -59,7 +60,7 @@ static int ioapic_handler(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 e
     
     // Enable IRQ
     lapic_eoi();
-    ioapic_enable_irq(vector_map[vector_num].irq);
+    ioapic_enable_irq(vector_map[context->vector].irq);
     
     
     return result;

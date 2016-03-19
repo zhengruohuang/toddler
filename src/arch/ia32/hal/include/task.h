@@ -3,6 +3,7 @@
 
 
 #include "common/include/data.h"
+#include "common/include/task.h"
 #include "hal/include/cpu.h"
 
 
@@ -41,6 +42,9 @@ struct tss {
 } packedstruct;
 
 
+/*
+ * TSS
+ */
 ext_per_cpu(u32, tss_user_base);
 ext_per_cpu(u32, tss_user_limit);
 
@@ -51,6 +55,21 @@ ext_per_cpu(u32, tss_iopb_limit);
 extern void load_tss();
 extern void init_tss_mp();
 extern void init_tss();
+
+
+/*
+ * Context
+ */
+ext_per_cpu(ulong, cur_running_sched_id);
+
+ext_per_cpu(int, cur_in_user_mode);
+ext_per_cpu(struct context, cur_context);
+
+extern void asmlinkage init_thread_context(struct context *context, ulong entry, ulong stack_top, int user_mode);
+extern void asmlinkage switch_context(ulong sched_id, struct context *context, ulong page_dir_pfn, int user_mode, ulong asid);
+
+extern void init_context_mp();
+extern void init_context();
 
 
 #endif

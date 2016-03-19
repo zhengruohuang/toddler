@@ -74,5 +74,5 @@ void init_tss_mp()
 void init_tss()
 {
     kprintf("\tConstructing TSS\n");
-    init_tss_mp();
+    construct_tss();
 }

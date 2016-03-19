@@ -8,6 +8,7 @@
 
 
 static volatile int ap_bringup_lock = 0;
+static volatile int start_working_lock = 1;
 
 
 ulong get_per_cpu_area_start_vaddr(int cpu_id)
@@ -111,6 +112,14 @@ void bringup_mp()
 }
 
 /*
+ * This will allow all APs start working
+ */
+void release_mp_lock()
+{
+    start_working_lock = 0;
+}
+
+/*
  * Secondary processor initializaton started
  */
 void ap_init_started()
@@ -122,5 +131,10 @@ void ap_init_started()
  */
 void ap_init_done()
 {
+    kprintf("\tSecondary processor initialzied, waiting for the MP lock release\n");
     ap_bringup_lock = 0;
+    
+    while (start_working_lock) {
+        __asm__ __volatile__ ( "pause;" : : );
+    }
 }

@@ -56,6 +56,9 @@ static void hal_entry()
     // Init IDT
     init_idt();
     
+    // Init context
+    init_context();
+    
     // Init time
     //init_rtc();
     //init_blocked_delay();
@@ -64,19 +67,17 @@ static void hal_entry()
     init_kmem_zone();
     full_direct_map();
     init_kernel();
-    halt();
+    
+    //halt();
     
     // Bringup APs
     bringup_mp();
     
     // Start to work
+    release_mp_lock();
+    start_working();
     
     kprintf("Initialization is done!\n");
-
-    
-//     do {
-//         kprintf("We are in HAL!\n");
-//     } while(1);
 }
 
 static void ap_entry()
@@ -101,8 +102,14 @@ static void ap_entry()
     // Init IDT
     load_idt();
     
+    // Init context
+    init_context_mp();
+    
     // AP init done
     ap_init_done();
+    
+    // Start working
+    //start_working_mp();
 }
 
 static void bios_return()

@@ -17,7 +17,7 @@
 // int ioapic_count = 0;
 // 
 // 
-// static ulong cpu_apic_present()
+// static ulong has_apic()
 // {
 //     struct cpuid_reg reg;
 //     
@@ -147,7 +147,7 @@
 // {
 //     kprintf("Initializing interupt controller\n");
 //  
-//     apic_present = cpu_apic_present();
+//     apic_present = has_apic();
 //     
 //     if (
 //         ((acpi_supported && madt_supported) || mps_supported) &&
@@ -185,6 +185,7 @@
 #include "hal/include/mps.h"
 #include "hal/include/mem.h"
 #include "hal/include/cpu.h"
+#include "hal/include/int.h"
 #include "hal/include/apic.h"
 #include "hal/include/i8259a.h"
 
@@ -193,7 +194,7 @@ int apic_supported = 0;
 int apic_present = 0;
 
 
-static ulong cpu_apic_present()
+static ulong has_apic()
 {
     struct cpuid_reg reg;
     
@@ -208,7 +209,7 @@ static ulong cpu_apic_present()
 
 void init_apic_mp()
 {
-    assert(cpu_apic_present() && apic_supported);
+    assert(has_apic() && apic_supported);
     
     init_lapic_mp();
 }
@@ -217,7 +218,7 @@ void init_apic()
 {
     kprintf("Initializing interupt controller\n");
  
-    apic_present = cpu_apic_present();
+    apic_present = has_apic();
 
     if (
         ((acpi_supported && madt_supported) || mps_supported) &&
@@ -230,8 +231,10 @@ void init_apic()
         init_i8259a();
         disable_i8259a();
         
-        // Find out paddr of LAPIC
+        // Init local APIC
         init_lapic();
+        init_lapic_timer();
+        init_ipi();
         
         // Map IOAPIC
         init_ioapic();
@@ -239,4 +242,18 @@ void init_apic()
         kprintf("\tAPIC not supported, use i8259a instead. MP is disabled!\n");
         init_i8259a();
     }
+}
+
+void start_working_mp()
+{
+    //kprintf("Start working MP!\n");
+    //start_lapic_timer();
+}
+
+void start_working()
+{
+    start_lapic_timer();
+    lapic_eoi();
+    
+    enable_local_int();
 }

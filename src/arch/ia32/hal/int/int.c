@@ -1,12 +1,15 @@
 #include "common/include/data.h"
+#include "common/include/memlayout.h"
+#include "common/include/task.h"
 #include "hal/include/print.h"
 #include "hal/include/lib.h"
+#include "hal/include/cpu.h"
+#include "hal/include/task.h"
+#include "hal/include/kernel.h"
 #include "hal/include/int.h"
 
 
 int_handler int_handler_list[IDT_ENTRY_COUNT];
-
-static u32 interrupt_lock = 0;
 
 
 /*
@@ -54,7 +57,7 @@ void init_int_handlers()
 /*
  * General interrupt handler entry
  */
-int asmlinkage int_handler_entry(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags)
+int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
 {
     // For debugging, only allow one int handler at a time in a mp system
 //     do {
@@ -63,56 +66,51 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code, u32 eip, u32 cs
 //         }
 //     } while (1);
     
-    kprintf("VecNum %h, ErrCode %h, Eip %h, Cs %d, Eflags %b\n", vector_num, error_code, eip, cs, eflags);
+    // Get context
+    struct context *context = get_per_cpu(struct context, cur_context);
     
-    //kprintf("Current Processor Index %d, ID %h, Area at %h\n",
-    //hal_sysinfo_get_local()->processor_number,
-    //hal_sysinfo_get_local()->processor_id,
-    //hal_sysinfo_get_local()->processor_area_address
-    //);
+    kprintf("Interrupt, vector: %x, err_code: %x, eip: %x, esp: %x, cs: %x, ds: %x, es: %x, fs: %x, ss: %x eflags: %x\n",
+            vector_num, error_code, context->eip, context->esp, context->cs, context->ds, context->es, context->fs, context->ss, context->eflags);
     
-    /*
-     * A flag indicates whether we should invoke hal worker after this interrupt
-     */
-    u32 invoke_hal_worker = 1;
-    
-    /* Obtain handler */
+    // Get the actual interrupt handler
     int_handler handler = int_handler_list[vector_num];
     if (NULL == (void *)handler) {
         handler = int_handler_dummy;
     }
     
-    interrupt_lock = 0;
+    // Call the real handler, the return value indicates if we need to call kernel
+    struct int_context intc;
+    intc.vector = vector_num;
+    intc.error_code = error_code;
+    intc.context = context;
     
-    /*
-     * Call the handler
-     *
-     * Note that interrupts may be enabled by the handler to support
-     * nested interrupting, so we need to diable local interrupts after
-     * this function no matter whether the handler would disable interrupts
-     * itself
-     */
-    invoke_hal_worker = handler(vector_num, error_code, eip, cs, eflags);
+    struct kernel_dispatch_info kdispatch;
+    kdispatch.context = context;
     
-    /*
-     * After this function call, no other interrupts would occur,
-     * thus nested interrupting would be disabled
-     */
-    disable_local_int();
+    int call_kernel = handler(&intc, &kdispatch);
     
-    /* If we need to invoke the hal worker, current context may already been switched to ASMgr's by message creation */
-    if (invoke_hal_worker) {
-        //hal_ipc_create_message();
+    // Note that if kernel is invoked, it will call sched, then never goes back to this int handler
+    if (call_kernel) {
+        kprintf("\tSwitch to kernel\n");
         
-        /* Invoker HAL worker */
-        //hal_task_invoke_hal_worker();
-        //kprintf(">>> Here!\n");
+        // First switch AS
+        u32 kernel_cr3 = KERNEL_PDE_PFN;
+        kernel_cr3 = kernel_cr3 << 12;
+        
+        __asm__ __volatile__
+        (
+            "movl   %%eax, %%cr3;"
+            "jmp    _cr3_switched;"
+            "_cr3_switched:"
+            :
+            : "a" (kernel_cr3)
+        );
+        
+        // Then call kernel dispatcher
+        kernel->dispatch(*get_per_cpu(ulong, cur_running_sched_id), &kdispatch);
     }
     
-    //kprintf("To return\n");
-    
-    //s_context_info *cur_context = *((s_context_info **)hal_per_processor_variable_get_current(hal_switch_current_context_ptr_per_cpu_offset));
-    //unsigned long return_value = cur_context ? cur_context->page_table_pfn << 12 : 0;
+    panic("Need to implement lazy scheduling!");
     
     return 0;
 }
@@ -120,54 +118,24 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code, u32 eip, u32 cs
 /*
  * Default dummy handler: don't do anything
  */
-int int_handler_dummy(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags)
+int int_handler_dummy(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
-    //kprintf("VecNum %h, ErrCode %h, Eip %h, Cs %d, Eflags %b\n", vector_num, error_code, eip, cs, eflags);
-//     kprintf("Current Processor Index %d, ID %h, Area at %h\n",
-//                hal_sysinfo_get_local()->processor_number,
-//                hal_sysinfo_get_local()->processor_id,
-//                hal_sysinfo_get_local()->processor_area_address
-//     );
-//     
-//     if (0x33 == vector_num) {
-//         BREAK("");
-//     }
-//     
-//     kprintf("!!! Interrupt Occured (VecNum %d, ErrCode %h) !!!\n", vector_num, error_code);
-//     
-//     u32 cr2;
-//     
-//     __asm__ __volatile__ (
-//         "movl   %%cr2, %%eax;"
-//         : "=a" (cr2)
-//         :
-//     );
-//     
-//     kprintf("CR2 %h\n", cr2);
-//     
-//     //hal_apic_lapic_eoi();
-//     BREAK("");
-    
     return 0;
 }
 
 /*
  * Exception
  */
-int int_handler_exception(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags)
+int int_handler_exception(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
-    kprintf("\n!!! Exception Occured (VecNum %d, ErrCode %h) !!!\n", vector_num, error_code);
-    
     return 1;
 }
 
 /*
  * Device
  */
-int int_handler_device(u32 vector_num, u32 error_code, u32 eip, u32 cs, u32 eflags)
+int int_handler_device(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
-    kprintf("\n!!! Device (VecNum %d, IrqNum %h) !!!\n", vector_num, vector_num - 32);
-    
     return 1;
 }
 /******************************************************************************/

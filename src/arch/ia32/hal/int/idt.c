@@ -10,7 +10,7 @@ static struct idt int_idt;
 
 static void idt_entry(ulong vector, ulong desc_type, void *handler, ulong privilege)
 {
-    struct idt_gate *p_gate = (struct idt_gate*)(&int_idt.entries[vector]);
+    struct idt_gate *p_gate = (struct idt_gate *)(&int_idt.entries[vector]);
     ulong base = (ulong)handler;
     p_gate->offset_low      = base & 0xFFFF;
     p_gate->selector        = GDT_SELECTOR_CODE_K;
@@ -110,7 +110,7 @@ void init_idt()
     
     // Initialize the paremter of IDTR
     int_idt.idtr_value.base = (u32)(&int_idt.entries);
-    int_idt.idtr_value.limit = IDT_ENTRY_COUNT * sizeof(struct idt_gate) - 1;;
+    int_idt.idtr_value.limit = sizeof(struct idt_gate) * IDT_ENTRY_COUNT - 1;;
     
     kprintf(" Done!\n");
     

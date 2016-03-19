@@ -252,8 +252,8 @@ void start_working_mp()
 
 void start_working()
 {
-    start_lapic_timer();
     lapic_eoi();
+    start_lapic_timer();
     
     enable_local_int();
 }

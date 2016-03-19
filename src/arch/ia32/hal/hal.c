@@ -71,7 +71,7 @@ static void hal_entry()
     //halt();
     
     // Bringup APs
-    bringup_mp();
+    //bringup_mp();
     
     // Start to work
     release_mp_lock();

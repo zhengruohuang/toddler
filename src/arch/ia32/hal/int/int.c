@@ -69,8 +69,8 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
     // Get context
     struct context *context = get_per_cpu(struct context, cur_context);
     
-    kprintf("Interrupt, vector: %x, err_code: %x, eip: %x, esp: %x, cs: %x, ds: %x, es: %x, fs: %x, ss: %x eflags: %x\n",
-            vector_num, error_code, context->eip, context->esp, context->cs, context->ds, context->es, context->fs, context->ss, context->eflags);
+    //kprintf("Interrupt, vector: %x, err_code: %x, eip: %x, esp: %x, cs: %x, ds: %x, es: %x, fs: %x, ss: %x eflags: %x\n",
+    //        vector_num, error_code, context->eip, context->esp, context->cs, context->ds, context->es, context->fs, context->ss, context->eflags);
     
     // Get the actual interrupt handler
     int_handler handler = int_handler_list[vector_num];
@@ -91,7 +91,7 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
     
     // Note that if kernel is invoked, it will call sched, then never goes back to this int handler
     if (call_kernel) {
-        kprintf("\tSwitch to kernel\n");
+        //kprintf("\tSwitch to kernel\n");
         
         // First switch AS
         u32 kernel_cr3 = KERNEL_PDE_PFN;

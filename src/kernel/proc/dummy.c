@@ -13,15 +13,28 @@
 void kernel_idle_thread(ulong param)
 {
     do {
-        //kprintf("This is kernel idle thread!\n");
-        //hal->sleep();
+        kprintf("Dummy thread\n");
+        hal->sleep();
     } while (1);
 }
 
 void kernel_demo_thread(ulong param)
 {
     do {
-        //kprintf("This is kernel demo thread!\n");
-        //hal->sleep();
+        __asm__ __volatile__
+        (
+            "cli;"
+            :
+            :
+        );
+        
+        kprintf("This is kernel demo thread!\n");
+        
+        __asm__ __volatile__
+        (
+            "sti;"
+            :
+            :
+        );
     } while (1);
 }

@@ -214,6 +214,8 @@ void desched(ulong sched_id, struct context *context)
         return;
     }
     
+    //kprintf("Deschedule\n");
+    
     // Get the sched struct
     struct sched *s = get_sched(sched_id);
     assert(s);
@@ -267,12 +269,12 @@ void sched()
     s->state = sched_run;
     push_back(&run_queue, s);
     
-    kprintf("Context: eip: %p, esp: %p, cs: %p, ds: %p\n",
-            s->thread->context.eip,
-            s->thread->context.esp,
-            s->thread->context.cs,
-            s->thread->context.ds
-    );
+    //kprintf("Context: eip: %p, esp: %p, cs: %p, ds: %p\n",
+    //        s->thread->context.eip,
+    //        s->thread->context.esp,
+    //        s->thread->context.cs,
+    //        s->thread->context.ds
+    //);
     
     // Then tell HAL to do a context switch
     hal->switch_context(s->sched_id, &s->thread->context, s->proc->page_dir_pfn, s->proc->user_mode, 0);

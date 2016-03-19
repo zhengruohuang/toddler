@@ -18,17 +18,13 @@ static int tsc_mode = 0;
 static int timer_vector = -1;
 
 static ulong timer_counter = 0;
-static int sched_freq = 100;
+static int sched_freq = 1;
 static ulong interrupt_counter = 0;
 
 
 static int lapic_timer_handler(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
-    kprintf("LAPIC Timer!\n");
-    
     lapic_eoi();
-    //start_lapic_timer();
-    
     return 1;
 }
 
@@ -126,7 +122,7 @@ void start_lapic_timer()
         
     // Unmask the interrupt
     tm.value = lapic_vaddr[APIC_LVT_TIME];
-    tm.mode = APIC_TIMER_ONESHOT;
+    tm.mode = APIC_TIMER_PERIODIC;
     tm.masked = 0;
     lapic_vaddr[APIC_LVT_TIME] = tm.value;
     
@@ -145,6 +141,7 @@ void start_lapic_timer()
         } while (1);
     }
     
+    //kprintf("Timer started\n");
 }
 
 void stop_lapic_timer()

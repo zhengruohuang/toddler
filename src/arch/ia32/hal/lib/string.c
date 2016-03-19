@@ -6,21 +6,11 @@ void memcpy(void *src, void *dest, size_t count)
 {
     ulong i;
     
-    ulong source = (ulong)src;
-    ulong destination = (ulong)dest;
+    u8 *s = (u8 *)src;
+    u8 *d = (u8 *)dest;
     
     for (i = 0; i < count; i++) {
-        if (!(i % 1024)) {
-            kprintf(".");
-        }
-        
-        __asm__ __volatile__
-        (
-            "movb   (%%esi), %%al;"
-            "movb   %%al, (%%edi);"
-            :
-            : "S" (source + i), "D" (destination + i)
-        );
+        *d++ = *s++;
     }
     
 }

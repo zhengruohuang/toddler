@@ -51,8 +51,6 @@ global  int_handlers
 ; General Handler
 ;===============================================================================
 int_handler_general:
-    xchg    bx, bx
-
     ; Save all registers
     pushad
 

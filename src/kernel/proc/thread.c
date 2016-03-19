@@ -95,12 +95,12 @@ void init_thread()
         struct thread *t = create_thread(kernel_proc, (ulong)&kernel_idle_thread, param, i, 0, 0);
         idle_thread(t);
         
-        kprintf("\tKernel idle thread for CPU #%d created, thread ID: %p\n", i, t->thread_id);
+        kprintf("\tKernel idle thread for CPU #%d created, thread ID: %p, thraed block base: %p\n", i, t->thread_id, t->memory.thread_block_base);
     }
     
     // Create kernel demo thread, only one
     struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, 0, -1, 0, 0);
     run_thread(t);
     
-    kprintf("\tKernel demo thread created, thread ID: %p\n", t->thread_id);
+    kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.thread_block_base);
 }

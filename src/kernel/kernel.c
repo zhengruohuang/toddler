@@ -11,7 +11,7 @@ struct hal_exports *hal;
  */
 static void asmlinkage dispatch(ulong sched_id, struct kernel_dispatch_info *int_info)
 {
-    kprintf("Dispatch\n");
+    //kprintf("Dispatch\n");
     desched(sched_id, int_info->context);
     sched();
 }

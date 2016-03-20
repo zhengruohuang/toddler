@@ -7,6 +7,8 @@
 #include "common/include/memory.h"
 #include "kernel/include/hal.h"
 #include "kernel/include/mem.h"
+#include "kernel/include/lib.h"
+#include "kernel/include/coreimg.h"
 #include "kernel/include/proc.h"
 
 
@@ -36,8 +38,8 @@ struct process *create_process(
     p->parent_id = parent_id;
     
     // Setup the process
-    p->name = name; // FIXME: need to duplicate the name instead of a simple assign
-    p->url = url;   // FIXME: so does url
+    p->name = strdup(name);
+    p->url = strdup(url);
     
     p->type = type;
     p->state = process_enter;
@@ -58,17 +60,30 @@ struct process *create_process(
     }
     assert(p->page_dir_pfn);
     
+    // Init the address space
+    if (type != process_kernel) {
+        hal->init_addr_space(p->page_dir_pfn);
+    }
+    
+    // Init dynamic area
+    create_dalloc(p);
+    
     // Memory
     p->memory.entry_point = 0;
     
     p->memory.program_start = 0;
     p->memory.program_end = 0;
     
-    p->memory.dynamic_top = 0;
-    p->memory.dynamic_bottom = 0;
-    
     p->memory.heap_start = 0;
     p->memory.heap_end = 0;
+    
+    if (type == process_kernel) {
+        p->memory.dynamic_top = 0;
+        p->memory.dynamic_bottom = 0;
+    } else {
+        p->memory.dynamic_top = p->dynamic.cur_top;
+        p->memory.dynamic_bottom = p->dynamic.cur_top;
+    }
     
     // Insert the process into process list
     p->prev = NULL;
@@ -78,6 +93,29 @@ struct process *create_process(
     
     // Done
     return p;
+}
+
+int load_image(struct process *p, char *url)
+{
+    // Load image
+    ulong img = (ulong)load_core_file(url); // FIXME: should use namespace service
+    ulong entry = 0, vaddr_start = 0, vaddr_end = 0;
+    int succeed = hal->load_exe(img, p->page_dir_pfn, &entry, &vaddr_start, &vaddr_end);
+    
+    if (!succeed) {
+        return 0;
+    }
+    
+    // Calculae rounded addresses
+    ulong heap_start = vaddr_end;
+    
+    // Set memory layout
+    p->memory.program_start = vaddr_start;
+    p->memory.program_end = vaddr_end;
+    p->memory.heap_start = heap_start;
+    p->memory.heap_end = heap_start;
+    
+    return 1;
 }
 
 

@@ -9,7 +9,7 @@
 # Entry points
 HALENTRY	= 0xFFF84000		# 4GB - 512KB + 16KB
 KRNLENTRY	= 0xFFF01000		# 4GB - 1MB + 4KB
-APPENTRY	= 0xC0800000		# 3GB + 8MB
+APPENTRY	= 0x8080000		# 128MB + 512KB
 LIBCENTRY	= 0xC0001000
 
 # Assembler, Compiler, Linker, and Flags
@@ -92,7 +92,8 @@ coreimg:
 	@$(TARGETDIR)/tools/coreimg			\
 		$(TARGETDIR)/bin/tdlrcore.img		\
 		$(TARGETDIR)/bin/tdlrhal.bin		\
-		$(TARGETDIR)/bin/tdlrkrnl.bin
+		$(TARGETDIR)/bin/tdlrkrnl.bin		\
+		$(TARGETDIR)/bin/tdlrsys.bin
 
 # Build floppy image
 floppyimg:

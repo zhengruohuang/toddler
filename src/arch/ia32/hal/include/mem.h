@@ -110,6 +110,12 @@ extern void init_gdt();
 /*
  * Mem mapping
  */
+extern void init_user_page_dir(ulong page_dir_pfn);
+extern int user_indirect_map_array(
+    ulong page_dir_pfn, ulong vaddr, ulong paddr, size_t length,
+    int exec, int write, int cacheable, int override
+);
+extern ulong get_paddr(ulong page_dir_pfn, ulong vaddr);
 extern void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int override);
 extern void kernel_indirect_map_array(ulong vaddr, ulong paddr, size_t size, int disable_cache, int override);
 extern void kernel_direct_map(ulong addr, int disable_cache);

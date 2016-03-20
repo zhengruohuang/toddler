@@ -2,21 +2,151 @@
 #include "common/include/memlayout.h"
 #include "common/include/memory.h"
 #include "hal/include/lib.h"
+#include "hal/include/kernel.h"
 #include "hal/include/mem.h"
 
 
+/*
+ * User mapping
+ */
+void init_user_page_dir(ulong page_dir_pfn)
+{
+    struct page_frame *page = (struct page_frame *)PFN_TO_ADDR(page_dir_pfn);
+
+    int i;
+    for (i = 0; i < 1024; i++) {
+        page->value_u32[i] = 0;
+    }
+    
+    page->value_pde[1023].pfn = KERNEL_PTE_HI4_PFN;
+    page->value_pde[1023].present = 1;
+    page->value_pde[1023].rw = 1;
+    page->value_pde[1023].user = 0;
+    page->value_pde[1023].cache_disabled = 0;
+}
+
+ulong get_paddr(ulong page_dir_pfn, ulong vaddr)
+{
+    // PDE
+    struct page_frame *page = (struct page_frame *)PFN_TO_ADDR(page_dir_pfn);
+    int index = GET_PDE_INDEX(vaddr);
+    
+    if (!page->value_u32[index]) {
+        return 0;
+    }
+    
+    // PTE
+    page = (struct page_frame *)(PFN_TO_ADDR(page->value_pde[index].pfn));
+    index = GET_PTE_INDEX(vaddr);
+    
+    if (!page->value_u32[index]) {
+        return 0;
+    }
+    
+    // Paddr
+    return PFN_TO_ADDR(page->value_pte[index].pfn);
+}
+
+static int user_indirect_map(
+    ulong page_dir_pfn, ulong vaddr, ulong paddr,
+    int exec, int write, int cacheable, int override)
+{
+    // PDE
+    struct page_frame *page = (struct page_frame *)PFN_TO_ADDR(page_dir_pfn);
+    int index = GET_PDE_INDEX(vaddr);
+    
+    if (!page->value_u32[index]) {
+        ulong alloc_pfn = kernel->palloc(1);;
+        if (!alloc_pfn) {
+            return 0;
+        }
+        
+        // FIXME: the page should've been zeroed by kernel
+        memzero((void *)PFN_TO_ADDR(alloc_pfn), PAGE_SIZE);
+
+        page->value_pde[index].pfn = alloc_pfn;
+        page->value_pde[index].present = 1;
+        page->value_pde[index].rw = 1;
+        page->value_pde[index].user = 1;
+    }
+    
+    if (!page->value_pde[index].present || !page->value_pde[index].user) {
+        return 0;
+    }
+    
+    // PTE
+    page = (struct page_frame *)(PFN_TO_ADDR(page->value_pde[index].pfn));
+    index = GET_PTE_INDEX(vaddr);
+    
+    if (page->value_u32[index]) {
+        if (
+            page->value_pte[index].pfn != ADDR_TO_PFN(paddr) ||
+            !page->value_pde[index].present ||
+            !page->value_pde[index].user
+        ) {
+            //kprintf("Old PFN: %p, new PFN: %p, present: %d, user: %d\n", page->value_pte[index].pfn, ADDR_TO_PFN(paddr), page->value_pde[index].present, page->value_pde[index].user);
+            
+            return 0;
+        }
+        
+        if (override) {
+            page->value_pde[index].rw = write;
+            page->value_pde[index].cache_disabled = !cacheable;
+        } else  if (
+            page->value_pde[index].rw != write ||
+            page->value_pde[index].cache_disabled != !cacheable
+        ) {
+            return 0;
+        }
+    }
+    
+    // This is our first time mapping the page
+    else {
+        page->value_pte[index].pfn = ADDR_TO_PFN(paddr);
+        page->value_pde[index].present = 1;
+        page->value_pde[index].user = 1;
+        page->value_pde[index].rw = write;
+        page->value_pde[index].cache_disabled = !cacheable;
+    }
+    
+    return 1;
+}
+
+int user_indirect_map_array(
+    ulong page_dir_pfn, ulong vaddr, ulong paddr, size_t length,
+    int exec, int write, int cacheable, int overwrite)
+{
+    ulong vstart = (vaddr / PAGE_SIZE) * PAGE_SIZE;
+    ulong pstart = (paddr / PAGE_SIZE) * PAGE_SIZE;
+    
+    ulong page_count = length / PAGE_SIZE;
+    if (length % PAGE_SIZE) {
+        page_count++;
+    }
+    
+    ulong i;
+    ulong vcur = vstart;
+    ulong pcur = pstart;
+    for (i = 0; i < page_count; i++) {
+        int succeed = user_indirect_map(page_dir_pfn, vcur, pcur, exec, write, cacheable, overwrite);
+        
+        if (!succeed) {
+            return 0;
+        }
+        
+        vcur += PAGE_SIZE;
+        pcur += PAGE_SIZE;
+    }
+    
+    return 1;
+}
+
+
+/*
+ * Kernel mapping
+ */
 void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int override)
 {
-    ulong compare = ADDR_TO_PFN(paddr);
-    if (compare == 0xfd000) {
-        panic("Stop!");
-    }
-    
-    compare = ADDR_TO_PFN(vaddr);
-    if (compare == 0xfd000) {
-        panic("Stop!");
-    }
-    
     // PDE
     struct page_frame *page = (struct page_frame *)KERNEL_PDE_PADDR;
     int index = GET_PDE_INDEX(vaddr);
@@ -33,8 +163,8 @@ void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int overri
     
     if (page->value_u32[index] && !override) {
         if (page->value_pte[index].pfn != ADDR_TO_PFN(paddr)) {
-            kprintf("Framebuffer: %p\n", get_bootparam()->framebuffer_addr);
-            kprintf("Inconsistency detected, original PFN: %p, new PFN: %p\n", page->value_pte[index].pfn, ADDR_TO_PFN(paddr));
+            kprintf("Inconsistency detected, original PFN: %p, new PFN: %p\n",
+                    page->value_pte[index].pfn, ADDR_TO_PFN(paddr));
         }
         
         assert(
@@ -52,10 +182,6 @@ void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int overri
         page->value_pde[index].rw = 1;
         page->value_pde[index].cache_disabled = disable_cache;
     }
-    
-    if (page->value_pte[index].pfn == 0xfd000) {
-        panic("Stop!");
-    }
 }
 
 void kernel_indirect_map_array(ulong vaddr, ulong paddr, size_t size, int disable_cache, int override)
@@ -68,7 +194,7 @@ void kernel_indirect_map_array(ulong vaddr, ulong paddr, size_t size, int disabl
         page_count++;
     }
     
-    int i;
+    ulong i;
     ulong vcur = vstart;
     ulong pcur = pstart;
     for (i = 0; i < page_count; i++) {
@@ -93,7 +219,7 @@ void kernel_direct_map_array(ulong addr, size_t size, int disable_cache)
     }
     
     ulong cur = start;
-    int i;
+    ulong i;
     for (i = 0; i < page_count; i++) {
         kernel_direct_map(cur, disable_cache);
         cur += PAGE_SIZE;

@@ -34,6 +34,7 @@ extern void init_pfndb();
  * Page frame allocator
  */
 extern int calc_palloc_order(int count);
+extern void buddy_print();
 extern void init_palloc();
 extern ulong palloc_tag(int count, int tag);
 extern ulong palloc(int count);

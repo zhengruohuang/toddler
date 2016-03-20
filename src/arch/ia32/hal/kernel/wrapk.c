@@ -4,16 +4,29 @@
 #include "hal/include/lib.h"
 #include "hal/include/apic.h"
 #include "hal/include/cpu.h"
+#include "hal/include/mem.h"
+#include "hal/include/exec.h"
 
 
-void asmlinkage wrap_kernel_map(ulong addr, size_t size)
+int asmlinkage wrap_user_map(ulong page_dir_pfn, ulong vaddr, ulong paddr, ulong size, int exec, int write, int cacheable, int override)
 {
-    kernel_direct_map_array(addr, size, 0);
+    return user_indirect_map_array(page_dir_pfn, vaddr, paddr, size, exec, write, cacheable, override);
 }
 
-int asmlinkage wrap_user_map(ulong page_dir, ulong vaddr, ulong paddr, ulong size, int exec, int write, int cacheable)
+ulong asmlinkage wrap_get_paddr(ulong page_dir_pfn, ulong vaddr)
 {
-    return 0;   // FIXME
+    return get_paddr(page_dir_pfn, vaddr);
+}
+
+int asmlinkage wrap_load_exe(ulong image_start, ulong dest_page_dir_pfn,
+                             ulong *entry_out, ulong *vaddr_start_out, ulong *vaddr_end_out)
+{
+    return load_exe(image_start, dest_page_dir_pfn, entry_out, vaddr_start_out, vaddr_end_out);
+}
+
+void asmlinkage wrap_init_addr_space(ulong page_dir_pfn)
+{
+    return init_user_page_dir(page_dir_pfn);
 }
 
 void asmlinkage wrap_halt()

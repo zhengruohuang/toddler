@@ -41,6 +41,9 @@ void init_kernel()
     // Kernel info
     hexp->kernel_page_dir_pfn = KERNEL_PDE_PFN;
     
+    // Core image info
+    hexp->coreimg_load_addr = COREIMG_LOAD_PADDR;
+    
     // MP
     hexp->num_cpus = num_cpus;
     hexp->get_cur_cpu_id = wrap_get_cur_cpu_id;
@@ -56,9 +59,14 @@ void init_kernel()
     hexp->restore_local_interrupt = restore_local_int;
     
     // Mapping
-    hexp->user_map = wrap_user_map;
+    hexp->map_user = wrap_user_map;
+    hexp->get_paddr = wrap_get_paddr;
+    
+    // Load image
+    hexp->load_exe = wrap_load_exe;
     
     // AS
+    hexp->init_addr_space = wrap_init_addr_space;
     hexp->init_context = init_thread_context;
     hexp->switch_context = switch_context;
     hexp->sleep = wrap_sleep;

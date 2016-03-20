@@ -50,6 +50,68 @@ struct thread *create_thread(
         t->memory.stack_limit_offset = PAGE_SIZE * 3;
         t->memory.stack_top_offset = PAGE_SIZE * 4;
     } else {
+        // Round up stack size and tls size
+        if (stack_size % PAGE_SIZE) {
+            stack_size /= PAGE_SIZE;
+            stack_size++;
+            stack_size *= PAGE_SIZE;
+        }
+        
+        if (tls_size % PAGE_SIZE) {
+            tls_size /= PAGE_SIZE;
+            tls_size++;
+            tls_size *= PAGE_SIZE;
+        }
+        
+        // Allocate a dynamic block
+        ulong block_size = stack_size + tls_size + PAGE_SIZE * 2;
+        t->memory.thread_block_base = dalloc(p, block_size);
+        
+        // Set up memory layout
+        t->memory.msg_send_offset = 0;
+        t->memory.msg_recv_offset = PAGE_SIZE;
+        
+        t->memory.tls_start_offset = PAGE_SIZE * 2;
+        
+        t->memory.stack_top_offset = block_size;
+        t->memory.stack_limit_offset = block_size - stack_size;
+        
+        // Allocate memory and map it
+        ulong paddr = PFN_TO_ADDR(palloc(1));
+        assert(paddr);
+        int succeed = hal->map_user(
+            p->page_dir_pfn,
+            t->memory.thread_block_base + t->memory.msg_send_offset,
+            paddr, PAGE_SIZE, 0, 1, 1, 0
+        );
+        assert(succeed);
+        
+        paddr = PFN_TO_ADDR(palloc(1));
+        assert(paddr);
+        succeed = hal->map_user(
+            p->page_dir_pfn,
+            t->memory.thread_block_base + t->memory.msg_recv_offset,
+            paddr, PAGE_SIZE, 0, 1, 1, 0
+        );
+        assert(succeed);
+        
+        paddr = PFN_TO_ADDR(palloc(tls_size / PAGE_SIZE));
+        assert(paddr);
+        succeed = hal->map_user(
+            p->page_dir_pfn,
+            t->memory.thread_block_base + t->memory.tls_start_offset,
+            paddr, tls_size, 0, 1, 1, 0
+        );
+        assert(succeed);
+        
+        paddr = PFN_TO_ADDR(palloc(stack_size / PAGE_SIZE));
+        assert(paddr);
+        succeed = hal->map_user(
+            p->page_dir_pfn,
+            t->memory.thread_block_base + t->memory.stack_limit_offset,
+            paddr, stack_size, 0, 1, 1, 0
+        );
+        assert(succeed);
     }
     
     // Prepare the param. Note that for user thread, we have to use indirect map, therefore we can't do a simple mem write
@@ -108,11 +170,11 @@ void init_thread()
     }
     
     // Create kernel demo threads
-    for (i = 0; i < hal->num_cpus; i++) {
-        ulong param = i;
-        struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, param, -1, 0, 0);
-        run_thread(t);
-        
-        kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.thread_block_base);
-    }
+//     for (i = 0; i < hal->num_cpus; i++) {
+//         ulong param = i;
+//         struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, param, -1, 0, 0);
+//         run_thread(t);
+//         
+//         kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.thread_block_base);
+//     }
 }

@@ -141,6 +141,10 @@ struct process_memory {
     ulong heap_end;
 };
 
+struct dynamic_area {
+    ulong cur_top;
+};
+
 struct process {
     // Process list
     struct process *next;
@@ -164,6 +168,9 @@ struct process {
     
     // Virtual memory
     struct process_memory memory;
+    
+    // Dynamic area
+    struct dynamic_area dynamic;
     
     // Thread list
     struct thread_list threads;
@@ -193,6 +200,13 @@ struct thread_control_block {
 };
 
 
+/*
+ * Dynamic area
+ */
+extern void create_dalloc(struct process *p);
+extern ulong dalloc(struct process *p, ulong size);
+extern void dfree(struct process *p, ulong base);
+
 
 /*
  * Process
@@ -200,12 +214,25 @@ struct thread_control_block {
 extern struct process *kernel_proc;;
 
 extern void init_process();
+extern struct process *create_process(
+    ulong parent_id, char *name, char *url,
+    enum process_type type, int priority
+);
+extern int load_image(struct process *p, char *url);
 
 
 /*
  * Thread
  */
 extern void init_thread();
+extern struct thread *create_thread(
+    struct process *p, ulong entry_point, ulong param,
+    int pin_cpu_id,
+    ulong stack_size, ulong tls_size
+);
+extern void run_thread(struct thread *t);
+extern void idle_thread(struct thread *t);
+
 extern void kernel_idle_thread(ulong param);
 extern void kernel_demo_thread(ulong param);
 

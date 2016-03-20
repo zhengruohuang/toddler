@@ -1,9 +1,24 @@
 #include "kernel/include/hal.h"
 #include "kernel/include/mem.h"
 #include "kernel/include/proc.h"
+#include "kernel/include/coreimg.h"
 
 
 struct hal_exports *hal;
+
+
+/*
+ * Kernel function wrappers
+ */
+ulong asmlinkage wrap_palloc_tag(int count, int tag)
+{
+    return palloc_tag(count, tag);
+}
+
+ulong asmlinkage wrap_palloc(int count)
+{
+    return palloc(count);
+}
 
 
 /*
@@ -22,6 +37,8 @@ static void asmlinkage dispatch(ulong sched_id, struct kernel_dispatch_info *int
 static void init_kexp()
 {
     hal->kernel->dispatch = dispatch;
+    hal->kernel->palloc_tag = wrap_palloc_tag;
+    hal->kernel->palloc = wrap_palloc;
 }
 
 /*
@@ -52,9 +69,11 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     // Init namespace dispatcher
     
     // Init core image
-    
-    // Load first user program
+    init_coreimg();
     
     // Kernel exports
     init_kexp();
+    
+    // Load user programs
+    start_user();
 }

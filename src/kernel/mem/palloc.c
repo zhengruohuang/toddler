@@ -136,7 +136,7 @@ int calc_palloc_order(int count)
     return -1;
 }
 
-static void buddy_print()
+void buddy_print()
 {
     int tag;
     for (tag = 0; tag < PALLOC_BUCKET_COUNT; tag++) {

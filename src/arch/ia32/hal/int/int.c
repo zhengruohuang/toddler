@@ -177,6 +177,10 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
  */
 int int_handler_dummy(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
+    kprintf("Interrupt, vector: %x, err_code: %x, eip: %x, esp: %x, cs: %x, ds: %x, es: %x, fs: %x, ss: %x eflags: %x\n",
+            context->vector, context->error_code,
+            context->context->eip, context->context->esp, context->context->cs, context->context->ds, context->context->es, context->context->fs, context->context->ss, context->context->eflags);
+            
     return 0;
 }
 

@@ -9,7 +9,8 @@ void asmlinkage _start()
     do {
         __asm__ __volatile__
         (
-            "hlt;"
+            //"xchgw  %%bx, %%bx;"
+            "pause;"
             :
             :
         );

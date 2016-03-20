@@ -23,6 +23,12 @@ void init_user_page_dir(ulong page_dir_pfn)
     page->value_pde[1023].rw = 1;
     page->value_pde[1023].user = 0;
     page->value_pde[1023].cache_disabled = 0;
+    
+    page->value_pde[0].pfn = KERNEL_PTE_LO4_PFN;
+    page->value_pde[0].present = 1;
+    page->value_pde[0].rw = 1;
+    page->value_pde[0].user = 0;
+    page->value_pde[0].cache_disabled = 0;
 }
 
 ulong get_paddr(ulong page_dir_pfn, ulong vaddr)
@@ -44,7 +50,10 @@ ulong get_paddr(ulong page_dir_pfn, ulong vaddr)
     }
     
     // Paddr
-    return PFN_TO_ADDR(page->value_pte[index].pfn);
+    ulong paddr = PFN_TO_ADDR(page->value_pte[index].pfn);
+    paddr += vaddr % PAGE_SIZE;
+    
+    return paddr;
 }
 
 static int user_indirect_map(

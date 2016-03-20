@@ -54,7 +54,7 @@ void asmlinkage init_thread_context(struct context *context, ulong entry, ulong 
     context->esp = stack_top;
 }
 
-void asmlinkage save_context(struct context *context)
+ulong asmlinkage save_context(struct context *context)
 {
     //kprintf("Saving context\n");
     
@@ -93,6 +93,20 @@ void asmlinkage save_context(struct context *context)
         dest->ss = context->ds;
     }
     
+    if (user_mode) {
+        return 0;
+    } else {
+        ulong my_cpu_area = get_my_cpu_area_start_vaddr();
+        
+        if ((ulong)context >= my_cpu_area) {
+            return 0;
+        }
+        
+        ulong new_stack = my_cpu_area + PER_CPU_STACK_TOP_OFFSET - sizeof(struct context);
+        memcpy(context, (void *)new_stack, sizeof(struct context));
+        return new_stack;
+    }
+    
     //kprintf(" Done\n");
 }
 
@@ -113,6 +127,12 @@ static void no_opt switch_page_dir(ulong page_dir_pfn)
         
         // Done
         "_skip_switch_page_dir:"
+        
+        "nop;"
+        "movl   %%esp, %%ecx;"
+        
+        "nop;"
+        //"xchgw  %%bx, %%bx;"
         :
         : "a" (page_dir_pfn << 12)
     );
@@ -120,6 +140,8 @@ static void no_opt switch_page_dir(ulong page_dir_pfn)
 
 static void no_opt switch_to_user(struct context *context)
 {
+    //kprintf("To switch to user, target ESP: %p\n", context->esp);
+    
     __asm__ __volatile__
     (
         // Set stack top to the beginning of register struct
@@ -141,7 +163,7 @@ static void no_opt switch_to_user(struct context *context)
         // Skip vector and err code
         "addl   $8, %%esp;"
         
-        "xchgw %%bx, %%bx;"
+        //"xchgw %%bx, %%bx;"
         
         // Return to context using iretd
         "iretl;"
@@ -189,14 +211,19 @@ static void no_opt switch_to_kernel(struct context *context)
 
 void asmlinkage no_opt switch_context(ulong sched_id, struct context *context, ulong page_dir_pfn, int user_mode, ulong asid)
 {
-    //kprintf("Switching, sched_id: %p, context: %p, page dir PFN: %p, user: %d, ASID: %p\n",
-    //        sched_id, context, page_dir_pfn, user_mode, asid);
+//     if (user_mode) {
+//         kprintf("User\n");
+//     }
+    
+//     kprintf("Switching, sched_id: %p, context: %p, page dir PFN: %p, user: %d, ASID: %p\n",
+//            sched_id, context, page_dir_pfn, user_mode, asid);
     
     // Set sched id
     *get_per_cpu(ulong, cur_running_sched_id) = sched_id;
     *get_per_cpu(int, cur_in_user_mode) = user_mode;
     
     // Switch page dir
+    // Note that kprintf may not be useable after this
     switch_page_dir(page_dir_pfn);
     
     // Renable timer

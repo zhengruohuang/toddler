@@ -41,7 +41,10 @@ static void cross_as_copy(
         assert(cur_src_paddr && cur_dest_paddr);
         
         // Copy the value
-        *((ulong *)cur_dest_paddr) = *((ulong *)cur_src_paddr);
+        ulong word = *((ulong *)cur_src_paddr);
+        *((ulong *)cur_dest_paddr) = word;
+        
+        kprintf("%h ", word);
     }
 }
 

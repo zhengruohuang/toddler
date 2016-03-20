@@ -29,7 +29,8 @@ void kernel_demo_thread(ulong param)
     do {
         spin_lock_int(&dummy_thread_lock);
         int index = param;
-        kprintf("This is kernel demo thread #%d on CPU #%d!\n", index, hal->get_cur_cpu_id());
+        int cpu_id = hal->get_cur_cpu_id();
+        kprintf("This is kernel demo thread #%d on CPU #%d, %s!\n", index, cpu_id , index == cpu_id ? "Same" : "Different");
         spin_unlock_int(&dummy_thread_lock);
         hal->sleep();
     } while (1);

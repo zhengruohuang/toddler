@@ -110,6 +110,7 @@ int load_image(struct process *p, char *url)
     ulong heap_start = vaddr_end;
     
     // Set memory layout
+    p->memory.entry_point = entry;
     p->memory.program_start = vaddr_start;
     p->memory.program_end = vaddr_end;
     p->memory.heap_start = heap_start;

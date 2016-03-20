@@ -149,16 +149,14 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
         //kprintf("\tSwitch to kernel\n");
         
         // First switch AS
-        u32 kernel_cr3 = KERNEL_PDE_PFN;
-        kernel_cr3 = kernel_cr3 << 12;
-        
         __asm__ __volatile__
         (
             "movl   %%eax, %%cr3;"
             "jmp    _cr3_switched;"
             "_cr3_switched:"
+            "nop;"
             :
-            : "a" (kernel_cr3)
+            : "a" (KERNEL_PDE_PFN << 12)
         );
         
         // Then call kernel dispatcher

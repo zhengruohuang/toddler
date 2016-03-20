@@ -170,11 +170,11 @@ void init_thread()
     }
     
     // Create kernel demo threads
-//     for (i = 0; i < hal->num_cpus; i++) {
-//         ulong param = i;
-//         struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, param, -1, 0, 0);
-//         run_thread(t);
-//         
-//         kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.thread_block_base);
-//     }
+    for (i = 0; i < 8; i++) {
+        ulong param = i;
+        struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, param, -1, 0, 0);
+        run_thread(t);
+        
+        kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.thread_block_base);
+    }
 }

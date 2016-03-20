@@ -295,7 +295,8 @@ void sched()
     s->state = sched_run;
     push_back(&run_queue, s);
     
-//     kprintf("Context: eip: %p, esp: %p, cs: %p, ds: %p\n",
+//     kprintf("Process: %s, Context: eip: %p, esp: %p, cs: %p, ds: %p\n",
+//            s->proc->name,
 //            s->thread->context.eip,
 //            s->thread->context.esp,
 //            s->thread->context.cs,

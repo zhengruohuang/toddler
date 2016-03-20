@@ -69,6 +69,14 @@ int_handler_general:
     push    ebx
     call    save_context
     
+    ; Check if we need to switch stack for kernel -> kernel switch
+    cmp     eax, 0
+    jz      do_int_handler
+    
+    ; Switch the stack
+    mov     esp, eax
+    
+do_int_handler
     ; Prepare to call the handler
     add     ebx, 32 + 16
     push    dword [ebx + 4] ; Arg2:
@@ -76,6 +84,7 @@ int_handler_general:
 
     ; Handle the interrupt
     call    int_handler_entry
+    
 
     ; Return from the interrupt
     add     esp, 8

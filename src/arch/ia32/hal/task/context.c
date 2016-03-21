@@ -54,7 +54,7 @@ void asmlinkage init_thread_context(struct context *context, ulong entry, ulong 
     context->esp = stack_top;
 }
 
-ulong asmlinkage save_context(struct context *context)
+u32 asmlinkage save_context(struct context *context)
 {
     //kprintf("Saving context\n");
     

@@ -11,6 +11,7 @@
 #include "hal/include/task.h"
 #include "hal/include/time.h"
 #include "hal/include/kernel.h"
+#include "hal/include/syscall.h"
 
 
 static void hal_entry()
@@ -62,6 +63,9 @@ static void hal_entry()
     // Init context
     init_context();
     
+    // Init syscall
+    init_syscall();
+    
     // Init time
     init_rtc();
     init_blocked_delay();
@@ -111,6 +115,9 @@ static void ap_entry()
     // Init context
     init_context_mp();
     
+    // Init syscall
+    init_syscall_mp();
+    
     // AP init done
     ap_init_done();
     
@@ -128,7 +135,7 @@ static void bios_return()
 /*
  * This is the entry point of HAL
  */
-void asmlinkage _start()
+void asmlinkage no_opt _start()
 {
     struct boot_parameters *boot_param = get_bootparam();
     

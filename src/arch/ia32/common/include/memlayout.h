@@ -12,8 +12,10 @@
 
 #define LAPIC_DEFAULT_PADDR             (0xfee00000)
 #define IOAPIC_DEFAULT_PADDR            (0xfec00000)
-#define LAPIC_VADDR                     (0xFFFFC000)
-#define IOAPIC_TOP_VADDR                (0xFFFFC000)
+
+#define SYSCALL_PROXY_VADDR             (0xFFFFC000)
+#define LAPIC_VADDR                     (0xFFFFB000)
+#define IOAPIC_TOP_VADDR                (0xFFFFB000)
 
 #define PER_CPU_AREA_PAGE_COUNT         (2)
 #define PER_CPU_AREA_SIZE               (PAGE_SIZE * PER_CPU_AREA_PAGE_COUNT)
@@ -46,7 +48,7 @@
 #define HAL_EXEC_START_PFN              (256)
 #define KERNEL_EXEC_START_PFN           (384)
 
-#define HAL_SPACE_END_VADDR             (0xFFFFD000)
+#define HAL_SPACE_END_VADDR             (0xFFFFC000)
 
 #define TEXT_VIDEO_MEM_ADDR             (0xb8000)
 

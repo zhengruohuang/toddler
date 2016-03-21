@@ -66,6 +66,7 @@ ext_per_cpu(int, cur_in_user_mode);
 ext_per_cpu(struct context, cur_context);
 
 extern void asmlinkage init_thread_context(struct context *context, ulong entry, ulong stack_top, int user_mode);
+extern u32 asmlinkage save_context(struct context *context);
 extern void asmlinkage switch_context(ulong sched_id, struct context *context, ulong page_dir_pfn, int user_mode, ulong asid);
 
 extern void init_context_mp();

@@ -342,6 +342,9 @@ START_32:
     jmp     ebx
 
 .ProtectedModeReturn:
+; Setup the HAL init stack
+    mov     esp, [ApStackTop32]
+
 ; Jump to the entry of HAL
 ; EDI is filled with the entry addr of HAL by the C code
     mov     ebx, edi

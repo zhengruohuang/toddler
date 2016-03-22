@@ -73,6 +73,8 @@ int_handler_general:
     cmp     eax, 0
     jz      do_int_handler
     
+    ;xchg    bx, bx
+    
     ; Switch the stack
     mov     esp, eax
     

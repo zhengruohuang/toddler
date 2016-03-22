@@ -25,6 +25,8 @@
 #define PER_CPU_KERNEL_DATA_START_OFFSET (PAGE_SIZE)
 #define PER_CPU_USER_DATA_START_OFFSET  (0)
 
+#define INIT_STACK_TOP_VADDR            (0xFFF87000)
+
 
 /*
  * Loader

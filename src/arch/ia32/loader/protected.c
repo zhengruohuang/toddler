@@ -664,6 +664,10 @@ static void no_inline jump_to_hal()
 {
     print_string("Starting HAL ... ");
     
+    // Setup HAL init stack
+    u32 *stack_top = (u32 *)boot_param->ap_stack_top_ptr;
+    *stack_top = INIT_STACK_TOP_VADDR;
+    
     // Jump back to assembly, then the assembly code will jump to HAL
     __asm__ __volatile__
     (

@@ -58,6 +58,13 @@ u32 asmlinkage save_context(struct context *context)
 {
     //kprintf("Saving context\n");
     
+//     __asm__ __volatile__
+//     (
+//         "xchgw %%bx, %%bx;"
+//         :
+//         :
+//     );
+    
     // Set interrupt state as disabled
     set_local_int_state(0);
     
@@ -102,6 +109,8 @@ u32 asmlinkage save_context(struct context *context)
             return 0;
         }
         
+        //kprintf("Need to switch stack for kernel->kernel\n");
+        
         ulong new_stack = my_cpu_area + PER_CPU_STACK_TOP_OFFSET - sizeof(struct context);
         memcpy(context, (void *)new_stack, sizeof(struct context));
         return new_stack;
@@ -121,6 +130,8 @@ static void no_opt switch_page_dir(ulong page_dir_pfn)
         // If there is no need ot reload CR3, directly do switch
         "jz     _skip_switch_page_dir;"
         
+        //"xchgw  %%bx, %%bx;"
+        
         // Reload CR3
         "movl   %%eax, %%cr3;"
         "jmp    _skip_switch_page_dir;"
@@ -128,8 +139,8 @@ static void no_opt switch_page_dir(ulong page_dir_pfn)
         // Done
         "_skip_switch_page_dir:"
         
-        "nop;"
-        "movl   %%esp, %%ecx;"
+        //"nop;"
+        //"movl   %%esp, %%ecx;"
         
         "nop;"
         //"xchgw  %%bx, %%bx;"
@@ -144,6 +155,8 @@ static void no_opt switch_to_user(struct context *context)
     
     __asm__ __volatile__
     (
+        //"xchgw  %%bx, %%bx;"
+        
         // Set stack top to the beginning of register struct
         "movl   %%esi, %%esp;"
         
@@ -211,9 +224,15 @@ static void no_opt switch_to_kernel(struct context *context)
 
 void asmlinkage no_opt switch_context(ulong sched_id, struct context *context, ulong page_dir_pfn, int user_mode, ulong asid)
 {
-//     if (user_mode) {
-//         kprintf("User\n");
-//     }
+    struct context copy_context;
+    
+    if (user_mode) {
+        memcpy(context, &copy_context, sizeof(struct context));
+        //kprintf("User\n");
+    }
+    
+    // Set interrupt state as enabled
+    set_local_int_state(1);
     
 //     kprintf("Switching, sched_id: %p, context: %p, page dir PFN: %p, user: %d, ASID: %p\n",
 //            sched_id, context, page_dir_pfn, user_mode, asid);
@@ -229,11 +248,10 @@ void asmlinkage no_opt switch_context(ulong sched_id, struct context *context, u
     // Renable timer
     //start_lapic_timer();
     
-    // Set interrupt state as enabled
-    set_local_int_state(1);
-    
     if (user_mode) {
-        switch_to_user(context);
+        
+        
+        switch_to_user(&copy_context);
     } else {
         switch_to_kernel(context);
     }

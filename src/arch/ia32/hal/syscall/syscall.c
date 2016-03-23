@@ -66,14 +66,37 @@ void asmlinkage save_context_sysenter(struct context *context)
 
 void asmlinkage sysenter_handler_entry()
 {
-    // Switch to kernel AS if necessary
+    ulong cr3 = 0;
+    
+    // Save old CR3
+    __asm__ __volatile__
+    (
+        "movl   %%cr3, %%ebx;"
+        : "=b" (cr3)
+        :
+    );
+    
+    // Switch to kernel AS
     __asm__ __volatile__
     (
         "movl   %%eax, %%cr3;"
-        "jmp    _cr3_switched;"
-        "_cr3_switched:"
+        "jmp    _cr3_switched_to_kernel;"
+        "_cr3_switched_to_kernel:"
         "nop;"
         :
         : "a" (KERNEL_PDE_PFN << 12)
+    );
+    
+    //kprintf("Syscall from user!\n");
+    
+    // Switch back to user AS
+    __asm__ __volatile__
+    (
+        "movl   %%eax, %%cr3;"
+        "jmp    _cr3_switched_to_user;"
+        "_cr3_switched_to_user:"
+        "nop;"
+        :
+        : "a" (cr3)
     );
 }

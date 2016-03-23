@@ -61,7 +61,7 @@ sysenter_handler:
     pop     eax
     mov     ds, ax
     popad
-
+    
     sti
     sysexit
 

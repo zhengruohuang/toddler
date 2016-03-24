@@ -186,21 +186,6 @@ struct process_list {
 
 
 /*
- * Thread Control Block
- */
-struct thread_control_block {
-    ulong proc_id;
-    ulong thread_id;
-    
-    int cpu_id;
-    
-    void *tls;
-    void *msg_recv;
-    void *msg_send;
-};
-
-
-/*
  * Dynamic area
  */
 extern void create_dalloc(struct process *p);

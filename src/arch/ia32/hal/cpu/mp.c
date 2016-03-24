@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
+#include "common/include/proc.h"
 #include "hal/include/print.h"
 #include "hal/include/lib.h"
 #include "hal/include/mem.h"
@@ -9,6 +10,10 @@
 
 static volatile int ap_bringup_lock = 0;
 static volatile int start_working_lock = 1;
+
+ulong tcb_padded_size = 0;
+ulong tcb_area_size = 0;
+ulong tcb_area_start_vaddr = 0;
 
 
 ulong get_per_cpu_area_start_vaddr(int cpu_id)
@@ -34,6 +39,7 @@ void init_mp()
     ulong start_pfn = palloc(PER_CPU_AREA_PAGE_COUNT * num_cpus);
     ulong cur_top_vaddr = PER_CPU_AREA_TOP_VADDR;
     
+    // Map per CPU private area
     int i;
     for (i = 0; i < num_cpus; i++) {
         ulong cur_area_vstart = cur_top_vaddr - PER_CPU_AREA_SIZE;
@@ -50,6 +56,26 @@ void init_mp()
         cur_top_vaddr -= PER_CPU_AREA_SIZE;
         start_pfn += PER_CPU_AREA_PAGE_COUNT;
     }
+    
+    // Map per CPU thread control block
+    tcb_padded_size = sizeof(struct thread_control_block);
+    if (tcb_padded_size % 64) {
+        tcb_padded_size /= 64;
+        tcb_padded_size++;
+        tcb_padded_size *= 64;
+    }
+    
+    tcb_area_size = tcb_padded_size * num_cpus;
+    if (tcb_area_size % PAGE_SIZE) {
+        tcb_area_size /= PAGE_SIZE;
+        tcb_area_size++;
+        tcb_area_size *= PAGE_SIZE;
+    }
+    ulong tct_page_count = tcb_area_size / PAGE_SIZE;
+    
+    ulong tcb_start_pfn = palloc(tct_page_count);
+    tcb_area_start_vaddr = cur_top_vaddr - tcb_area_size;
+    kernel_indirect_map_array(tcb_area_start_vaddr, PFN_TO_ADDR(tcb_start_pfn), tcb_area_size, 1, 0);
 }
 
 static void bringup_cpu(int cpu_id)

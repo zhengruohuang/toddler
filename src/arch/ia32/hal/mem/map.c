@@ -195,11 +195,24 @@ void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int overri
 
 void kernel_indirect_map_array(ulong vaddr, ulong paddr, size_t size, int disable_cache, int override)
 {
+    assert(vaddr % PAGE_SIZE == paddr % PAGE_SIZE);
+    
+    // Round down start addr
     ulong vstart = (vaddr / PAGE_SIZE) * PAGE_SIZE;
     ulong pstart = (paddr / PAGE_SIZE) * PAGE_SIZE;
     
-    ulong page_count = size / PAGE_SIZE;
-    if (size % PAGE_SIZE) {
+    // Round up end addr
+    ulong pend = paddr + size;
+    if (pend % PAGE_SIZE) {
+        pend /= PAGE_SIZE;
+        pend++;
+        pend *= PAGE_SIZE;
+    }
+    
+    // Calculate the real size and page count
+    ulong real_size = pend - pstart;
+    ulong page_count = real_size / PAGE_SIZE;
+    if (real_size % PAGE_SIZE) {
         page_count++;
     }
     
@@ -221,9 +234,21 @@ void kernel_direct_map(ulong addr, int disable_cache)
 
 void kernel_direct_map_array(ulong addr, size_t size, int disable_cache)
 {
+    // Round down start addr
     ulong start = addr / PAGE_SIZE * PAGE_SIZE;
-    ulong page_count = size / PAGE_SIZE;
-    if (size % PAGE_SIZE) {
+    
+    // Round up end addr
+    ulong end = addr + size;
+    if (end % PAGE_SIZE) {
+        end /= PAGE_SIZE;
+        end++;
+        end *= PAGE_SIZE;
+    }
+    
+    // Calculate the real size and page count
+    ulong real_size = end - start;
+    ulong page_count = real_size / PAGE_SIZE;
+    if (real_size % PAGE_SIZE) {
         page_count++;
     }
     

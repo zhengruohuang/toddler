@@ -38,6 +38,7 @@ extern void full_direct_map();
 extern struct kernel_exports *kernel;
 
 extern void init_kernel();
+extern void kernel_dispatch(struct kernel_dispatch_info *kdi);
 
 
 #endif

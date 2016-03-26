@@ -41,10 +41,22 @@ struct context {
 /*
  * Kernel dispatch info 
  */
+enum kernel_dispatch_type {
+    kdisp_syscall,
+    kdisp_page_fault,
+    kdisp_protection,
+    kdisp_illegal_instr,
+};
+
 struct kernel_dispatch_info {
-    int int_type;
-    int vector;
-    ulong extra1, extra2;
+    enum kernel_dispatch_type dispatch_type;
+    
+    union {
+        struct {
+            ulong num;
+            ulong param;
+        } syscall;
+    };
     
     struct context *context;
 };

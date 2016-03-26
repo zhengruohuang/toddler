@@ -148,19 +148,7 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
     if (call_kernel) {
         //kprintf("\tSwitch to kernel\n");
         
-        // First switch AS
-        __asm__ __volatile__
-        (
-            "movl   %%eax, %%cr3;"
-            "jmp    _cr3_switched;"
-            "_cr3_switched:"
-            "nop;"
-            :
-            : "a" (KERNEL_PDE_PFN << 12)
-        );
-        
-        // Then call kernel dispatcher
-        kernel->dispatch(*get_per_cpu(ulong, cur_running_sched_id), &kdispatch);
+        kernel_dispatch(&kdispatch);
     }
     
     panic("Need to implement lazy scheduling!");

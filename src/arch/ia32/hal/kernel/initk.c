@@ -80,3 +80,40 @@ void init_kernel()
     
     kprintf("Kernel has been initialized!\n");
 }
+
+void kernel_dispatch(struct kernel_dispatch_info *kdi)
+{
+    // Save old CR3
+    ulong cr3 = 0;
+    __asm__ __volatile__
+    (
+        "movl   %%cr3, %%ebx;"
+        : "=b" (cr3)
+        :
+    );
+    
+    // Switch to kernel AS
+    __asm__ __volatile__
+    (
+        "movl   %%eax, %%cr3;"
+        "jmp    _cr3_switched;"
+        "_cr3_switched:"
+        "nop;"
+        :
+        : "a" (KERNEL_PDE_PFN << 12)
+    );
+    
+    // Then call kernel dispatcher
+    kernel->dispatch(*get_per_cpu(ulong, cur_running_sched_id), kdi);
+    
+    // Switch back to user AS
+    __asm__ __volatile__
+    (
+        "movl   %%eax, %%cr3;"
+        "jmp    _cr3_switched_to_user;"
+        "_cr3_switched_to_user:"
+        "nop;"
+        :
+        : "a" (cr3)
+    );
+}

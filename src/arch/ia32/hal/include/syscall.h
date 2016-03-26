@@ -15,7 +15,7 @@
 
 extern u32 syscall_proxy_entry;
 extern void asmlinkage save_context_sysenter(struct context *context);
-extern void asmlinkage sysenter_handler_entry();
+extern void asmlinkage sysenter_handler_entry(struct context* context);
 
 
 /*

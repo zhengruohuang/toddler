@@ -17,15 +17,16 @@
 #define LAPIC_VADDR                     (0xFFFFB000)
 #define IOAPIC_TOP_VADDR                (0xFFFFB000)
 
-#define PER_CPU_AREA_PAGE_COUNT         (2)
+#define PER_CPU_AREA_PAGE_COUNT         (1)
 #define PER_CPU_AREA_SIZE               (PAGE_SIZE * PER_CPU_AREA_PAGE_COUNT)
 
 #define PER_CPU_AREA_TOP_VADDR          (0xFFF00000)
 #define PER_CPU_STACK_TOP_OFFSET        (PER_CPU_AREA_SIZE)
-#define PER_CPU_KERNEL_DATA_START_OFFSET (PAGE_SIZE)
-#define PER_CPU_USER_DATA_START_OFFSET  (0)
+#define PER_CPU_KERNEL_DATA_START_OFFSET (0)
 
 #define INIT_STACK_TOP_VADDR            (0xFFF87000)
+
+#define THREAD_CTRL_BLOCK_ALIGNMENT     (64)
 
 
 /*

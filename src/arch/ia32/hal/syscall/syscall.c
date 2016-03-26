@@ -1,11 +1,13 @@
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
 #include "common/include/task.h"
+#include "common/include/syscall.h"
 #include "hal/include/print.h"
 #include "hal/include/mem.h"
 #include "hal/include/lib.h"
 #include "hal/include/cpu.h"
 #include "hal/include/task.h"
+#include "hal/include/kernel.h"
 #include "hal/include/syscall.h"
 
 
@@ -64,39 +66,38 @@ void asmlinkage save_context_sysenter(struct context *context)
     save_context(context);
 }
 
-void asmlinkage sysenter_handler_entry()
+void asmlinkage sysenter_handler_entry(struct context *context)
 {
-    ulong cr3 = 0;
+    ulong num = context->esi;
+    ulong param = context->edi;
     
-    // Save old CR3
-    __asm__ __volatile__
-    (
-        "movl   %%cr3, %%ebx;"
-        : "=b" (cr3)
-        :
-    );
+    ulong ret_addr = 0;
+    ulong ret_size = 0;
+    int succeed = 0;
     
-    // Switch to kernel AS
-    __asm__ __volatile__
-    (
-        "movl   %%eax, %%cr3;"
-        "jmp    _cr3_switched_to_kernel;"
-        "_cr3_switched_to_kernel:"
-        "nop;"
-        :
-        : "a" (KERNEL_PDE_PFN << 12)
-    );
+    int call_kernel = 1;
     
-    //kprintf("Syscall from user!\n");
+    if (num == SYSCALL_PING) {
+        ret_addr = param + 1;
+        succeed = 1;
+        call_kernel = 0;
+    }
     
-    // Switch back to user AS
-    __asm__ __volatile__
-    (
-        "movl   %%eax, %%cr3;"
-        "jmp    _cr3_switched_to_user;"
-        "_cr3_switched_to_user:"
-        "nop;"
-        :
-        : "a" (cr3)
-    );
+    if (call_kernel) {
+        struct kernel_dispatch_info kdispatch;
+        kdispatch.context = context;
+        kdispatch.dispatch_type = kdisp_syscall;
+        kdispatch.syscall.num = num;
+        kdispatch.syscall.param = param;
+        kernel_dispatch(&kdispatch);
+        
+        //kprintf("Syscall from user!\n");
+    }
+    
+    else {
+        // Prepare return value
+        context->eax = succeed;
+        context->esi = ret_addr;
+        context->edi = ret_size;
+    }
 }

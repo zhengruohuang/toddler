@@ -16,10 +16,12 @@ ulong tcb_area_size = 0;
 ulong tcb_area_start_vaddr = 0;
 
 
+/*
+ * Per-CPU private data
+ */
 ulong get_per_cpu_area_start_vaddr(int cpu_id)
 {
     assert(cpu_id < num_cpus);
-    
     return PER_CPU_AREA_TOP_VADDR - PER_CPU_AREA_SIZE * (cpu_id + 1);
 }
 
@@ -27,6 +29,22 @@ ulong get_my_cpu_area_start_vaddr()
 {
     return get_per_cpu_area_start_vaddr(get_cpu_id());
 }
+
+
+/*
+ * Per-CPU thread control block
+ */
+ulong get_per_cpu_tcb_start_vaddr(int cpu_id)
+{
+    assert(cpu_id < num_cpus);
+    return tcb_area_start_vaddr + tcb_area_size * cpu_id;
+}
+
+ulong get_my_cpu_tcb_start_vaddr()
+{
+    return get_per_cpu_tcb_start_vaddr(get_cpu_id());
+}
+
 
 /*
  * This will map per-cpu area into the addr space
@@ -59,10 +77,10 @@ void init_mp()
     
     // Map per CPU thread control block
     tcb_padded_size = sizeof(struct thread_control_block);
-    if (tcb_padded_size % 64) {
-        tcb_padded_size /= 64;
+    if (tcb_padded_size % THREAD_CTRL_BLOCK_ALIGNMENT) {
+        tcb_padded_size /= THREAD_CTRL_BLOCK_ALIGNMENT;
         tcb_padded_size++;
-        tcb_padded_size *= 64;
+        tcb_padded_size *= THREAD_CTRL_BLOCK_ALIGNMENT;
     }
     
     tcb_area_size = tcb_padded_size * num_cpus;

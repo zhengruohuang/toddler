@@ -42,6 +42,7 @@ struct context {
  * Kernel dispatch info 
  */
 enum kernel_dispatch_type {
+    kdisp_unknown,
     kdisp_syscall,
     kdisp_page_fault,
     kdisp_protection,
@@ -49,16 +50,30 @@ enum kernel_dispatch_type {
 };
 
 struct kernel_dispatch_info {
+    /*
+     * Filled by HAL
+     */
     enum kernel_dispatch_type dispatch_type;
     
     union {
         struct {
+            // Filled by HAL
             ulong num;
             ulong param;
+            
+            // Filled by kernel
+            void *worker;
         } syscall;
     };
     
     struct context *context;
+    
+    /*
+     * Filled by kernel
+     */
+    void *proc;
+    void *thread;
+    void *sched;
 };
 
 

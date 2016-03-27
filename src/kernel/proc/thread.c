@@ -13,12 +13,110 @@
 static int thread_salloc_id;
 
 
+/*
+ * Thread ID
+ */
 static ulong gen_thread_id(struct thread *t)
 {
     ulong id = (ulong)t;
     return id;
 }
 
+
+/*
+ * List
+ */
+static void init_list(struct thread_list *l)
+{
+    l->count = 0;
+    l->next = NULL;
+    l->prev = NULL;
+    
+    spin_init(&l->lock);
+}
+
+static void push_back(struct thread_list *l, struct thread *s)
+{
+    spin_lock(&l->lock);
+    
+    s->next = NULL;
+    s->prev = l->prev;
+    
+    if (l->prev) {
+        l->prev->next = s;
+    }
+    l->prev = s;
+    
+    if (!l->next) {
+        l->next = s;
+    }
+    
+    l->count++;
+    
+    spin_unlock(&l->lock);
+}
+
+static void inline do_remove(struct thread_list *l, struct thread *s)
+{
+    if (s->prev) {
+        s->prev->next = s->next;
+    }
+    
+    if (s->next) {
+        s->next->prev = s->prev;
+    }
+    
+    if (l->prev == s) {
+        l->prev = s->prev;
+    }
+    
+    if (l->next == s) {
+        l->next = s->next;
+    }
+    
+    l->count--;
+}
+
+static void remove(struct thread_list *l, struct thread *s)
+{
+    spin_lock(&l->lock);
+    
+    do_remove(l, s);
+    
+    spin_unlock(&l->lock);
+}
+
+static struct thread *pop_front(struct thread_list *l)
+{
+    if (!l->count) {
+        return NULL;
+    }
+    
+    struct thread *s = NULL;
+    
+    spin_lock(&l->lock);
+    
+    if (l->count) {
+        assert(l->next);
+        
+        s = l->next;
+        do_remove(l, s);
+    }
+    
+    spin_unlock(&l->lock);
+    
+    return s;
+}
+
+
+/*
+ * Thread creation
+ */
+void create_thread_lists(struct process *p)
+{
+    init_list(&p->threads.present);
+    init_list(&p->threads.absent);
+}
 
 struct thread *create_thread(
     struct process *p, ulong entry_point, ulong param,
@@ -130,15 +228,68 @@ struct thread *create_thread(
     t->sched = enter_sched(t);
     
     // Insert the thread into the thread list
-    t->next = p->threads.next;
-    t->prev = NULL;
-    p->threads.next = t;
-    p->threads.count++;
+    push_back(&p->threads.present, t);
     
     // Done
     return t;
 }
 
+
+/*
+ * Thread destruction
+ */
+static void destroy_thread(struct process *p, struct thread *t)
+{
+    // Scheduling
+    clean_sched(t->sched);
+    
+    // Dynamic area
+    if (p->type == process_kernel) {
+        pfree(ADDR_TO_PFN(t->memory.thread_block_base));
+    } else {
+        ulong vaddr = 0;
+        ulong paddr = 0;
+        
+        // Msg send
+        vaddr = t->memory.thread_block_base + t->memory.msg_send_offset;
+        paddr = hal->get_paddr(p->page_dir_pfn, vaddr);
+        pfree(paddr);
+        
+        // Msg send
+        vaddr = t->memory.thread_block_base + t->memory.msg_recv_offset;
+        paddr = hal->get_paddr(p->page_dir_pfn, vaddr);
+        pfree(paddr);
+        
+        // TLS
+        vaddr = t->memory.thread_block_base + t->memory.tls_start_offset;
+        paddr = hal->get_paddr(p->page_dir_pfn, vaddr);
+        pfree(paddr);
+        
+        // Stack
+        vaddr = t->memory.thread_block_base + t->memory.stack_limit_offset;
+        paddr = hal->get_paddr(p->page_dir_pfn, vaddr);
+        pfree(paddr);
+        
+        // FIXME: also need to remove mapping
+    }
+    
+    // Free thread struct
+    sfree(t);
+}
+
+void destroy_absent_threads(struct process *p)
+{
+    struct thread *t = pop_front(&p->threads.absent);
+    while (t) {
+        destroy_thread(p, t);
+        t = pop_front(&p->threads.absent);
+    }
+}
+
+
+/*
+ * Change thread state
+ */
 void run_thread(struct thread *t)
 {
     t->state = thread_normal;
@@ -151,6 +302,27 @@ void idle_thread(struct thread *t)
     idle_sched(t->sched);
 }
 
+void wait_thread(struct thread *t)
+{
+    t->state = thread_wait;
+}
+
+void terminate_thread(struct thread *t)
+{
+    t->state = thread_exit;
+}
+
+void clean_thread(struct thread *t)
+{
+    t->state = thread_clean;
+    remove(&t->proc->threads.present, t);
+    push_back(&t->proc->threads.absent, t);
+}
+
+
+/*
+ * Initialization
+ */
 void init_thread()
 {
     kprintf("Initializing thread manager\n");

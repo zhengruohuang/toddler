@@ -141,13 +141,13 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
     
     struct kernel_dispatch_info kdispatch;
     kdispatch.context = context;
+    kdispatch.dispatch_type = kdisp_unknown;
+    kdispatch.syscall.num = 0;
     
     int call_kernel = handler(&intc, &kdispatch);
     
     // Note that if kernel is invoked, it will call sched, then never goes back to this int handler
     if (call_kernel) {
-        //kprintf("\tSwitch to kernel\n");
-        
         kernel_dispatch(&kdispatch);
     }
     

@@ -56,7 +56,7 @@ void asmlinkage _start()
             :
         );
         
-        char *test_char = "This is from user!\n";
+        char *test_char = "USER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1!\n";
         
         syscall_kputs(test_char);
     } while (1);

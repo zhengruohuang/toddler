@@ -49,8 +49,7 @@ struct process *create_process(
     p->priority = priority;
     
     // Thread list
-    p->threads.count = 0;
-    p->threads.next = NULL;
+    create_thread_lists(p);
     
     // Page table
     if (type == process_kernel) {

@@ -61,6 +61,7 @@ enum thread_state {
     thread_stall,
     thread_wait,
     thread_exit,
+    thread_clean,
 };
 
 struct thread_memory {
@@ -102,6 +103,9 @@ struct thread {
 struct thread_list {
     ulong count;
     struct thread *next;
+    struct thread *prev;
+    
+    spinlock_t lock;
 };
 
 
@@ -169,11 +173,14 @@ struct process {
     // Virtual memory
     struct process_memory memory;
     
-    // Dynamic area
+    // Dynamic area map
     struct dynamic_area dynamic;
     
     // Thread list
-    struct thread_list threads;
+    struct {
+        struct thread_list present;
+        struct thread_list absent;
+    } threads;
     
     // Scheduling
     uint priority;
@@ -210,22 +217,31 @@ extern int load_image(struct process *p, char *url);
  * Thread
  */
 extern void init_thread();
+
+extern void create_thread_lists(struct process *p);
 extern struct thread *create_thread(
     struct process *p, ulong entry_point, ulong param,
     int pin_cpu_id,
     ulong stack_size, ulong tls_size
 );
+extern void destroy_absent_threads(struct process *p);
+
 extern void run_thread(struct thread *t);
 extern void idle_thread(struct thread *t);
+extern void wait_thread(struct thread *t);
+extern void terminate_thread(struct thread *t);
+extern void clean_thread(struct thread *t);
 
 extern void kernel_idle_thread(ulong param);
 extern void kernel_demo_thread(ulong param);
+extern void kernel_tclean_thread(ulong param);
 
 
 /*
  * Scheduling
  */
 extern void init_sched();
+extern struct sched *get_sched(ulong sched_id);
 
 extern struct sched *enter_sched(struct thread *t);
 extern void ready_sched(struct sched *s);

@@ -28,7 +28,7 @@ static ulong gen_sched_id(struct sched *s)
     return id;
 }
 
-static struct sched *get_sched(ulong sched_id)
+struct sched *get_sched(ulong sched_id)
 {
     return (struct sched *)sched_id;
 }
@@ -268,6 +268,7 @@ void desched(ulong sched_id, struct context *context)
     case thread_exit:
         s->state = sched_exit;
         push_back(&exit_queue, s);
+        clean_thread(t);
         break;
     default:
         panic("Unsupported thread state: %d", t->state);

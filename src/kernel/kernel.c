@@ -2,9 +2,11 @@
 #include "kernel/include/mem.h"
 #include "kernel/include/proc.h"
 #include "kernel/include/coreimg.h"
+#include "kernel/include/syscall.h"
 
 
 struct hal_exports *hal;
+spinlock_t kprintf_lock = { {0} };
 
 
 /*
@@ -24,10 +26,23 @@ ulong asmlinkage wrap_palloc(int count)
 /*
  * Dispatch
  */
-static void asmlinkage dispatch(ulong sched_id, struct kernel_dispatch_info *int_info)
+static void asmlinkage dispatch(ulong sched_id, struct kernel_dispatch_info *disp_info)
 {
-    //kprintf("Dispatch\n");
-    desched(sched_id, int_info->context);
+    // Fill in the dispatch infio
+    struct sched *s = get_sched(sched_id);
+    disp_info->proc = s->proc;
+    disp_info->thread = s->thread;
+    disp_info->sched = s;
+    
+    switch (disp_info->dispatch_type) {
+    case kdisp_syscall:
+        dispatch_syscall(disp_info);
+        break;
+    default:
+        break;
+    }
+    
+    desched(sched_id, disp_info->context);
     sched();
 }
 

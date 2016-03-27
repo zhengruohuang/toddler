@@ -97,13 +97,20 @@ struct hal_exports {
  */
 #ifndef __HAL__
 extern struct hal_exports *hal;
+#include "kernel/include/sync.h"
+extern spinlock_t kprintf_lock;
 #endif
 
 /*
  * Frequent function wrappers
  */
 #ifndef __HAL__
-#define kprintf         (hal->kprintf)
+#define kprintf(...)                \
+do {                                \
+    spin_lock_int(&kprintf_lock);   \
+    hal->kprintf(__VA_ARGS__);      \
+    spin_unlock_int(&kprintf_lock); \
+} while (0)
 #define halt            (hal->halt)
 #endif
 

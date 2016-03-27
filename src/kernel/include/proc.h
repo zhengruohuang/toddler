@@ -228,7 +228,7 @@ extern void destroy_absent_threads(struct process *p);
 
 extern void run_thread(struct thread *t);
 extern void idle_thread(struct thread *t);
-extern void wait_thread(struct thread *t);
+extern int wait_thread(struct thread *t);
 extern void terminate_thread(struct thread *t);
 extern void clean_thread(struct thread *t);
 

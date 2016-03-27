@@ -1,11 +1,26 @@
 #include "common/include/data.h"
 #include "common/include/syscall.h"
+#include "common/include/proc.h"
 
 
 int a = 0;
 
 
-int no_opt do_syscall(ulong num, ulong param, ulong *addr_out, ulong *size_out)
+no_opt struct thread_control_block *get_tcb()
+{
+    ulong addr = 0;
+    
+    __asm__ __volatile__
+    (
+        "xorl   %%esi, %%esi;"
+        "lea   %%gs:(%%esi), %%edi;"
+        : "=D" (addr)
+    );
+    
+    return (struct thread_control_block *)addr;
+}
+
+no_opt int do_syscall(ulong num, ulong param, ulong *addr_out, ulong *size_out)
 {
     int succeed = 0;
     ulong addr = 0;
@@ -45,8 +60,29 @@ int syscall_kputs(char *s)
     return do_syscall(SYSCALL_KPUTS, (ulong)s, NULL, NULL);
 }
 
+struct ipc_msg *syscall_msg()
+{
+    struct thread_control_block *tcb = get_tcb();
+    return tcb->msg;
+}
 
-void asmlinkage _start()
+int syscall_send(struct ipc_msg *msg)
+{
+    return 0;
+}
+
+struct ipc_msg *syscall_sendrecv(struct ipc_msg *msg)
+{
+    return NULL;
+}
+
+struct ipc_msg *syscall_recv()
+{
+    return NULL;
+}
+
+
+asmlinkage void _start()
 {
     do {
         __asm__ __volatile__

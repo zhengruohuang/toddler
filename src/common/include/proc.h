@@ -13,6 +13,10 @@ struct thread_control_block {
     ulong thread_id;
     
     int cpu_id;
+    
+    void *tls;
+    void *stack_top;
+    void *msg;
 };
 
 

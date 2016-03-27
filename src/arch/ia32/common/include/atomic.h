@@ -22,6 +22,20 @@ static inline int atomic_cas(volatile void *target, ulong old_value, ulong new_v
     return (result == old_value ? 1 : 0);
 }
 
+static inline int atomic_cas_uint(volatile void *target, unsigned int old_value, unsigned int new_value)
+{
+    unsigned int result;
+    
+    __asm__ __volatile__
+    (
+        "lock cmpxchg    %%ebx, (%%esi)"
+        : "=a" (result)
+        : "a" (old_value), "b" (new_value), "S" (target)
+    );
+    
+    return (result == old_value ? 1 : 0);
+}
+
 
 /*
  * Memory barriers

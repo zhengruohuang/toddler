@@ -302,18 +302,44 @@ void idle_thread(struct thread *t)
     idle_sched(t->sched);
 }
 
-void wait_thread(struct thread *t)
+int wait_thread(struct thread *t)
 {
-    t->state = thread_wait;
+    enum thread_state cur_state = t->state;
+    enum thread_state new_state = thread_wait;
+    assert(cur_state == thread_normal || cur_state == thread_exit);
+    
+    if (cur_state == thread_exit) {
+        return 0;
+    }
+    
+    uint old_val = (uint)cur_state;
+    uint new_val = (uint)new_state;
+    
+    int succeed = atomic_cas_uint(&t->state, old_val, new_val);
+    
+    return succeed;
 }
 
 void terminate_thread(struct thread *t)
 {
-    t->state = thread_exit;
+    int succeed = 0;
+    
+    do {
+        enum thread_state cur_state = t->state;
+        enum thread_state new_state = thread_exit;
+        assert(cur_state == thread_normal || cur_state == thread_wait);
+        
+        uint old_val = (uint)cur_state;
+        uint new_val = (uint)new_state;
+        
+        succeed = atomic_cas_uint(&t->state, old_val, new_val);
+    } while (!succeed);
 }
 
 void clean_thread(struct thread *t)
 {
+    assert(t->state == thread_exit);
+    
     t->state = thread_clean;
     remove(&t->proc->threads.present, t);
     push_back(&t->proc->threads.absent, t);

@@ -6,9 +6,30 @@
 #include "hal/include/mem.h"
 
 
+static ulong user_hi4_pfn;
+
 /*
  * User mapping
  */
+void create_user_hi4()
+{
+    // Allocate a page
+    user_hi4_pfn = palloc(1);
+    assert(user_hi4_pfn);
+    
+    // Obtain the pages
+    struct page_frame *kpage = (struct page_frame *)PFN_TO_ADDR(KERNEL_PTE_HI4_PFN);
+    struct page_frame *upage = (struct page_frame *)PFN_TO_ADDR(user_hi4_pfn);
+    
+    // Duplicate the content
+    int i;
+    for (i = 0; i < 1024; i++) {
+        upage->value_u32[i] = kpage->value_u32[i];
+    }
+    
+    // Setup user version specific content
+}
+
 void init_user_page_dir(ulong page_dir_pfn)
 {
     struct page_frame *page = (struct page_frame *)PFN_TO_ADDR(page_dir_pfn);
@@ -18,7 +39,7 @@ void init_user_page_dir(ulong page_dir_pfn)
         page->value_u32[i] = 0;
     }
     
-    page->value_pde[1023].pfn = KERNEL_PTE_HI4_PFN;
+    page->value_pde[1023].pfn = user_hi4_pfn/*KERNEL_PTE_HI4_PFN*/;
     page->value_pde[1023].present = 1;
     page->value_pde[1023].rw = 1;
     page->value_pde[1023].user = 0;

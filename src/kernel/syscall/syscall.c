@@ -25,6 +25,7 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
     
     switch (disp_info->syscall.num) {
     case SYSCALL_KPUTS:
+        wait_thread(dup_disp_info->thread);
         t = create_thread(kernel_proc, (ulong)&kputs_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
         dup_disp_info->syscall.worker = t;
         assert(t);

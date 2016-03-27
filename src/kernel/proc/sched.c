@@ -48,7 +48,7 @@ static void init_list(struct sched_list *l)
 
 static void push_back(struct sched_list *l, struct sched *s)
 {
-    spin_lock(&l->lock);
+    spin_lock_int(&l->lock);
     
     s->next = NULL;
     s->prev = l->prev;
@@ -64,7 +64,7 @@ static void push_back(struct sched_list *l, struct sched *s)
     
     l->count++;
     
-    spin_unlock(&l->lock);
+    spin_unlock_int(&l->lock);
 }
 
 static void inline do_remove(struct sched_list *l, struct sched *s)
@@ -90,18 +90,18 @@ static void inline do_remove(struct sched_list *l, struct sched *s)
 
 static void remove(struct sched_list *l, struct sched *s)
 {
-    spin_lock(&l->lock);
+    spin_lock_int(&l->lock);
     
     do_remove(l, s);
     
-    spin_unlock(&l->lock);
+    spin_unlock_int(&l->lock);
 }
 
 static struct sched *pop_front(struct sched_list *l)
 {
     struct sched *s = NULL;
     
-    spin_lock(&l->lock);
+    spin_lock_int(&l->lock);
     
     if (l->count) {
         assert(l->next);
@@ -110,7 +110,7 @@ static struct sched *pop_front(struct sched_list *l)
         do_remove(l, s);
     }
     
-    spin_unlock(&l->lock);
+    spin_unlock_int(&l->lock);
     
     return s;
 }
@@ -167,7 +167,7 @@ struct sched *enter_sched(struct thread *t)
 void ready_sched(struct sched *s)
 {
     // Before transitioning to ready, the thread must be in enter state
-    assert(s->state == sched_enter);
+    assert(s->state == sched_enter || s->state == sched_stall);
     
     // Remove the entry from its current list
     remove(&enter_queue, s);
@@ -306,4 +306,14 @@ void sched()
     
     // Then tell HAL to do a context switch
     hal->switch_context(s->sched_id, &s->thread->context, s->proc->page_dir_pfn, s->proc->user_mode, 0);
+}
+
+
+/*
+ * Deschedule + schedule
+ */
+void resched(ulong sched_id, struct context *context)
+{
+    desched(sched_id, context);
+    sched();
 }

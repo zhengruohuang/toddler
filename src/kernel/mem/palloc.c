@@ -41,6 +41,8 @@ struct palloc_bucket {
     ulong avail_pages;
     
     struct palloc_node buddies[PALLOC_ORDER_COUNT];
+    
+    spinlock_t lock;
 };
 
 
@@ -231,6 +233,8 @@ void init_palloc()
         for (k = 0; k < PALLOC_ORDER_COUNT; k++) {
             buckets[j].buddies[k].value = 0;
         }
+        
+        spin_init(&buckets[j].lock);
     }
     
     // Calculate total number of nodes - 1 page needs 1 node
@@ -426,10 +430,15 @@ ulong palloc_tag(int count, int tag)
         return -1;
     }
     
+    // Lock the bucket
+    spin_lock_int(&buckets[tag].lock);
+    
     // Split higher order buddies if necessary
     if (!buckets[tag].buddies[order].has_next) {
         if (-1 == buddy_split(order + 1, tag)) {
             kprintf("Unable to split buddy");
+            
+            spin_unlock_int(&buckets[tag].lock);
             return -1;
         }
     }
@@ -448,12 +457,30 @@ ulong palloc_tag(int count, int tag)
     node->next = 0;
     buckets[tag].avail_pages -= order_count;
     
+    // Unlock the bucket
+    spin_unlock_int(&buckets[tag].lock);
+    
     return pfn;
 }
 
 ulong palloc(int count)
 {
-    return palloc_tag(count, PALLOC_DEFAULT_TAG);
+    ulong result = palloc_tag(count, PALLOC_DEFAULT_TAG);
+    if (result) {
+        return result;
+    }
+    
+    int i;
+    for (i = 0; i < PALLOC_BUCKET_COUNT; i++) {
+        if (i != PALLOC_DEFAULT_TAG && i != PALLOC_DUMMY_BUCKET) {
+            result = palloc_tag(count, PALLOC_DEFAULT_TAG);
+            if (result) {
+                return result;
+            }
+        }
+    }
+    
+    return 0;
 }
 
 int pfree(ulong pfn)
@@ -468,6 +495,9 @@ int pfree(ulong pfn)
     
     // Setup the node
     node->alloc = 0;
+    
+    // Lock the bucket
+    spin_lock_int(&buckets[tag].lock);
     
     // Insert the node back to the list
     if (buckets[tag].buddies[order].value) {
@@ -485,6 +515,9 @@ int pfree(ulong pfn)
     
     // Combine the buddy system
     buddy_combine(pfn);
+    
+    // Unlock the bucket
+    spin_unlock_int(&buckets[tag].lock);
     
     return order_count;
 }

@@ -51,6 +51,9 @@ void kputs_worker_thread(ulong param)
         kprintf(buf);
     }
     
+    // Reenable the user thread
+    run_thread(disp_info->thread);
+    
     // Cleanup
     free(disp_info);
     terminate_thread(worker);

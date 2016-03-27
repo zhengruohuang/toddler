@@ -37,7 +37,7 @@ static void init_list(struct thread_list *l)
 
 static void push_back(struct thread_list *l, struct thread *s)
 {
-    spin_lock(&l->lock);
+    spin_lock_int(&l->lock);
     
     s->next = NULL;
     s->prev = l->prev;
@@ -53,7 +53,7 @@ static void push_back(struct thread_list *l, struct thread *s)
     
     l->count++;
     
-    spin_unlock(&l->lock);
+    spin_unlock_int(&l->lock);
 }
 
 static void inline do_remove(struct thread_list *l, struct thread *s)
@@ -79,11 +79,11 @@ static void inline do_remove(struct thread_list *l, struct thread *s)
 
 static void remove(struct thread_list *l, struct thread *s)
 {
-    spin_lock(&l->lock);
+    spin_lock_int(&l->lock);
     
     do_remove(l, s);
     
-    spin_unlock(&l->lock);
+    spin_unlock_int(&l->lock);
 }
 
 static struct thread *pop_front(struct thread_list *l)
@@ -94,7 +94,7 @@ static struct thread *pop_front(struct thread_list *l)
     
     struct thread *s = NULL;
     
-    spin_lock(&l->lock);
+    spin_lock_int(&l->lock);
     
     if (l->count) {
         assert(l->next);
@@ -103,7 +103,7 @@ static struct thread *pop_front(struct thread_list *l)
         do_remove(l, s);
     }
     
-    spin_unlock(&l->lock);
+    spin_unlock_int(&l->lock);
     
     return s;
 }
@@ -349,4 +349,9 @@ void init_thread()
         
         kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.thread_block_base);
     }
+    
+    // Create kernel thread cleaner
+    struct thread *t = create_thread(kernel_proc, (ulong)&kernel_tclean_thread, 0, -1, 0, 0);
+    run_thread(t);
+    kprintf("\tKernel cleaner thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.thread_block_base);
 }

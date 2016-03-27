@@ -251,6 +251,7 @@ extern void clean_sched(struct sched *s);
 
 extern void desched(ulong sched_id, struct context *context);
 extern void sched();
+extern void resched(ulong sched_id, struct context *context);
 
 
 #endif

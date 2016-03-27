@@ -77,6 +77,10 @@ struct salloc_obj {
     //  immediately, and full buckets are dangling, they will be put back to
     //  the partial list when they become partial
     struct salloc_bucket_list partial;
+    
+    // The spin lock that protects the entire salloc obj
+    // not very efficient, but it does the job
+    spinlock_t lock;
 };
 
 
@@ -283,6 +287,9 @@ int salloc_create(size_t size, size_t align, int count, salloc_callback_t constr
     obj->partial.count = 0;
     obj->partial.next = NULL;
     
+    // Init the lock
+    spin_init(&obj->lock);
+    
 //     // Echo
 //     kprintf("\tSalloc object created\n");
 //     kprintf("\t\tStruct size: %d\n", obj->struct_size);
@@ -305,8 +312,10 @@ int salloc_create(size_t size, size_t align, int count, salloc_callback_t constr
 void *salloc(int obj_id)
 {
     struct salloc_obj *obj = get_obj(obj_id);
-    
     struct salloc_bucket *bucket = NULL;
+    
+    // Lock the salloc obj
+    spin_lock_int(&obj->lock);
     
     // If there is no partial bucket avail, we need to allocate a new one
     if (!obj->partial.count) {
@@ -317,6 +326,7 @@ void *salloc(int obj_id)
     
     // If we were not able to obtain a usable bucket, then the fail
     if (!bucket) {
+        spin_unlock_int(&obj->lock);
         return NULL;
     }
     
@@ -339,6 +349,9 @@ void *salloc(int obj_id)
         bucket->state = bucket_partial;
         insert_bucket(&obj->partial, bucket);
     }
+    
+    // Unock the salloc obj
+    spin_unlock_int(&obj->lock);
     
     // Calculate the final addr of the allocated struct
     void *ptr = (void *)((ulong)block + sizeof(struct salloc_magic_block));
@@ -365,6 +378,9 @@ void sfree(void *ptr)
         obj->destructor(ptr);
     }
     
+    // Lock the salloc obj
+    spin_lock_int(&obj->lock);
+    
     // Push the block back to the bucket
     block->next = bucket->block;
     bucket->block = block;
@@ -379,4 +395,7 @@ void sfree(void *ptr)
         bucket->state = bucket_partial;
         insert_bucket(&obj->partial, bucket);
     }
+    
+    // Unlock the salloc obj
+    spin_unlock_int(&obj->lock);
 }

@@ -9,6 +9,8 @@
  * Thread Control Block
  */
 struct thread_control_block {
+    struct thread_control_block *self;
+    
     ulong proc_id;
     ulong thread_id;
     
@@ -17,7 +19,7 @@ struct thread_control_block {
     void *tls;
     void *stack_top;
     void *msg;
-};
+} packedstruct;
 
 
 #endif

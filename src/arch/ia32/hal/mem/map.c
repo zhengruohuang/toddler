@@ -3,6 +3,7 @@
 #include "common/include/memory.h"
 #include "hal/include/lib.h"
 #include "hal/include/kernel.h"
+#include "hal/include/cpu.h"
 #include "hal/include/mem.h"
 
 
@@ -11,7 +12,7 @@ static ulong user_hi4_pfn;
 /*
  * User mapping
  */
-void create_user_hi4()
+void init_user_hi4()
 {
     // Allocate a page
     user_hi4_pfn = palloc(1);
@@ -28,6 +29,15 @@ void create_user_hi4()
     }
     
     // Setup user version specific content
+    upage->value_pde[GET_PTE_INDEX(SYSCALL_PROXY_VADDR)].user = 1;
+    upage->value_pde[GET_PTE_INDEX(SYSCALL_PROXY_VADDR)].rw = 0;
+    
+    for (i = 0; i < num_cpus; i++) {
+        ulong tcb_start = get_per_cpu_tcb_start_vaddr(i);
+        
+        upage->value_pde[GET_PTE_INDEX(tcb_start)].user = 1;
+        upage->value_pde[GET_PTE_INDEX(tcb_start)].rw = 0;
+    }
 }
 
 void init_user_page_dir(ulong page_dir_pfn)

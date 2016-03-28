@@ -70,6 +70,9 @@ static void hal_entry()
     init_rtc();
     init_blocked_delay();
     
+    // Init user high 4MB page
+    init_user_hi4();
+    
     // Init kernel
     init_kmem_zone();
     full_direct_map();

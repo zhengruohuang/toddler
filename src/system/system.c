@@ -13,7 +13,7 @@ no_opt struct thread_control_block *get_tcb()
     __asm__ __volatile__
     (
         "xorl   %%esi, %%esi;"
-        "lea   %%gs:(%%esi), %%edi;"
+        "movl   %%gs:(%%esi), %%edi;"
         : "=D" (addr)
     );
     

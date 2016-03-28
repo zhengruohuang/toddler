@@ -94,6 +94,18 @@ void init_mp()
     ulong tcb_start_pfn = palloc(tct_page_count);
     tcb_area_start_vaddr = cur_top_vaddr - tcb_area_size;
     kernel_indirect_map_array(tcb_area_start_vaddr, PFN_TO_ADDR(tcb_start_pfn), tcb_area_size, 1, 0);
+    
+    // Initialize the TCBs
+    for (i = 0; i < num_cpus; i++) {
+        struct thread_control_block *tcb = (struct thread_control_block *)get_per_cpu_tcb_start_vaddr(i);
+        tcb->cpu_id = i;
+        tcb->self = tcb;
+        
+        tcb->proc_id = 0;
+        tcb->thread_id = 0;
+        tcb->tls = 0;
+        tcb->msg = 0;
+    }
 }
 
 static void bringup_cpu(int cpu_id)
@@ -136,7 +148,7 @@ static void bringup_cpu(int cpu_id)
 
 /*
  * This will send IPI to start all APs
- * This function should be called by AP
+ * This function should be called by BSP
  */
 void bringup_mp()
 {

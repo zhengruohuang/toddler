@@ -37,7 +37,7 @@ ulong get_my_cpu_area_start_vaddr()
 ulong get_per_cpu_tcb_start_vaddr(int cpu_id)
 {
     assert(cpu_id < num_cpus);
-    return tcb_area_start_vaddr + tcb_area_size * cpu_id;
+    return tcb_area_start_vaddr + tcb_padded_size * cpu_id;
 }
 
 ulong get_my_cpu_tcb_start_vaddr()
@@ -101,11 +101,14 @@ void init_mp()
         tcb->cpu_id = i;
         tcb->self = tcb;
         
+        //kprintf("TCB: %p\n", tcb);
+        
         tcb->proc_id = 0;
         tcb->thread_id = 0;
         tcb->tls = 0;
         tcb->msg = 0;
     }
+    //panic("TCB padded size: %p\n", tcb_padded_size);
 }
 
 static void bringup_cpu(int cpu_id)

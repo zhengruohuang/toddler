@@ -15,6 +15,7 @@ no_opt struct thread_control_block *get_tcb()
         "xorl   %%esi, %%esi;"
         "movl   %%gs:(%%esi), %%edi;"
         : "=D" (addr)
+        :
     );
     
     return (struct thread_control_block *)addr;
@@ -84,12 +85,12 @@ struct ipc_msg *syscall_recv()
 
 extern int asmlinkage vsnprintf(char *buf, size_t size, char *fmt, ...);
 
+static char buf[256];
 
 asmlinkage void _start()
 {
     int i = 0;
-    char buf[128];
-    
+
     do {
         __asm__ __volatile__
         (
@@ -100,7 +101,8 @@ asmlinkage void _start()
         
         struct thread_control_block *tcb = get_tcb();
         
-        vsnprintf(buf, 128, "User process iteration: %d, TCB: %p\n", i++, tcb);
+        vsnprintf(buf, 256, "User process iteration: %d, TCB: %p, Proc ID: %p, Thread ID: %p, CPU ID: %d, Msg: %p\n", i++,
+                  tcb, tcb->proc_id, tcb->thread_id, tcb->cpu_id, tcb->msg);
         
         syscall_kputs(buf);
         syscall_kputs("USER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11\n");

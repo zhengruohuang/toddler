@@ -29,14 +29,14 @@ void init_user_hi4()
     }
     
     // Setup user version specific content
-    upage->value_pde[GET_PTE_INDEX(SYSCALL_PROXY_VADDR)].user = 1;
-    upage->value_pde[GET_PTE_INDEX(SYSCALL_PROXY_VADDR)].rw = 0;
+    upage->value_pte[GET_PTE_INDEX(SYSCALL_PROXY_VADDR)].user = 1;
+    upage->value_pte[GET_PTE_INDEX(SYSCALL_PROXY_VADDR)].rw = 0;
     
     for (i = 0; i < num_cpus; i++) {
         ulong tcb_start = get_per_cpu_tcb_start_vaddr(i);
         
-        upage->value_pde[GET_PTE_INDEX(tcb_start)].user = 1;
-        upage->value_pde[GET_PTE_INDEX(tcb_start)].rw = 0;
+        upage->value_pte[GET_PTE_INDEX(tcb_start)].user = 1;
+        upage->value_pte[GET_PTE_INDEX(tcb_start)].rw = 0;
     }
 }
 
@@ -52,7 +52,7 @@ void init_user_page_dir(ulong page_dir_pfn)
     page->value_pde[1023].pfn = user_hi4_pfn/*KERNEL_PTE_HI4_PFN*/;
     page->value_pde[1023].present = 1;
     page->value_pde[1023].rw = 1;
-    page->value_pde[1023].user = 0;
+    page->value_pde[1023].user = 1;
     page->value_pde[1023].cache_disabled = 0;
     
 //     page->value_pde[0].pfn = KERNEL_PTE_LO4_PFN;

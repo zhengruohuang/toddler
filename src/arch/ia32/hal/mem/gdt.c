@@ -82,7 +82,7 @@ static void construct_gdt()
     // Per-CPU area for USER
     construct_entry(
         GDT_INDEX_PER_CPU_U, (u32)get_my_cpu_tcb_start_vaddr(), tcb_padded_size,
-        GDT_DA_CR  | GDT_DA_32 | GDT_DA_DPL_USER
+        GDT_DA_DR | GDT_DA_32 | GDT_DA_DPL_USER
     );
     
     

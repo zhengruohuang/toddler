@@ -16,12 +16,14 @@
 
 static void print_char(char *buf, size_t size, int *index, char c)
 {
-    if (*index >= size - 1) {
+    int idx = *index;
+    
+    if (idx >= size - 1) {
         return;
     }
     
-    buf[*index] = c;
-    *index = *index + 1;
+    buf[idx] = c;
+    *index = idx + 1;
 }
 
 static void print_string(char *buf, size_t size, int *index, char *s)

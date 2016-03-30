@@ -82,8 +82,14 @@ struct ipc_msg *syscall_recv()
 }
 
 
+extern int asmlinkage vsnprintf(char *buf, size_t size, char *fmt, ...);
+
+
 asmlinkage void _start()
 {
+    int i = 0;
+    char buf[128];
+    
     do {
         __asm__ __volatile__
         (
@@ -92,8 +98,11 @@ asmlinkage void _start()
             :
         );
         
-        char *test_char = "USER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1!\n";
+        struct thread_control_block *tcb = get_tcb();
         
-        syscall_kputs(test_char);
+        vsnprintf(buf, 128, "User process iteration: %d, TCB: %p\n", i++, tcb);
+        
+        syscall_kputs(buf);
+        syscall_kputs("USER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11\n");
     } while (1);
 }

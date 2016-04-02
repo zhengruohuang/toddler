@@ -5,6 +5,7 @@
 #include "common/include/data.h"
 #include "common/include/memory.h"
 #include "common/include/task.h"
+#include "common/include/proc.h"
 
 
 /*
@@ -75,7 +76,9 @@ struct hal_exports {
     // Task
     void asmlinkage (*init_addr_space)(ulong page_dir_pfn);
     void asmlinkage (*init_context)(struct context *context, ulong entry, ulong stack_top, int user_mode);
-    void asmlinkage (*switch_context)(ulong sched_id, struct context *context, ulong page_dir_pfn, int user_mode, ulong asid);
+    void asmlinkage (*switch_context)(ulong sched_id, struct context *context,
+                                      ulong page_dir_pfn, int user_mode, ulong asid,
+                                      struct thread_control_block *tcb);
     void asmlinkage (*sleep)();
 };
 

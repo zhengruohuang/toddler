@@ -6,11 +6,6 @@
 #
 ################################################################################
 
-# Entry points
-HALENTRY	= 0xFFF88000		# 4GB - 512KB + 32KB
-KRNLENTRY	= 0xFFF01000		# 4GB - 1MB + 4KB
-APPENTRY	= 0x8080000		# 128MB + 512KB
-LIBCENTRY	= 0xC0001000
 
 # Assembler, Compiler, Linker, and Flags
 ASM		= nasm
@@ -20,7 +15,7 @@ ASMBOOT		= nasm
 ASMBOOTFLAGS	=
 
 CC		= gcc
-CFLAGS		= -c -g -fno-builtin -fno-stack-protector
+CFLAGS		= -c -g -fno-builtin -fno-stack-protector -O3
 
 LD		= ld
 LDFLAGS		=
@@ -37,7 +32,7 @@ GENMAPFLAGS	= --only-keep-debug
 STRIP		= strip
 STRIPFLAGS	=
 
-# Include the config file
+# Include the global config file
 include Makefile.config
 
 # Directories
@@ -46,6 +41,9 @@ TARGETDIR	= $(PROJDIR)/target/$(ARCH)
 DOCDIR		= $(PROJDIR)/doc
 TOOLSDIR	= $(PROJDIR)/tools
 VMDIR		= $(PROJDIR)/vm
+
+# Include the arch config file
+include $(PROJDIR)/src/arch/$(ARCH)/Makefile.config
 
 # Including paths
 CINC		= -I$(SRCDIR)/ -I$(SRCDIR)/arch/$(ARCH)/

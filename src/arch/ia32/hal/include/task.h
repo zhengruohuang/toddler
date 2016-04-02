@@ -4,6 +4,7 @@
 
 #include "common/include/data.h"
 #include "common/include/task.h"
+#include "common/include/proc.h"
 #include "hal/include/cpu.h"
 
 
@@ -67,7 +68,7 @@ ext_per_cpu(struct context, cur_context);
 
 extern void asmlinkage init_thread_context(struct context *context, ulong entry, ulong stack_top, int user_mode);
 extern u32 asmlinkage save_context(struct context *context);
-extern void asmlinkage switch_context(ulong sched_id, struct context *context, ulong page_dir_pfn, int user_mode, ulong asid);
+extern void asmlinkage switch_context(ulong sched_id, struct context *context, ulong page_dir_pfn, int user_mode, ulong asid, struct thread_control_block *tcb);
 
 extern void init_context_mp();
 extern void init_context();

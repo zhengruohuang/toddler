@@ -304,8 +304,16 @@ void sched()
 //            s->thread->context.ds
 //     );
     
+    // Construct the TCB template
+    struct thread_control_block tcb;
+    ulong base = s->thread->memory.thread_block_base;
+    tcb.msg = (void *)(base + s->thread->memory.msg_send_offset);
+    tcb.tls = (void *)(base + s->thread->memory.tls_start_offset);
+    tcb.proc_id = s->proc_id;
+    tcb.thread_id = s->thread_id;
+    
     // Then tell HAL to do a context switch
-    hal->switch_context(s->sched_id, &s->thread->context, s->proc->page_dir_pfn, s->proc->user_mode, 0);
+    hal->switch_context(s->sched_id, &s->thread->context, s->proc->page_dir_pfn, s->proc->user_mode, 0, &tcb);
 }
 
 

@@ -1,6 +1,7 @@
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
 #include "common/include/task.h"
+#include "common/include/proc.h"
 #include "hal/include/print.h"
 #include "hal/include/mem.h"
 #include "hal/include/lib.h"
@@ -222,10 +223,12 @@ static void no_opt switch_to_kernel(struct context *context)
     );
 }
 
-void asmlinkage no_opt switch_context(ulong sched_id, struct context *context, ulong page_dir_pfn, int user_mode, ulong asid)
+void asmlinkage no_opt switch_context(ulong sched_id, struct context *context,
+                                      ulong page_dir_pfn, int user_mode, ulong asid,
+                                      struct thread_control_block *tcb)
 {
+    // Copy the context for user mode switch
     struct context copy_context;
-    
     if (user_mode) {
         memcpy(context, &copy_context, sizeof(struct context));
         //kprintf("User\n");
@@ -241,16 +244,19 @@ void asmlinkage no_opt switch_context(ulong sched_id, struct context *context, u
     *get_per_cpu(ulong, cur_running_sched_id) = sched_id;
     *get_per_cpu(int, cur_in_user_mode) = user_mode;
     
+    // Set TCB
+    struct thread_control_block *cur_tcb = (struct thread_control_block *)get_my_cpu_tcb_start_vaddr();
+    cur_tcb->msg = tcb->msg;
+    cur_tcb->tls = tcb->tls;
+    cur_tcb->proc_id = tcb->proc_id;
+    cur_tcb->thread_id = tcb->thread_id;
+    
     // Switch page dir
     // Note that kprintf may not be useable after this
     switch_page_dir(page_dir_pfn);
     
-    // Renable timer
-    //start_lapic_timer();
-    
+    // Switch the context
     if (user_mode) {
-        
-        
         switch_to_user(&copy_context);
     } else {
         switch_to_kernel(context);

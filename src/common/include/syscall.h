@@ -34,7 +34,7 @@
 #define IPC_DEST_KERNEL     0x0
 #define IPC_FUNC_KAPI       0x0
 
-struct ipc_msg {
+struct msg {
     unsigned long dest_mailbox_id;
     unsigned long func_num;
     unsigned long func_param;
@@ -42,7 +42,7 @@ struct ipc_msg {
     unsigned long content_offset;
 };
 
-typedef volatile struct ipc_msg     ipc_msg_t;
+typedef volatile struct msg msg_t;
 
 
 /*

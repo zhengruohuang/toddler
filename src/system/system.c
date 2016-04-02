@@ -21,11 +21,10 @@ no_opt struct thread_control_block *get_tcb()
     return (struct thread_control_block *)addr;
 }
 
-no_opt int do_syscall(ulong num, ulong param, ulong *addr_out, ulong *size_out)
+no_opt int do_syscall(ulong num, ulong param, ulong *out1, ulong *out2)
 {
     int succeed = 0;
-    ulong addr = 0;
-    ulong size = 0;
+    ulong value1 = 0, value2 = 0;
     
     __asm__ __volatile__
     (
@@ -36,16 +35,16 @@ no_opt int do_syscall(ulong num, ulong param, ulong *addr_out, ulong *size_out)
         
         ".align 4;"
         "_sysenter_ret:;"
-        : "=a" (succeed), "=S" (addr), "=D" (size)
+        : "=a" (succeed), "=S" (value1), "=D" (value2)
         : "S" (num), "D" (param)
     );
     
-    if (addr_out) {
-        *addr_out = addr;
+    if (out1) {
+        *out1 = value1;
     }
     
-    if (size_out) {
-        *size_out = size;
+    if (out2) {
+        *out2 = value2;
     }
     
     return succeed;
@@ -61,7 +60,7 @@ int syscall_kputs(char *s)
     return do_syscall(SYSCALL_KPUTS, (ulong)s, NULL, NULL);
 }
 
-ipc_msg_t *syscall_msg()
+msg_t *syscall_msg()
 {
     struct thread_control_block *tcb = get_tcb();
     if (!tcb) {
@@ -78,27 +77,32 @@ ipc_msg_t *syscall_msg()
     return msg;
 }
 
-int syscall_send(ipc_msg_t *msg)
+int syscall_send(msg_t *msg)
 {
-    //assert(msg == syscall_msg());
+    int succeed = do_syscall(SYSCALL_SEND, (ulong)msg, NULL, NULL);
+    return succeed;
+}
+
+msg_t *syscall_recv()
+{
+    return NULL;
+}
+
+msg_t *syscall_request(msg_t *msg)
+{
+    return NULL;
+}
+
+int syscall_reply(msg_t *in_msg, msg_t *out_msg)
+{
     return 0;
-}
-
-ipc_msg_t *syscall_sendrecv(ipc_msg_t *msg)
-{
-    return NULL;
-}
-
-ipc_msg_t *syscall_recv()
-{
-    return NULL;
 }
 
 
 int kapi_write(int fd, const void *buf, size_t count)
 {
     // Setup the msg header
-    ipc_msg_t *s = syscall_msg();
+    msg_t *s = syscall_msg();
     s->func_param = KAPI_WRITE;
     
     // Setup the request
@@ -108,7 +112,7 @@ int kapi_write(int fd, const void *buf, size_t count)
     req->count = count;
     
     // Obtain the reply
-    ipc_msg_t *r = syscall_sendrecv(s);
+    msg_t *r = syscall_sendrecv(s);
     struct msg_kapi_write_reply *reply = (struct msg_kapi_write_reply *)((unsigned long)r + r->content_offset);
     
     // Done
@@ -133,7 +137,7 @@ asmlinkage void _start()
         );
         
         struct thread_control_block *tcb = get_tcb();
-        ipc_msg_t *msg = syscall_msg();
+        msg_t *msg = syscall_msg();
         
         vsnprintf(buf, 256, "User process iteration: %d, TCB: %p, Proc ID: %p, Thread ID: %p, CPU ID: %d, Msg: %p\n", i++,
                   tcb, tcb->proc_id, tcb->thread_id, tcb->cpu_id, msg);

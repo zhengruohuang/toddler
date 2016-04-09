@@ -2,9 +2,24 @@
 #
 # Top level Makefile for Toddler
 #
-# Use Makefile.config to override any of the following variables
-#
 ################################################################################
+
+
+# Target CPU architecture.
+# Supported values
+# 	unknown - same as host
+# 	ia32
+# 	ppc
+ARCH		= ia32
+
+
+# Project dir
+PROJDIR		= $(CURDIR)
+SRCDIR		= $(PROJDIR)/src
+TARGETDIR	= $(PROJDIR)/target/$(ARCH)
+DOCDIR		= $(PROJDIR)/doc
+TOOLSDIR	= $(PROJDIR)/tools
+VMDIR		= $(PROJDIR)/vm
 
 
 # Assembler, Compiler, Linker, and Flags
@@ -32,25 +47,22 @@ GENMAPFLAGS	= --only-keep-debug
 STRIP		= strip
 STRIPFLAGS	=
 
-# Include the global config file
-include Makefile.config
-
-# Directories
-SRCDIR		= $(PROJDIR)/src
-TARGETDIR	= $(PROJDIR)/target/$(ARCH)
-DOCDIR		= $(PROJDIR)/doc
-TOOLSDIR	= $(PROJDIR)/tools
-VMDIR		= $(PROJDIR)/vm
-
-# Include the arch config file
-include $(PROJDIR)/src/arch/$(ARCH)/Makefile.config
-
 # Including paths
 CINC		= -I$(SRCDIR)/ -I$(SRCDIR)/arch/$(ARCH)/
 ASMINC		= -i$(SRCDIR)/ -i$(SRCDIR)/arch/$(ARCH)/
 
+# Treat warnings as errors
+CFLAGS		+= -Wall -Wpointer-arith -Wcast-align -Wno-int-to-pointer-cast
+CFLAGS		+= -Werror
+
+
+# Arch specific makefile
+include $(PROJDIR)/src/arch/$(ARCH)/Makefile.config
+
+
 # Exports and Unexports
 export
+
 
 # All phony targets
 .PHONY: all build

@@ -67,12 +67,12 @@ msg_t *syscall_msg()
         return NULL;
     }
     
-    struct ipc_msg *msg = tcb->msg;
+    msg_t *msg = tcb->msg;
     msg->dest_mailbox_id = IPC_DEST_KERNEL;
     msg->func_num = IPC_FUNC_KAPI;
     msg->func_param = KAPI_NONE;
     msg->need_reply = 1;
-    msg->content_offset = sizeof(struct ipc_msg);
+    msg->content_offset = sizeof(msg_t);
     
     return msg;
 }
@@ -112,7 +112,7 @@ int kapi_write(int fd, const void *buf, size_t count)
     req->count = count;
     
     // Obtain the reply
-    msg_t *r = syscall_sendrecv(s);
+    msg_t *r = syscall_request(s);
     struct msg_kapi_write_reply *reply = (struct msg_kapi_write_reply *)((unsigned long)r + r->content_offset);
     
     // Done

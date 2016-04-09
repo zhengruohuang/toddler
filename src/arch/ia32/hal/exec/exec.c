@@ -44,7 +44,7 @@ static void cross_as_copy(
         ulong word = *((ulong *)cur_src_paddr);
         *((ulong *)cur_dest_paddr) = word;
         
-        kprintf("%h ", word);
+        //kprintf("%h ", word);
     }
 }
 

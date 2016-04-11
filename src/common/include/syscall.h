@@ -31,15 +31,39 @@
 /*
  * IPC
  */
-#define IPC_DEST_KERNEL     0x0
-#define IPC_FUNC_KAPI       0x0
+// Default destinations
+#define IPC_DEST_NONE       0x0
+#define IPC_DEST_KERNEL     0x1
+
+// Default function types
+#define IPC_FUNC_NONE       0x0
+#define IPC_FUNC_KAPI       0x1
+
+enum msg_param_type {
+    msg_param_value,
+    msg_param_addr,
+};
+
+struct msg_param {
+    enum msg_param_type type;
+    
+    union {
+        unsigned long value;
+        
+        struct {
+            void *vaddr;
+            unsigned long size;
+        };
+    };
+};
 
 struct msg {
     unsigned long dest_mailbox_id;
+    unsigned long func_type;
     unsigned long func_num;
-    unsigned long func_param;
     int need_reply;
-    unsigned long content_offset;
+    int param_count;
+    struct msg_param params[10];
 };
 
 typedef volatile struct msg msg_t;
@@ -49,19 +73,7 @@ typedef volatile struct msg msg_t;
  * KAPI
  */
 #define KAPI_NONE           0x0
-
-// write
-#define KAPI_WRITE          0x0
-
-struct msg_kapi_write_req {
-    int fd;
-    void *buf;
-    size_t count;
-};
-
-struct msg_kapi_write_reply {
-    int count;
-};
+#define KAPI_WRITE          0x1
 
 
 #endif

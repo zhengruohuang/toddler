@@ -1,0 +1,105 @@
+#include "common/include/data.h"
+#include "common/include/syscall.h"
+#include "system/include/syscall.h"
+
+
+/*
+ * Helper functions
+ */
+static msg_t *kapi_msg(int kapi_num)
+{
+    msg_t *msg = syscall_msg();
+    
+    msg->dest_mailbox_id = IPC_DEST_KERNEL;
+    msg->func_type = IPC_FUNC_KAPI;
+    msg->func_num = kapi_num;
+    msg->need_reply = 1;
+    msg->param_count = 0;
+    
+    return msg;
+}
+
+static void kapi_param_value(msg_t *m, unsigned long value)
+{
+    int index = m->param_count;
+    
+    m->params[index].type = msg_param_value;
+    m->params[index].value = value;
+    
+    m->param_count++;
+}
+
+static void kapi_param_ptr(msg_t *m, void *p, unsigned long size)
+{
+    int index = m->param_count;
+    
+    m->params[index].type = msg_param_addr;
+    m->params[index].vaddr = p;
+    m->params[index].size = size;
+    
+    m->param_count++;
+}
+
+
+//  char **environ;
+
+
+/*
+ * Process
+ */
+//  int fork();
+//  int execve(char *name, char **argv, char **env);
+//  int kill(int pid, int sig);
+//  int wait(int *status);
+//  caddr_t sbrk(int incr);
+//  void _exit();
+//  int getpid();
+
+
+/*
+ * File
+ */
+int kapi_write(int fd, void *buf, size_t count)
+{
+    // Setup the msg
+    msg_t *s = kapi_msg(KAPI_WRITE);
+    
+    // Setup the params
+    kapi_param_value(s, (unsigned long)fd);
+    kapi_param_ptr(s, (void *)buf, count);
+    kapi_param_value(s, (unsigned long)count);
+    
+    // Issue the KAPI and obtain the result
+    msg_t *r = syscall_request(s);
+    
+    // Setup the result
+    // some asserts should go here
+    int result = r->params[0].value;
+    
+    return result;
+}
+
+int read(int file, char *ptr, int len)
+{
+    return 0;
+}
+
+//  int lseek(int file, int ptr, int dir);
+
+//  int fstat(int file, struct stat *st);
+//  int stat(const char *file, struct stat *st);
+
+//  int open(const char *name, int flags, ...);
+//  int close(int file); 
+
+//  int link(char *old, char *new);
+//  int unlink(char *name);
+
+//  int isatty(int file);
+
+
+/*
+ * Time
+ */
+//  clock_t times(struct tms *buf);
+//  int gettimeofday(struct timeval *p, struct timezone *z);

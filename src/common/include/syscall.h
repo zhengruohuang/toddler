@@ -41,7 +41,8 @@
 
 enum msg_param_type {
     msg_param_value,
-    msg_param_addr,
+    msg_param_addr_ro,
+    msg_param_addr_rw,
 };
 
 struct msg_param {
@@ -74,6 +75,8 @@ typedef volatile struct msg msg_t;
  */
 #define KAPI_NONE           0x0
 #define KAPI_WRITE          0x1
+
+typedef asmlinkage void (*dynamic_msg_handler_t)(msg_t *msg);
 
 
 #endif

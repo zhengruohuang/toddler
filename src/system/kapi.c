@@ -29,11 +29,11 @@ static void kapi_param_value(msg_t *m, unsigned long value)
     m->param_count++;
 }
 
-static void kapi_param_ptr(msg_t *m, void *p, unsigned long size)
+static void kapi_param_ptr(msg_t *m, void *p, unsigned long size, int writable)
 {
     int index = m->param_count;
     
-    m->params[index].type = msg_param_addr;
+    m->params[index].type = writable ? msg_param_addr_rw : msg_param_addr_ro;
     m->params[index].vaddr = p;
     m->params[index].size = size;
     
@@ -42,6 +42,15 @@ static void kapi_param_ptr(msg_t *m, void *p, unsigned long size)
 
 
 //  char **environ;
+
+
+/*
+ * KAPI mgmt
+ */
+int kapi_register(unsigned long kapi_num, dynamic_msg_handler_t msg_handler)
+{
+    return 0;
+}
 
 
 /*
@@ -57,8 +66,23 @@ static void kapi_param_ptr(msg_t *m, void *p, unsigned long size)
 
 
 /*
+ * Thread
+ */
+void thread_exit(void *retval)
+{
+}
+
+/*
  * File
  */
+//  int open(const char *name, int flags, ...);
+//  int close(int fd); 
+
+int kapi_read(int fd, char *buf, size_t count)
+{
+    return 0;
+}
+
 int kapi_write(int fd, void *buf, size_t count)
 {
     // Setup the msg
@@ -66,7 +90,7 @@ int kapi_write(int fd, void *buf, size_t count)
     
     // Setup the params
     kapi_param_value(s, (unsigned long)fd);
-    kapi_param_ptr(s, (void *)buf, count);
+    kapi_param_ptr(s, (void *)buf, count, 0);
     kapi_param_value(s, (unsigned long)count);
     
     // Issue the KAPI and obtain the result
@@ -79,18 +103,15 @@ int kapi_write(int fd, void *buf, size_t count)
     return result;
 }
 
-int read(int file, char *ptr, int len)
+asmlinkage void kapi_write_handler(msg_t *msg)
 {
-    return 0;
+    thread_exit(NULL);
 }
 
 //  int lseek(int file, int ptr, int dir);
 
 //  int fstat(int file, struct stat *st);
 //  int stat(const char *file, struct stat *st);
-
-//  int open(const char *name, int flags, ...);
-//  int close(int file); 
 
 //  int link(char *old, char *new);
 //  int unlink(char *name);
@@ -103,3 +124,16 @@ int read(int file, char *ptr, int len)
  */
 //  clock_t times(struct tms *buf);
 //  int gettimeofday(struct timeval *p, struct timezone *z);
+
+
+/*
+ * Initialization
+ */
+int kapi_init()
+{
+    int reg = 0;
+    
+    reg += kapi_register(KAPI_WRITE, kapi_write_handler);
+    
+    return reg;
+}

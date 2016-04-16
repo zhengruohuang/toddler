@@ -15,4 +15,6 @@ extern int syscall_send(msg_t *msg);
 extern msg_t *syscall_recv();
 
 extern msg_t *syscall_request(msg_t *msg);
-extern int syscall_reply(msg_t *in_msg, msg_t *out_msg);
+extern int syscall_respond(msg_t *in_msg, msg_t *out_msg);
+
+extern int syscall_reg_msg_handler(unsigned long msg_num, dynamic_msg_handler_t msg_handler);

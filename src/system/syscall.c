@@ -67,9 +67,8 @@ msg_t *syscall_msg()
     
     msg_t *msg = tcb->msg;
     msg->dest_mailbox_id = IPC_DEST_NONE;
-    msg->func_type = IPC_FUNC_NONE;
-    msg->func_num = 0;
-    msg->need_reply = 0;
+    msg->msg_num = 0;
+    msg->need_response = 0;
     msg->param_count = 0;
     
     return msg;
@@ -91,7 +90,13 @@ msg_t *syscall_request(msg_t *msg)
     return NULL;
 }
 
-int syscall_reply(msg_t *in_msg, msg_t *out_msg)
+int syscall_respond(msg_t *in_msg, msg_t *out_msg)
 {
     return 0;
 }
+
+int syscall_reg_msg_handler(unsigned long msg_num, dynamic_msg_handler_t msg_handler)
+{
+    return 0;
+}
+

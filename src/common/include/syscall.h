@@ -35,11 +35,8 @@
 #define IPC_DEST_NONE       0x0
 #define IPC_DEST_KERNEL     0x1
 
-// Default function types
-#define IPC_FUNC_NONE       0x0
-#define IPC_FUNC_KAPI       0x1
-
 enum msg_param_type {
+    msg_param_empty,
     msg_param_value,
     msg_param_addr_ro,
     msg_param_addr_rw,
@@ -60,14 +57,15 @@ struct msg_param {
 
 struct msg {
     unsigned long dest_mailbox_id;
-    unsigned long func_type;
-    unsigned long func_num;
-    int need_reply;
+    unsigned long msg_num;
+    int need_response;
     int param_count;
     struct msg_param params[10];
 };
 
 typedef volatile struct msg msg_t;
+
+typedef asmlinkage void (*dynamic_msg_handler_t)(msg_t *msg);
 
 
 /*
@@ -75,8 +73,6 @@ typedef volatile struct msg msg_t;
  */
 #define KAPI_NONE           0x0
 #define KAPI_WRITE          0x1
-
-typedef asmlinkage void (*dynamic_msg_handler_t)(msg_t *msg);
 
 
 #endif

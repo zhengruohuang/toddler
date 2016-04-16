@@ -11,9 +11,8 @@ static msg_t *kapi_msg(int kapi_num)
     msg_t *msg = syscall_msg();
     
     msg->dest_mailbox_id = IPC_DEST_KERNEL;
-    msg->func_type = IPC_FUNC_KAPI;
-    msg->func_num = kapi_num;
-    msg->need_reply = 1;
+    msg->msg_num = kapi_num;
+    msg->need_response = 1;
     msg->param_count = 0;
     
     return msg;
@@ -40,18 +39,13 @@ static void kapi_param_ptr(msg_t *m, void *p, unsigned long size, int writable)
     m->param_count++;
 }
 
-
-//  char **environ;
-
-
-/*
- * KAPI mgmt
- */
-int kapi_register(unsigned long kapi_num, dynamic_msg_handler_t msg_handler)
+static unsigned long kapi_return_value(msg_t *m)
 {
-    return 0;
+    return m->params[0].value;
 }
 
+
+//  char **environ;
 
 /*
  * Process
@@ -97,8 +91,7 @@ int kapi_write(int fd, void *buf, size_t count)
     msg_t *r = syscall_request(s);
     
     // Setup the result
-    // some asserts should go here
-    int result = r->params[0].value;
+    int result = (int)kapi_return_value(r);
     
     return result;
 }
@@ -133,7 +126,7 @@ int kapi_init()
 {
     int reg = 0;
     
-    reg += kapi_register(KAPI_WRITE, kapi_write_handler);
+    reg += syscall_reg_msg_handler(KAPI_WRITE, kapi_write_handler);
     
     return reg;
 }

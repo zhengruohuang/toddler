@@ -8,6 +8,41 @@
 
 
 /*
+ * IPC
+ */
+#define MSG_HANDLER_TABLE_HASH_LEN  10
+
+struct msg_node {
+    struct msg_node *prev;
+    struct msg_node *next;
+    
+    msg_t *msg;
+};
+
+struct msg_list {
+    ulong count;
+    struct msg_node *next;
+    struct msg_node *prev;
+    
+    spinlock_t lock;
+};
+
+struct msg_handler {
+    struct msg_handler *next;
+    
+    ulong msg_num;
+    ulong vaddr;
+};
+
+struct msg_handler_table {
+    ulong count;
+    struct msg_handler *handlers[MSG_HANDLER_TABLE_HASH_LEN];
+    
+    spinlock_t lock;
+};
+
+
+/*
  * Scheduling
  */
 enum sched_state {
@@ -98,6 +133,10 @@ struct thread {
     // Scheduling
     ulong sched_id;
     struct sched *sched;
+    
+    // IPC
+    ulong mailbox_id;
+    struct msg_list msgs;
 };
 
 struct thread_list {
@@ -184,6 +223,11 @@ struct process {
     
     // Scheduling
     uint priority;
+    
+    // IPC
+    ulong mailbox_id;
+    struct msg_list msgs;
+    struct msg_handler_table msg_handlers;
 };
 
 struct process_list {

@@ -24,6 +24,12 @@ typedef struct list {
     spinlock_t lock;
 } list_t;
 
+//extern void init_list();
+extern void list_create(list_t *l);
+extern void list_push_back(list_t *l, void *n);
+extern void list_remove(list_t *l, list_node_t *s);
+extern void *list_pop_front(list_t *l);
+
 
 /*
  * Hash table

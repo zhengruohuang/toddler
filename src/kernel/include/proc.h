@@ -13,6 +13,19 @@
  * IPC
  */
 struct msg_node {
+    struct {
+        ulong mailbox_id;
+        struct process *proc;
+        struct thread *thread;
+    } src;
+    
+    struct {
+        ulong mailbox_id;
+        struct process *proc;
+        struct thread *thread;
+    } dest;
+    
+    int sender_blocked;
     msg_t *msg;
 };
 
@@ -115,8 +128,7 @@ struct thread {
     struct sched *sched;
     
     // IPC
-    ulong mailbox_id;
-    list_t msgs;
+    struct msg_node *cur_msg;
 };
 
 struct thread_list {

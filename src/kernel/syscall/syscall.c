@@ -45,9 +45,21 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
         io_out_worker(disp_info);
         break;
         
-    // Message handler
-    case SYSCALL_REG_MSG_HANDLER:
-        reg_msg_handler_worker(disp_info);
+    // IPC
+    case SYSCALL_REG_HANDLER:
+        reg_handler_worker(disp_info);
+        break;
+    case SYSCALL_REL_HANDLER:
+        break;
+    case SYSCALL_SEND:
+        break;
+    case SYSCALL_REQUEST:
+        break;
+    case SYSCALL_RECV:
+        break;
+    case SYSCALL_RESPOND:
+        break;
+    case SYSCALL_REPLY:
         break;
         
     // Invalid syscall

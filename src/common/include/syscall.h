@@ -9,32 +9,36 @@
  * System call
  */
 // For system and tesing
-#define SYSCALL_NONE        0x0
-#define SYSCALL_PING        0x1
-#define SYSCALL_KPUTS       0x2
+#define SYSCALL_NONE            0x0
+#define SYSCALL_PING            0x1
+#define SYSCALL_KPUTS           0x2
 
 // IO ports
 // On systems with only memory-mapped IO, calling these syscalls is unnecessary
-#define SYSCALL_IO_OUT      0x10
-#define SYSCALL_IO_IN       0x11
+#define SYSCALL_IO_OUT          0x10
+#define SYSCALL_IO_IN           0x11
 
 // Thread control block
 // On systems with fast TCB support, calling this syscall is unecessary
-#define SYSCALL_GET_TCB     0x20
+#define SYSCALL_GET_TCB         0x20
 
 // IPC
-#define SYSCALL_REG_MSG_HANDLER 0x30
-#define SYSCALL_SEND            0x31
-#define SYSCALL_SENDRECV        0x32
-#define SYSCALL_RECV            0x33
-
+#define SYSCALL_REG_HANDLER     0x30
+#define SYSCALL_REL_HANDLER     0x31
+#define SYSCALL_SEND            0x32
+#define SYSCALL_REQUEST         0x33
+#define SYSCALL_RECV            0x34
+#define SYSCALL_REPLY           0x35
+#define SYSCALL_RESPOND         0x36
 
 /*
  * IPC
  */
 // Default destinations
-#define IPC_DEST_NONE       0x0
-#define IPC_DEST_KERNEL     0x1
+#define IPC_DEST_NONE           0x0
+#define IPC_DEST_KERNEL         0x1
+#define IPC_DEST_THIS_PROCESS   0x10
+#define IPC_DEST_THIS_THREAD    0x11
 
 enum msg_param_type {
     msg_param_empty,

@@ -65,6 +65,9 @@ struct kernel_dispatch_info {
             
             // Filled by kernel
             void *worker;
+            
+            // Filled by kernel syscall handler
+            ulong ret_value;
         } syscall;
     };
     

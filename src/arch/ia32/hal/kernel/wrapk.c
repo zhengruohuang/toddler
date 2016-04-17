@@ -48,3 +48,13 @@ int asmlinkage wrap_get_cur_cpu_id()
 {
     return  get_cpu_id();
 }
+
+ulong asmlinkage wrap_io_in(ulong port, ulong size)
+{
+    return 0;
+}
+
+void asmlinkage wrap_io_out(ulong port, ulong size, ulong data)
+{
+    
+}

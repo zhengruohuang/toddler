@@ -21,6 +21,8 @@ extern void asmlinkage wrap_init_addr_space(ulong page_dir_pfn);
 extern void asmlinkage wrap_halt();
 extern void asmlinkage wrap_sleep();
 extern int asmlinkage wrap_get_cur_cpu_id();
+extern ulong asmlinkage wrap_io_in(ulong port, ulong size);
+extern void asmlinkage wrap_io_out(ulong port, ulong size, ulong data);
 
 
 /*

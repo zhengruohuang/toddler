@@ -58,8 +58,8 @@ void kputs_worker_thread(ulong param)
     free(disp_info);
     terminate_thread(worker);
     
-    // Shoudl never reach here
-    kprintf("Shoudl never reach here!\n");
+    // Should never reach here
+    kprintf("Should never reach here!\n");
     do {
         hal->sleep();
     } while (1);

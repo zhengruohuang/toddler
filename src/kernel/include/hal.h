@@ -59,6 +59,10 @@ struct hal_exports {
     ulong paddr_space_end;
     int asmlinkage (*get_next_mem_zone)(struct kernel_mem_zone *cur);
     
+    // IO Ports
+    ulong asmlinkage (*io_in)(ulong addr, ulong size);
+    void asmlinkage (*io_out)(ulong addr, ulong size, ulong data);
+    
     // Interrupts
     int asmlinkage (*disable_local_interrupt)();
     void asmlinkage (*enable_local_interrupt)();

@@ -53,6 +53,10 @@ void init_kernel()
     hexp->paddr_space_end = paddr_space_end;
     hexp->get_next_mem_zone = get_next_mem_zone;
     
+    // IO Ports
+    hexp->io_in = wrap_io_in;
+    hexp->io_out = wrap_io_out;
+    
     // Interrupt
     hexp->disable_local_interrupt = disable_local_int;
     hexp->enable_local_interrupt = enable_local_int;

@@ -13,19 +13,20 @@
 #define SYSCALL_PING        0x1
 #define SYSCALL_KPUTS       0x2
 
-// Thread control block
-// On systems with fast TCB support, calling this syscall is unecessary
-#define SYSCALL_GET_TCB     0x10
-
-// IPC
-#define SYSCALL_SEND        0x20
-#define SYSCALL_SENDRECV    0x21
-#define SYSCALL_RECV        0x22
-
 // IO ports
 // On systems with only memory-mapped IO, calling these syscalls is unnecessary
-#define SYSCALL_IO_OUT      0x30
-#define SYSCALL_IO_IN       0x31
+#define SYSCALL_IO_OUT      0x10
+#define SYSCALL_IO_IN       0x11
+
+// Thread control block
+// On systems with fast TCB support, calling this syscall is unecessary
+#define SYSCALL_GET_TCB     0x20
+
+// IPC
+#define SYSCALL_REG_MSG_HANDLER 0x30
+#define SYSCALL_SEND            0x31
+#define SYSCALL_SENDRECV        0x32
+#define SYSCALL_RECV            0x33
 
 
 /*

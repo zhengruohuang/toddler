@@ -59,7 +59,9 @@ struct kernel_dispatch_info {
         struct {
             // Filled by HAL
             ulong num;
-            ulong param;
+            ulong param0;
+            ulong param1;
+            ulong param2;
             
             // Filled by kernel
             void *worker;

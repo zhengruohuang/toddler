@@ -14,16 +14,17 @@ void init_hashtable()
     kprintf("\tHashtable node salloc ID: %d\n", hash_node_salloc_id);
 }
 
-static ulong default_hash_func(ulong key, ulong size)
+static asmlinkage ulong default_hash_func(ulong key, ulong size)
 {
     return key % size;
 }
 
-void hashtable_create(hashtable_t *l, ulong bucket_count, void *hash_func)
+void hashtable_create(hashtable_t *l, ulong bucket_count, hashtable_func_t hash_func)
 {
     l->bucket_count = bucket_count;
     l->node_count = 0;
     l->buckets = (hashtable_bucket_t *)malloc(sizeof(hashtable_bucket_t *) * bucket_count);
+    l->hash_func = hash_func ? hash_func : default_hash_func;
     
     spin_init(&l->lock);
 }
@@ -35,7 +36,7 @@ int hashtable_contains(hashtable_t *l, ulong key)
     
     // Get the hash and bucket
     ulong hash = l->hash_func(key, l->bucket_count);
-    hashtable_bucket_t *bucket = l->buckets[hash];
+    hashtable_bucket_t *bucket = &l->buckets[hash];
     
     // Lock the table
     spin_lock_int(&l->lock);
@@ -58,7 +59,7 @@ int hashtable_contains(hashtable_t *l, ulong key)
 
 void *hashtable_obtain(hashtable_t *l, ulong key)
 {
-    
+    return NULL;
 }
 
 int hashtable_insert(hashtable_t *l, ulong key, void *n)
@@ -74,7 +75,7 @@ int hashtable_insert(hashtable_t *l, ulong key, void *n)
     
     // Get the hash and bucket
     ulong hash = l->hash_func(key, l->bucket_count);
-    hashtable_bucket_t *bucket = l->buckets[hash];
+    hashtable_bucket_t *bucket = &l->buckets[hash];
     
     // Lock the table
     spin_lock_int(&l->lock);
@@ -92,7 +93,7 @@ int hashtable_insert(hashtable_t *l, ulong key, void *n)
     return 1;
 }
 
-void hashtable_remove(hashtable_t *l, ulong key)
+int hashtable_remove(hashtable_t *l, ulong key)
 {
-
+    return 0;
 }

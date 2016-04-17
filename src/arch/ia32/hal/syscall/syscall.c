@@ -69,7 +69,9 @@ void asmlinkage save_context_sysenter(struct context *context)
 void asmlinkage sysenter_handler_entry(struct context *context)
 {
     ulong num = context->esi;
-    ulong param = context->edi;
+    ulong param0 = context->edi;
+    ulong param1 = context->eax;
+    ulong param2 = context->edx;
     
     ulong ret_addr = 0;
     ulong ret_size = 0;
@@ -78,7 +80,7 @@ void asmlinkage sysenter_handler_entry(struct context *context)
     int call_kernel = 1;
     
     if (num == SYSCALL_PING) {
-        ret_addr = param + 1;
+        ret_addr = param0 + 1;
         succeed = 1;
         call_kernel = 0;
     }
@@ -88,7 +90,9 @@ void asmlinkage sysenter_handler_entry(struct context *context)
         kdispatch.context = context;
         kdispatch.dispatch_type = kdisp_syscall;
         kdispatch.syscall.num = num;
-        kdispatch.syscall.param = param;
+        kdispatch.syscall.param0 = param0;
+        kdispatch.syscall.param1 = param1;
+        kdispatch.syscall.param2 = param2;
         kernel_dispatch(&kdispatch);
         
         //kprintf("Syscall from user!\n");

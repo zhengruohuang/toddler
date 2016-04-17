@@ -36,6 +36,21 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
         dup_disp_info->syscall.worker = t;
         assert(t);
         break;
+    
+    // IO Ports
+    case SYSCALL_IO_IN:
+        io_in_worker(disp_info);
+        break;
+    case SYSCALL_IO_OUT:
+        io_out_worker(disp_info);
+        break;
+        
+    // Message handler
+    case SYSCALL_REG_MSG_HANDLER:
+        reg_msg_handler_worker(disp_info);
+        break;
+        
+    // Invalid syscall
     default:
         break;
     }

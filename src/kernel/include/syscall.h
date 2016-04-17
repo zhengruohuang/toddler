@@ -17,6 +17,10 @@ extern int dispatch_syscall(struct kernel_dispatch_info *disp_info);
  */
 extern void kputs_worker_thread(ulong param);
 
+extern void io_in_worker(struct kernel_dispatch_info *disp_info);
+extern void io_out_worker(struct kernel_dispatch_info *disp_info);
+
+extern void reg_msg_handler_worker(struct kernel_dispatch_info *disp_info);
 
 
 #endif

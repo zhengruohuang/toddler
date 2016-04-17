@@ -4,41 +4,21 @@
 
 #include "common/include/data.h"
 #include "common/include/task.h"
+#include "kernel/include/ds.h"
 #include "kernel/include/sync.h"
+#include "common/include/syscall.h"
 
 
 /*
  * IPC
  */
-#define MSG_HANDLER_TABLE_HASH_LEN  10
-
 struct msg_node {
-    struct msg_node *prev;
-    struct msg_node *next;
-    
     msg_t *msg;
 };
 
-struct msg_list {
-    ulong count;
-    struct msg_node *next;
-    struct msg_node *prev;
-    
-    spinlock_t lock;
-};
-
 struct msg_handler {
-    struct msg_handler *next;
-    
     ulong msg_num;
     ulong vaddr;
-};
-
-struct msg_handler_table {
-    ulong count;
-    struct msg_handler *handlers[MSG_HANDLER_TABLE_HASH_LEN];
-    
-    spinlock_t lock;
 };
 
 
@@ -136,7 +116,7 @@ struct thread {
     
     // IPC
     ulong mailbox_id;
-    struct msg_list msgs;
+    list_t msgs;
 };
 
 struct thread_list {
@@ -226,8 +206,8 @@ struct process {
     
     // IPC
     ulong mailbox_id;
-    struct msg_list msgs;
-    struct msg_handler_table msg_handlers;
+    list_t msgs;
+    hashtable_t msg_handlers;
 };
 
 struct process_list {

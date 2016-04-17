@@ -28,6 +28,8 @@ typedef struct list {
 /*
  * Hash table
  */
+typedef asmlinkage ulong (*hashtable_func_t)(ulong key, ulong size);
+
 typedef struct hashtable_node {
     struct hashtable_node *next;
     ulong key;
@@ -42,11 +44,18 @@ typedef struct hashtable_bucket {
 typedef struct hashtable {
     ulong bucket_count;
     ulong node_count;
-    void *hash_func;
+    hashtable_func_t hash_func;
     hashtable_bucket_t *buckets;
     
     spinlock_t lock;
 } hashtable_t;
+
+extern void init_hashtable();
+extern void hashtable_create(hashtable_t *l, ulong bucket_count, hashtable_func_t hash_func);
+extern int hashtable_contains(hashtable_t *l, ulong key);
+extern void *hashtable_obtain(hashtable_t *l, ulong key);
+extern int hashtable_insert(hashtable_t *l, ulong key, void *n);
+extern int hashtable_remove(hashtable_t *l, ulong key);
 
 
 #endif

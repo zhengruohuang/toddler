@@ -17,7 +17,7 @@ void kputs_worker_thread(ulong param)
     
     struct process *p = disp_info->proc;
     struct thread *worker = disp_info->syscall.worker;
-    ulong vaddr = disp_info->syscall.param;
+    ulong vaddr = disp_info->syscall.param0;
     ulong paddr = 0;
     
     //kprintf("Proc: %s, Vaddr: %p\n", p->name, vaddr);

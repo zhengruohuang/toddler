@@ -46,16 +46,30 @@ if target_suffix != '':
 # Path
 #-------------------------------------------------------------------------------
 
+# Top level
 cur_dir         = os.path.dirname(os.path.realpath(__file__))
 project_dir     = cur_dir + '/'
+
+# Source
 src_dir         = project_dir + 'src/'
 arch_dir        = src_dir + 'arch/' + target_arch + '/'
 platform_dir    = arch_dir + target_platform + '/'
+
+# Target
 target_dir      = project_dir + 'target/' + target_name + '/'
 obj_dir         = target_dir + 'obj/'
 bin_dir         = target_dir + 'bin/'
+img_dir         = target_dir + 'img/'
+
+# Tools
+tools_src_dir   = project_dir + 'tools/'
+tools_obj_dir   = obj_dir + 'tools/'
+tools_bin_dir   = bin_dir + 'tools/'
+
+# Doc
 doc_dir         = project_dir + 'doc/'
-tool_dir        = project_dir + 'tool/'
+
+# VM
 vm_dir          = project_dir + 'vm/'
 
 inc_dir     = [ src_dir, arch_dir, platform_dir ]
@@ -72,6 +86,7 @@ global_tools = { \
         'exec'  : 'gcc',
         'flags' : '-c -g -fno-builtin -fno-stack-protector -O3 -m32',
         'inc'   : '-I__inc__',
+        'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
         'dep'   : '-MM __src__ > __dep__',
     },
@@ -80,6 +95,7 @@ global_tools = { \
         'exec'  : 'nasm',
         'flags' : '-f elf',
         'inc'   : '-i__inc__',
+        'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
         'dep'   : '-M __src__ > __dep__',
     },
@@ -87,6 +103,7 @@ global_tools = { \
     'ld' : { \
         'exec'  : 'ld',
         'flags' : '-m elf_i386',
+        'script': '-T __script__',
         'obj'   : '-o __target__ __obj__',
     },
     
@@ -150,7 +167,7 @@ def exec_cmd(cmd):
     p.wait()
     return p.returncode
 
-def get_all_files(path, ext = None):
+def get_all_files(path, ext):
     files = []
     
     all_files = get_files(path)
@@ -183,15 +200,15 @@ def warn(s):
 # Printing functions
 #-------------------------------------------------------------------------------
 
-class term_colors:
-    header = '\033[95m',
-    blud = '\033[94m',
-    green = '\033[92m',
-    warn = '\033[93m',
-    fail = '\033[91m',
-    end = '\033[0m',
-    bold = '\033[1m',
-    underline = '\033[4m',
+#class term_colors:
+    #header = '\033[95m',
+    #blud = '\033[94m',
+    #green = '\033[92m',
+    #warn = '\033[93m',
+    #fail = '\033[91m',
+    #end = '\033[0m',
+    #bold = '\033[1m',
+    #underline = '\033[4m',
 
 print_action_enabled = True
 print_cmd_enabled = False
@@ -250,7 +267,7 @@ def print_cmd(msg):
 #-------------------------------------------------------------------------------
 
 class bdb_entry:
-    def __init__(self, name, checksum = None, mtime = None):
+    def __init__(self, name, checksum, mtime):
         self.name = name
         self.mtime = mtime if mtime != None else "{0}".format(time.ctime(os.path.getmtime(name)))
         self.checksum = checksum if checksum != None else hashfile(name)
@@ -317,17 +334,18 @@ def save_bdb():
 # Internal build
 #-------------------------------------------------------------------------------
 
-def get_tool(src_name):
+def get_tool(src_name, tools):
     global global_tools
     
-    tools = None
-    
     ext = get_ext(src_name)
+    
+    # Check local tools
     if tools != None and ext in tools:
         return tools[ext]
     if global_tools != None and ext in global_tools:
         return global_tools[ext]
     
+    # Check global tools
     if tools != None and src_name in tools:
         return tools[src_name]
     if global_tools != None and src_name in global_tools:
@@ -341,16 +359,19 @@ def need_build(src_name, obj_name):
     
     src_mtime = os.path.getmtime(src_name)
     obj_mtime = os.path.getmtime(obj_name)
-
-    return src_mtime >= obj_mtime
     
-def get_dep_list(src_name, obj_name, tools):
+    result = src_mtime > obj_mtime
+
+    #print(src_name, obj_name, result)
+    return result
+    
+def get_dep_list(src_name, obj_name, ext_dep, tools):
     if print_cmd_enabled:
         lead = 'dep ' + get_filename(src_name)
         print_compile(lead, src_name)
     
     # Get the tool
-    tool = get_tool(src_name)
+    tool = get_tool(src_name, tools)
     
     # Compose the cmd line
     inc_cmd = ''
@@ -378,6 +399,10 @@ def get_dep_list(src_name, obj_name, tools):
     
     d.close()
     
+    # Append the external deps
+    if ext_dep != None:
+        dep_list += ext_dep
+    
     return dep_list
     
 def compile_file(src_name, obj_name, dep_list, tools):
@@ -388,7 +413,7 @@ def compile_file(src_name, obj_name, dep_list, tools):
     print_compile(lead, src_name + ' -> ' + obj_name)
     
     # Get the tool
-    tool = get_tool(src_name)
+    tool = get_tool(src_name, tools)
     
     # Compose the cmd line
     inc_cmd = ''
@@ -404,12 +429,12 @@ def compile_file(src_name, obj_name, dep_list, tools):
     code = exec_cmd(cmd)
     assert(code == 0)
     
-def auto_compile_file(src_name, obj_name, tools):
+def auto_compile_file(src_name, obj_name, ext_dep, tools):
     obj_dir = get_dir(obj_name)
     if not os.path.exists(obj_dir):
         os.makedirs(obj_dir)
     
-    dep_list = get_dep_list(src_name, obj_name, tools)
+    dep_list = get_dep_list(src_name, obj_name, ext_dep, tools)
     check_files = [ src_name ] + dep_list
     
     recompile = False
@@ -421,34 +446,41 @@ def auto_compile_file(src_name, obj_name, tools):
     if recompile:
         compile_file(src_name, obj_name, dep_list, tools)
     
-def auto_compile(files, tools):
+def get_obj_name(src_name):
+    obj_name = ''
+    
+    if platform_dir in src_name:
+        obj_name = src_name.replace(platform_dir, obj_dir)
+    elif arch_dir in src_name:
+        obj_name = src_name.replace(arch_dir, obj_dir)
+    elif src_dir in src_name:
+        obj_name = src_name.replace(src_dir, obj_dir)
+    elif tools_src_dir in src_name:
+        obj_name = src_name.replace(tools_src_dir, tools_obj_dir)
+    else:
+        panic('Unsupported src file path: ' + src_name)
+    
+    obj_name += '.o'
+    return obj_name
+    
+def auto_compile(files, ext_dep, tools):
     objs = []
     
     for f in files:
         src_name = f
-        obj_name = None
+        obj_name = get_obj_name(f)
         
-        if platform_dir in f:
-            obj_name = f.replace(platform_dir, obj_dir)
-        elif arch_dir in f:
-            obj_name = f.replace(arch_dir, obj_dir)
-        elif src_dir in f:
-            obj_name = f.replace(src_dir, obj_dir)
-        else:
-            panic('Unsupported src file path: ' + f)
-            
-        obj_name += '.o'
         objs.append(obj_name)
-        auto_compile_file(src_name, obj_name, tools)
+        auto_compile_file(src_name, obj_name, ext_dep, tools)
     
     return objs
 
-def auto_link_target(obj_files, target_name, tools):
+def auto_link_target(obj_files, target_name, ld_script, tools):
     lead = get_filename(target_name)
     print_link(lead, target_name)
     
     # Get the tool
-    tool = get_tool('ld')
+    tool = get_tool('ld', tools)
     
     # Compose the cmd line
     obj_cmd = ''
@@ -456,29 +488,84 @@ def auto_link_target(obj_files, target_name, tools):
         obj_cmd += ' ' + obj
     obj_cmd = tool['obj'].replace('__target__', target_name).replace('__obj__', obj_cmd)
     
-    cmd = tool['exec'] + ' ' + tool['flags'] + ' ' + obj_cmd
+    script_cmd = ''
+    if ld_script != None:
+        script_cmd = tool['script'].replace('__script__', ld_script)
+    
+    cmd = tool['exec'] + ' ' + tool['flags'] + ' ' + script_cmd + ' ' + obj_cmd
     print_cmd(cmd)
     
     # Execute the cmd to compile
     code = exec_cmd(cmd)
     assert(code == 0)
     
-def auto_link(obj_files, target_name, tools):
+def auto_link(obj_files, target_name, ext_dep, ld_script, tools):
+    dep_list = obj_files
+    if ext_dep != None:
+        dep_list += ext_dep
+        
     relink = False
-    for obj in obj_files:
+    for obj in dep_list:
         if need_build(obj, target_name):
             relink = True
             break
     
     if relink:
-        auto_link_target(obj_files, target_name, tools)
+        auto_link_target(obj_files, target_name, ld_script, tools)
 
-def auto_build(files, target_name, tools):
+def auto_build(files, target_name, ext_dep, ld_script, tools):
     # Compile every file
-    objs = auto_compile(files, tools)
+    objs = auto_compile(files, ext_dep, tools)
     
     # Link the obj files
-    auto_link(objs, target_name, tools)
+    auto_link(objs, target_name, ext_dep, ld_script, tools)
+    
+def direct_build(files, target_name, tools):
+    lead = get_filename(target_name)
+    print_compile(lead, target_name)
+    
+    ext = get_ext(files[0])
+    
+    # Get the tool
+    tool = get_tool(files[0], tools)
+    
+    # Compose the cmd line
+    inc_cmd = ''
+    for inc in inc_dir:
+        inc_cmd += ' ' + tool['inc'].replace('__inc__', inc)
+        
+    src_name = ''
+    for f in files:
+        assert(ext == get_ext(f))
+        src_name += ' ' + tool['direct'].replace('__src__', f)
+        
+    obj_cmd = tool['obj'].replace('__src__', src_name).replace('__obj__', target_name)
+    
+    cmd = tool['exec'] + ' ' + tool['flags'] + ' ' + inc_cmd + ' ' + obj_cmd
+    print_cmd(cmd)
+    
+    # Execute the cmd to compile
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def auto_direct_build(files, target_name, ext_dep, tools):
+    rebuild = False
+    for f in files:
+        obj_name = get_obj_name(f)
+        target_dir = get_dir(obj_name)
+        if not os.path.exists(obj_name):
+            os.makedirs(obj_name)
+        
+        dep_list = [ f ] + get_dep_list(f, obj_name, ext_dep, tools)
+        for d in dep_list:
+            if need_build(d, target_name):
+                rebuild = True
+                break
+        if rebuild:
+            break
+        
+    if rebuild:
+        direct_build(files, target_name, tools)
     
 #-------------------------------------------------------------------------------
 
@@ -487,7 +574,7 @@ def auto_build(files, target_name, tools):
 # Public interface for build
 #-------------------------------------------------------------------------------
     
-def build_dir(dir_name, ext, target_name):
+def build_dir(dir_name, ext, target_name, ext_dep = None, ld_script = None, tools = None):
     lead = get_filename(target_name)
     print_action(lead, 'Start building: {0}, extension: {1}, source: {2}'.format(
         target_name, str(ext), dir_name))
@@ -497,11 +584,11 @@ def build_dir(dir_name, ext, target_name):
         os.makedirs(target_dir)
         
     files = get_all_files(dir_name, ext)
-    auto_build(files, target_name, None)
+    auto_build(files, target_name, ext_dep, ld_script, tools)
     
     print_action(lead, 'Done building: ' + target_name)
     
-def build_files(files, target_name):
+def build_files(files, target_name, ext_dep = None, ld_script = None, tools = None):
     lead = get_filename(target_name)
     print_action(lead, 'Start building: ' + target_name)
     
@@ -509,36 +596,171 @@ def build_files(files, target_name):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
     
-    auto_build(files, target_name, None)
+    auto_build(files, target_name, ext_dep, ld_script, tools)
     
     print_action(lead, 'Done building: ' + target_name)
+    
+def direct_build_dir(dir_name, ext, target_name = None, ext_dep = None, tools = None):
+    target_dir = get_dir(target_name)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+        
+    files = get_all_files(dir_name, ext)
+    auto_direct_build(files, target_name, ext_dep, tools)
+    
+def direct_build_files(files, target_name, ext_dep = None, tools = None):
+    target_dir = get_dir(target_name)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+        
+    auto_direct_build(files, target_name, ext_dep, tools)
 
-def compile_dir(dir_name, ext):
+def compile_dir(dir_name, ext = None, ext_dep = None, tools = None):
     print('[COMPILE] Start compiling directory: ' + dir_name)
-    print('\tExtensions: ' + str(ext))
-    print('\tSource directory: ' + dir_name)
     
     files = get_all_files(dir_name, ext)
-    objs = auto_compile(files, None)
+    objs = auto_compile(files, tools)
     
     print('[COMPILE] Done compiling')
     return objs
 
-def compile_files(files):
+def compile_files(files, ext_dep = None, tools = None):
     print('[COMPILE] Start compiling files')
     
-    objs = auto_compile(files, None)
+    objs = auto_compile(files, tools)
     
     print('[COMPILE] Done compiling')
     return objs
 
-def link_files(files, target_name):
+def link_files(files, target_name, ext_dep = None, ld_script = None, tools = None):
     print('[LINK] Start linking: ' + target_name)
     
-    auto_link_target(files, target_name, None)
+    auto_link_target(files, target_name, tools)
     
     print('[LINK] Done linking: ' + target_name)
     
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Public interface for other supportive operations
+#-------------------------------------------------------------------------------
+
+def gen_bin(src_name, target_name, tools):
+    if not need_build(src_name, target_name):
+        return
+    
+    lead = get_filename(target_name)
+    print_action(lead, 'Generate binary: ' + src_name + ' -> ' + target_name)
+    
+    target_dir = get_dir(target_name)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    
+    # Get the tool
+    tool = get_tool('gen_bin', tools)
+    
+    # Compose the cmd
+    obj_cmd = tool['obj'].replace('__src__', src_name).replace('__target__', target_name)
+    cmd = tool['exec'] + ' ' + tool['flags'] + ' ' + obj_cmd
+    print_cmd(cmd)
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def strip_target(target_name, tools):
+    lead = get_filename(target_name)
+    print_action(lead, 'Strip: ' + target_name)
+    
+    # Get the tool
+    tool = get_tool('strip', tools)
+    
+    # Compose the cmd
+    cmd = tool['exec'] + ' ' + tool['flags'] + ' ' + tool['obj'].replace('__target__', target_name)
+    print_cmd(cmd)
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+
+def cat_files(files, target_name, tools):
+    recat = False
+    for f in files:
+        if need_build(f, target_name):
+            recat = True
+            break
+    if not recat:
+        return
+    
+    lead = get_filename(target_name)
+    print_action(lead, 'Concatinate: ' + target_name)
+    
+    target_dir = get_dir(target_name)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    
+    # Compose the cmd
+    cmd = 'cat'
+    for f in files:
+        cmd += ' ' + f
+    cmd += ' > ' + target_name
+    print_cmd(cmd)
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+        
+def remove_files(files, tools):
+    print_action('remove', str(files))
+    
+    # Compose the cmd
+    cmd = 'rm'
+    for f in files:
+        cmd += ' ' + f
+    print_cmd(cmd)
+    
+    # Execute thte cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Main targets
+#-------------------------------------------------------------------------------
+
+def build_coreimg():
+    print_info('coreimg', 'Building core image')
+    
+    # Files
+    src_files = [ \
+        bin_dir + 'tdlrhal.bin',
+        bin_dir + 'tdlrkrnl.bin',
+        bin_dir + 'tdlrsys.bin',
+    ]
+    target_name = bin_dir + 'tdlrcore.img'
+    
+    # Check if we need to rebuild the img
+    regenerate = False
+    for f in src_files:
+        if need_build(f, target_name):
+            regenerate = True
+            break
+        
+    if not regenerate:
+        return
+    
+    # Compose the cmd
+    cmd = tools_bin_dir + 'coreimg ' + target_name
+    for f in src_files:
+        cmd += ' ' + f
+        
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+
 #-------------------------------------------------------------------------------
 
 
@@ -557,6 +779,8 @@ print_info('target', 'Architecture: {0}, platform: {1}, suffix: {2}'.format(
 
 # Include arch specific make file
 arch_funcs = {}
+arch_tools = {}
+include(tools_src_dir + 'tmake.tools')
 include(arch_dir + 'tmake.arch')
 
 # Build arch specific targets
@@ -565,13 +789,18 @@ if 'build_arch' in arch_funcs:
 
 # Build kernel
 print_info('kernel', 'Building kernel')
-build_dir(src_dir + 'kernel/', [ '.c', '.asm' ], bin_dir + 'tdlrkrnl')
+build_dir(src_dir + 'kernel/', [ '.c', '.asm' ], bin_dir + 'tdlrkrnl.bin')
 
 # Build system
 print_info('system', 'Building system')
-build_dir(src_dir + 'system/', [ '.c', '.asm' ], bin_dir + 'tdlrsys')
+build_dir(src_dir + 'system/', [ '.c', '.asm' ], bin_dir + 'tdlrsys.bin')
+
+# Build tools
+if 'build_tools' in arch_funcs:
+    arch_funcs['build_tools']()
 
 # Build core image
+build_coreimg()
 
 # Build disk image
 if 'build_disk' in arch_funcs:

@@ -1,27 +1,211 @@
 #!/usr/bin/python
 
 
+boot_tools = { \
+    '.c' : { \
+        'exec'  : 'gcc',
+        'flags' : '-c -g -fno-builtin -fno-stack-protector -O0 -m32 -fno-tree-loop-optimize',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-MM __src__ > __dep__',
+    },
+
+    '.asm' : { \
+        'exec'  : 'nasm',
+        'flags' : '',
+        'inc'   : '-i__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-M __src__ > __dep__',
+    },
+    
+    'ld' : { \
+        'exec'  : 'ld',
+        'flags' : '-s -m elf_i386',
+        'script': '-T __script__',
+        'obj'   : '-o __target__ __obj__',
+    },
+}
+
+def build_boot_fp():
+    print_info('boot.fp', 'Building floppy boot')
+    
+    # Get files involved
+    src_files = get_all_files(arch_dir + 'boot/floppy/', None)
+    target_file = bin_dir + 'boot/tdlrboot.fp'
+    
+    # Aseembly start section
+    direct_build_files(
+        files = [ arch_dir + 'boot/floppy/boot.asm' ],
+        target_name = obj_dir + 'boot/floopy/floppy.boot',
+        ext_dep = None,
+        tools = arch_tools['boot_tools']
+    )
+    
+    # Floppy boot section
+    build_files(
+        files = [ arch_dir + 'boot/floppy/floppy.c' ],
+        target_name = obj_dir + 'boot/floppy/floppy.elf',
+        ld_script = arch_dir + 'boot/floppy/floppy.ld',
+        ext_dep = [ arch_dir + 'boot/floppy/floppy.ld' ],
+        tools = arch_tools['boot_tools']
+    )
+    gen_bin(
+        src_name = obj_dir + 'boot/floppy/floppy.elf',
+        target_name = obj_dir + 'boot/floppy/floppy.bin',
+        tools = arch_tools['boot_tools']
+    )
+    
+    # Concatinate the sections
+    cat_files(
+        files = [ obj_dir + 'boot/floopy/floppy.boot', obj_dir + 'boot/floppy/floppy.bin' ],
+        target_name = target_file,
+        tools = arch_tools['boot_tools']
+    )
+
+def build_boot():
+    if 'build_boot_fp' in arch_funcs:
+        arch_funcs['build_boot_fp']()
+        
+    if 'build_boot_hd' in arch_funcs:
+        arch_funcs['build_boot_hd']()
+        
+    if 'build_boot_cd' in arch_funcs:
+        arch_funcs['build_boot_cd']()
+
+def build_loader():
+    print_info('loader', 'Building loader')
+    
+    # Get files involved
+    src_files = get_all_files(arch_dir + 'loader/', None)
+    target_file = bin_dir + 'tdlrldr.bin'
+    
+    # Assembly start section
+    direct_build_files(
+        files = [ arch_dir + 'loader/start.asm' ],
+        target_name = obj_dir + 'loader/loader.start',
+        ext_dep = None,
+        tools = arch_tools['boot_tools']
+    )
+    
+    # Real mode section
+    build_files(
+        files = [ arch_dir + 'loader/real.c' ],
+        target_name = obj_dir + 'loader/real.elf',
+        ld_script = arch_dir + 'loader/real.ld',
+        ext_dep = [ arch_dir + 'loader/real.ld' ],
+        tools = arch_tools['boot_tools']
+    )
+    gen_bin(
+        src_name = obj_dir + 'loader/real.elf',
+        target_name = obj_dir + 'loader/real.bin',
+        tools = arch_tools['boot_tools']
+    )
+    
+    # Protected mode section
+    build_files(
+        files = [ arch_dir + 'loader/protected.c' ],
+        target_name = obj_dir + 'loader/protected.elf',
+        ld_script = arch_dir + 'loader/protected.ld',
+        ext_dep = [ arch_dir + 'loader/protected.ld' ],
+        tools = arch_tools['boot_tools']
+    )
+    gen_bin(
+        src_name = obj_dir + 'loader/protected.elf',
+        target_name = obj_dir + 'loader/protected.bin',
+        tools = arch_tools['boot_tools']
+    )
+    
+    # Concatinate the sections
+    cat_files(
+        files = [ \
+            obj_dir + 'loader/loader.start',
+            obj_dir + 'loader/real.bin',
+            obj_dir + 'loader/protected.bin',
+        ],
+        target_name = target_file,
+        tools = arch_tools['boot_tools']
+    )
+    
+def build_hal():
+    print_info('hal', 'Building HAL')
+    build_dir(arch_dir + 'hal/', [ '.c', '.asm' ], bin_dir + 'tdlrhal.bin')
+        
 def build_arch():
     # Build boot
-    print_info('hal', 'Building HAL')
+    if 'build_boot' in arch_funcs:
+        arch_funcs['build_boot']()
     
     # Build loader
-    print_info('hal', 'Building loader')
+    if 'build_loader' in arch_funcs:
+        arch_funcs['build_loader']()
     
     # Build HAL
-    print_info('hal', 'Building HAL')
-    build_dir(arch_dir + 'hal/', [ '.c', '.asm' ], bin_dir + 'tdlrhal')
+    if 'build_hal' in arch_funcs:
+        arch_funcs['build_hal']()
     
 def build_disk():
-    print_info('floppy', 'Building floppy image')
+    print_info('floppyimg', 'Building floppy image')
+    
+    if not os.path.exists(img_dir):
+        os.makedirs(img_dir)
+    
+    # Files
+    src_files = [ \
+        bin_dir + 'boot/tdlrboot.fp',
+        bin_dir + 'tdlrldr.bin',
+        bin_dir + 'tdlrcore.img',
+    ]
+    target_name = img_dir + 'floppy.img'
+    
+    # Check if we need to rebuild the img
+    regenerate = False
+    for f in src_files:
+        if need_build(f, target_name):
+            regenerate = True
+            break
+        
+    if not regenerate:
+        return
+    
+    # Compose the cmd
+    cmd = tools_bin_dir + 'floppyimg ' + target_name
+    for f in src_files:
+        cmd += ' ' + f
+        
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
     
 def start_emu():
     print_info('emulator', 'Starting emulator')
     
+    img_name = img_dir + 'floppy.img'
+    
+    # Compose the cmd
+    cmd = 'qemu-system-i386' + \
+        ' -m 128' + \
+        ' -no-shutdown -no-reboot -no-kvm' + \
+        ' -smp cores=2,threads=2,sockets=2' + \
+        ' -fda ' + img_name
+        
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
 
 # Setup global tools
+
+# Setup arch tools
+arch_tools['boot_tools'] = boot_tools
 
 # Setup callback functions
 arch_funcs['build_arch'] = build_arch
 arch_funcs['build_disk'] = build_disk
 arch_funcs['start_emu'] = start_emu
+
+arch_funcs['build_boot'] = build_boot
+arch_funcs['build_boot_fp'] = build_boot_fp
+arch_funcs['build_loader'] = build_loader
+arch_funcs['build_hal'] = build_hal

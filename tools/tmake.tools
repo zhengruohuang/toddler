@@ -1,0 +1,38 @@
+#!/usr/bin/python
+
+
+tools_tools = { \
+    '.c' : { \
+        'exec'  : 'gcc',
+        'flags' : '-m32',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-MM __src__ > __dep__',
+    },
+}
+
+
+def build_tools():
+    # Core image generator
+    print_info('coreimg', 'Building core image tool')
+    direct_build_files(
+        [ tools_src_dir + 'coreimg.c' ],
+        tools_bin_dir + 'coreimg',
+        tools = arch_tools['tools_tools']
+    )
+    
+    # Floppy image generator
+    print_info('floppyimg', 'Building floppy image tool')
+    direct_build_files(
+        [ tools_src_dir + 'floppyimg.c' ],
+        tools_bin_dir + 'floppyimg',
+        tools = arch_tools['tools_tools']
+    )
+
+
+# Setup arch tools
+arch_tools['tools_tools'] = tools_tools
+
+# Setup callback functions
+arch_funcs['build_tools'] = build_tools

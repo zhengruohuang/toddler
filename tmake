@@ -1,0 +1,584 @@
+#!/usr/bin/python
+
+
+import os
+import shutil
+import hashlib
+import subprocess
+import platform
+
+
+#-------------------------------------------------------------------------------
+# Host
+#-------------------------------------------------------------------------------
+
+host_arch_alias = { \
+    'i386' : 'ia32',
+    'x86_64' : 'amd64',
+}
+
+host_arch = platform.machine().strip()
+if host_arch in host_arch_alias:
+    host_arch = host_arch_alias[host_arch]
+
+host_info = platform.architecture()
+host_os = platform.platform()
+
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Target
+#-------------------------------------------------------------------------------
+
+target_arch = 'ia32'
+target_platform = 'generic'
+target_suffix = ''
+
+target_name = target_arch + '_' + target_platform
+if target_suffix != '':
+    target_name += '_' + target_suffix
+
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Path
+#-------------------------------------------------------------------------------
+
+cur_dir         = os.path.dirname(os.path.realpath(__file__))
+project_dir     = cur_dir + '/'
+src_dir         = project_dir + 'src/'
+arch_dir        = src_dir + 'arch/' + target_arch + '/'
+platform_dir    = arch_dir + target_platform + '/'
+target_dir      = project_dir + 'target/' + target_name + '/'
+obj_dir         = target_dir + 'obj/'
+bin_dir         = target_dir + 'bin/'
+doc_dir         = project_dir + 'doc/'
+tool_dir        = project_dir + 'tool/'
+vm_dir          = project_dir + 'vm/'
+
+inc_dir     = [ src_dir, arch_dir, platform_dir ]
+
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Tools
+#-------------------------------------------------------------------------------
+
+global_tools = { \
+    '.c' : { \
+        'exec'  : 'gcc',
+        'flags' : '-c -g -fno-builtin -fno-stack-protector -O3 -m32',
+        'inc'   : '-I__inc__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-MM __src__ > __dep__',
+    },
+
+    '.asm' : { \
+        'exec'  : 'nasm',
+        'flags' : '-f elf',
+        'inc'   : '-i__inc__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-M __src__ > __dep__',
+    },
+    
+    'ld' : { \
+        'exec'  : 'ld',
+        'flags' : '-m elf_i386',
+        'obj'   : '-o __target__ __obj__',
+    },
+    
+    'strip' : { \
+        'exec'  : 'strip',
+        'flags' : '',
+        'obj'   : '__target__',
+    },
+    
+    'gen_bin' : { \
+        'exec'  : 'objcopy',
+        'flags' : '-O binary',
+        'obj'   : '__src__ __target__',
+    },
+}
+
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Helpaer functions
+#-------------------------------------------------------------------------------
+
+def split(ori, spl):
+    l = ori.split(spl)
+    return [x for x in l if x]
+
+def get_subdir(path):
+    for root, dirs, files in os.walk(path):
+        return dirs
+
+def get_files(path):
+    for root, dirs, files in os.walk(path):
+        return files
+    
+def hashfile(name):
+    afile = open(name, 'rb')
+    hasher = hashlib.sha256()
+    blocksize = 32768
+    
+    buf = afile.read(blocksize)
+    while len(buf) > 0:
+        hasher.update(buf)
+        buf = afile.read(blocksize)
+     
+    return hasher.digest()
+
+def get_dir(name):
+    return os.path.dirname(name) + '/'
+
+def get_filename(name):
+    head, tail = os.path.split(name)
+    return tail
+
+def get_ext(name):
+    filename, file_extension = os.path.splitext(name)
+    return file_extension
+
+def exec_cmd(cmd):
+    p = subprocess.Popen(cmd, shell = True)
+    p.wait()
+    return p.returncode
+
+def get_all_files(path, ext = None):
+    files = []
+    
+    all_files = get_files(path)
+    if all_files != None:
+        for f in all_files:
+            if None == ext or get_ext(f) in ext:
+                files.append(path + f)
+    
+    all_dirs = get_subdir(path)
+    if all_dirs != None:
+        for subdir in all_dirs:
+            files += get_all_files(path + subdir + '/', ext)
+    
+    return files
+
+def include(name):
+    assert(os.path.exists(name))
+    execfile(name)
+
+def panic(s):
+    print('Fatal: ' + s)
+
+def warn(s):
+    print('Warning: ' + s)
+
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Printing functions
+#-------------------------------------------------------------------------------
+
+class term_colors:
+    header = '\033[95m',
+    blud = '\033[94m',
+    green = '\033[92m',
+    warn = '\033[93m',
+    fail = '\033[91m',
+    end = '\033[0m',
+    bold = '\033[1m',
+    underline = '\033[4m',
+
+print_action_enabled = True
+print_cmd_enabled = False
+
+def str_red(s):
+    return '\033[91m' + s + '\033[00m'
+
+def str_blue(s):
+    return '\033[94m' + s + '\033[00m'
+
+def str_green(s):
+    return '\033[92m' + s + '\033[00m'
+
+def str_yellow(s):
+    return '\033[93m' + s + '\033[00m'
+
+def str_magenta(s):
+    return '\033[95m' + s + '\033[00m'
+
+def str_bold(s):
+    return '\033[1m' + s + '\033[00m'
+
+def print_action(atype, lead, msg):
+    if lead.strip() != '':
+        print(str_blue(lead) + ' ' + msg)
+    else:
+        print(lead + ' ' + msg)
+
+def print_title(msg):
+    print(str_bold(msg))
+    
+def print_info(lead, msg):
+    print(str_blue('[' + lead + ']') + ' ' + msg)
+    
+def print_action(lead, msg):
+    print(str_green('[' + lead + ']') + ' ' + msg)
+    
+def print_compile(lead, msg):
+    print(str_yellow('[' + lead + ']') + ' ' + msg)
+    
+def print_link(lead, msg):
+    print(str_magenta('[' + lead + ']') + ' ' + msg)
+    
+def print_pad(count):
+    print('\n' * (count - 1))
+    
+def print_cmd(msg):
+    if print_cmd_enabled:
+        print(msg)
+
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Build database
+#-------------------------------------------------------------------------------
+
+class bdb_entry:
+    def __init__(self, name, checksum = None, mtime = None):
+        self.name = name
+        self.mtime = mtime if mtime != None else "{0}".format(time.ctime(os.path.getmtime(name)))
+        self.checksum = checksum if checksum != None else hashfile(name)
+    
+    def update(self):
+        self.mtime = "{0}".format(time.ctime(os.path.getmtime(self.name)))
+        self.checksum = hashfile(self.name)
+    
+    def check(self):
+        new_mtime = "{0}".format(time.ctime(os.path.getmtime(self.name)))
+        new_hash = hashfile(self.name)
+        return new_mtime == self.mtime and new_hash == self.checksum
+    
+    def to_string(self):
+        return self.name + ';' + self.checksum + ';' + self.mtime
+        
+bdb_name = target_dir + 'bdb'
+bdb = {}
+
+def parse_bdb_entry(s):
+    parts = split(l.strip(), ';')
+    name = parts[0].strip()
+    checksum = parts[1].strip()
+    mtime = parts[2].strip()
+    
+    return bdb_entry(name, checksum, mtime)
+
+def load_bdb():
+    global bdb_name
+    global bdb
+    
+    bdb_file = open(bdb_name, 'r')
+    for l in bdb_file:
+        entry = parse_bdb_entry(l)
+        bdb[entry.name] = entry
+        
+    bdb_file.close()
+        
+def check_bdb(file_name):
+    if file_name in bdb:
+        return bdb[file_name].check()
+    return False
+    
+def update_bdb(file_name):
+    if file_name in bdb:
+        bdb[file_name].update()
+    else:
+        bdb[file_name] = bdb_entry(file_name)
+    
+def save_bdb():
+    global bdb_name
+    global bdb
+    
+    bdb_file = open(bdb_name, 'w')
+    for e in sorted(bdb):
+        f.write(e.to_string())
+    
+    bdb_file.close()
+
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Internal build
+#-------------------------------------------------------------------------------
+
+def get_tool(src_name):
+    global global_tools
+    
+    tools = None
+    
+    ext = get_ext(src_name)
+    if tools != None and ext in tools:
+        return tools[ext]
+    if global_tools != None and ext in global_tools:
+        return global_tools[ext]
+    
+    if tools != None and src_name in tools:
+        return tools[src_name]
+    if global_tools != None and src_name in global_tools:
+        return global_tools[src_name]
+    
+    return {}
+
+def need_build(src_name, obj_name):
+    if not os.path.exists(obj_name):
+        return True
+    
+    src_mtime = os.path.getmtime(src_name)
+    obj_mtime = os.path.getmtime(obj_name)
+
+    return src_mtime >= obj_mtime
+    
+def get_dep_list(src_name, obj_name, tools):
+    if print_cmd_enabled:
+        lead = 'dep ' + get_filename(src_name)
+        print_compile(lead, src_name)
+    
+    # Get the tool
+    tool = get_tool(src_name)
+    
+    # Compose the cmd line
+    inc_cmd = ''
+    for inc in inc_dir:
+        inc_cmd += ' ' + tool['inc'].replace('__inc__', inc)
+        
+    dep_file = obj_name + '.d'
+    dep_cmd = tool['dep'].replace('__src__', src_name).replace('__dep__', dep_file)
+    
+    cmd = tool['exec'] + ' ' + inc_cmd + ' ' + dep_cmd
+    print_cmd(cmd)
+    
+    # Execute the cmd to get the dep file list
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+    # Read the dep file
+    dep_list = []
+    d = open(dep_file, 'r')
+    for l in d:
+        parts = split(l.strip(), ' ')
+        for p in parts:
+            if not ':' in p.strip() and '\\' != p.strip():
+                dep_list.append(p.strip())
+    
+    d.close()
+    
+    return dep_list
+    
+def compile_file(src_name, obj_name, dep_list, tools):
+    global inc_dir
+    
+    # Print the action
+    lead = get_filename(src_name)
+    print_compile(lead, src_name + ' -> ' + obj_name)
+    
+    # Get the tool
+    tool = get_tool(src_name)
+    
+    # Compose the cmd line
+    inc_cmd = ''
+    for inc in inc_dir:
+        inc_cmd += ' ' + tool['inc'].replace('__inc__', inc)
+        
+    obj_cmd = tool['obj'].replace('__src__', src_name).replace('__obj__', obj_name)
+    
+    cmd = tool['exec'] + ' ' + tool['flags'] + ' ' + inc_cmd + ' ' + obj_cmd
+    print_cmd(cmd)
+    
+    # Execute the cmd to compile
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def auto_compile_file(src_name, obj_name, tools):
+    obj_dir = get_dir(obj_name)
+    if not os.path.exists(obj_dir):
+        os.makedirs(obj_dir)
+    
+    dep_list = get_dep_list(src_name, obj_name, tools)
+    check_files = [ src_name ] + dep_list
+    
+    recompile = False
+    for f in check_files:
+        if need_build(f, obj_name):
+            recompile = True
+            break
+    
+    if recompile:
+        compile_file(src_name, obj_name, dep_list, tools)
+    
+def auto_compile(files, tools):
+    objs = []
+    
+    for f in files:
+        src_name = f
+        obj_name = None
+        
+        if platform_dir in f:
+            obj_name = f.replace(platform_dir, obj_dir)
+        elif arch_dir in f:
+            obj_name = f.replace(arch_dir, obj_dir)
+        elif src_dir in f:
+            obj_name = f.replace(src_dir, obj_dir)
+        else:
+            panic('Unsupported src file path: ' + f)
+            
+        obj_name += '.o'
+        objs.append(obj_name)
+        auto_compile_file(src_name, obj_name, tools)
+    
+    return objs
+
+def auto_link_target(obj_files, target_name, tools):
+    lead = get_filename(target_name)
+    print_link(lead, target_name)
+    
+    # Get the tool
+    tool = get_tool('ld')
+    
+    # Compose the cmd line
+    obj_cmd = ''
+    for obj in obj_files:
+        obj_cmd += ' ' + obj
+    obj_cmd = tool['obj'].replace('__target__', target_name).replace('__obj__', obj_cmd)
+    
+    cmd = tool['exec'] + ' ' + tool['flags'] + ' ' + obj_cmd
+    print_cmd(cmd)
+    
+    # Execute the cmd to compile
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def auto_link(obj_files, target_name, tools):
+    relink = False
+    for obj in obj_files:
+        if need_build(obj, target_name):
+            relink = True
+            break
+    
+    if relink:
+        auto_link_target(obj_files, target_name, tools)
+
+def auto_build(files, target_name, tools):
+    # Compile every file
+    objs = auto_compile(files, tools)
+    
+    # Link the obj files
+    auto_link(objs, target_name, tools)
+    
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Public interface for build
+#-------------------------------------------------------------------------------
+    
+def build_dir(dir_name, ext, target_name):
+    lead = get_filename(target_name)
+    print_action(lead, 'Start building: {0}, extension: {1}, source: {2}'.format(
+        target_name, str(ext), dir_name))
+    
+    target_dir = get_dir(target_name)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+        
+    files = get_all_files(dir_name, ext)
+    auto_build(files, target_name, None)
+    
+    print_action(lead, 'Done building: ' + target_name)
+    
+def build_files(files, target_name):
+    lead = get_filename(target_name)
+    print_action(lead, 'Start building: ' + target_name)
+    
+    target_dir = get_dir(target_name)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    
+    auto_build(files, target_name, None)
+    
+    print_action(lead, 'Done building: ' + target_name)
+
+def compile_dir(dir_name, ext):
+    print('[COMPILE] Start compiling directory: ' + dir_name)
+    print('\tExtensions: ' + str(ext))
+    print('\tSource directory: ' + dir_name)
+    
+    files = get_all_files(dir_name, ext)
+    objs = auto_compile(files, None)
+    
+    print('[COMPILE] Done compiling')
+    return objs
+
+def compile_files(files):
+    print('[COMPILE] Start compiling files')
+    
+    objs = auto_compile(files, None)
+    
+    print('[COMPILE] Done compiling')
+    return objs
+
+def link_files(files, target_name):
+    print('[LINK] Start linking: ' + target_name)
+    
+    auto_link_target(files, target_name, None)
+    
+    print('[LINK] Done linking: ' + target_name)
+    
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Main
+#-------------------------------------------------------------------------------
+
+print_title('Toddler building system')
+
+# Host and target info
+print_info('host', 'Architecture: {0}, OS: {1}'.format(host_arch, host_os))
+print_info('target', 'Architecture: {0}, platform: {1}, suffix: {2}'.format(
+     target_arch, target_platform,
+     'N/A' if target_suffix == '' else target_suffix)
+)
+
+# Include arch specific make file
+arch_funcs = {}
+include(arch_dir + 'tmake.arch')
+
+# Build arch specific targets
+if 'build_arch' in arch_funcs:
+    arch_funcs['build_arch']()
+
+# Build kernel
+print_info('kernel', 'Building kernel')
+build_dir(src_dir + 'kernel/', [ '.c', '.asm' ], bin_dir + 'tdlrkrnl')
+
+# Build system
+print_info('system', 'Building system')
+build_dir(src_dir + 'system/', [ '.c', '.asm' ], bin_dir + 'tdlrsys')
+
+# Build core image
+
+# Build disk image
+if 'build_disk' in arch_funcs:
+    arch_funcs['build_disk']()
+
+# Start emulator
+if 'start_emu' in arch_funcs:
+    arch_funcs['start_emu']()
+
+#-------------------------------------------------------------------------------

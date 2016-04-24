@@ -1,0 +1,27 @@
+#!/usr/bin/python
+
+
+def build_arch():
+    # Build boot
+    print_info('hal', 'Building HAL')
+    
+    # Build loader
+    print_info('hal', 'Building loader')
+    
+    # Build HAL
+    print_info('hal', 'Building HAL')
+    build_dir(arch_dir + 'hal/', [ '.c', '.asm' ], bin_dir + 'tdlrhal')
+    
+def build_disk():
+    print_info('floppy', 'Building floppy image')
+    
+def start_emu():
+    print_info('emulator', 'Starting emulator')
+    
+
+# Setup global tools
+
+# Setup callback functions
+arch_funcs['build_arch'] = build_arch
+arch_funcs['build_disk'] = build_disk
+arch_funcs['start_emu'] = start_emu

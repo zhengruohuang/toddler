@@ -1,0 +1,54 @@
+#!/usr/bin/python
+
+
+def build_coreimg():
+    print_info('coreimg', 'Building core image')
+    
+    # Files
+    src_files = [ \
+        bin_dir + 'tdlrhal.bin',
+        bin_dir + 'tdlrkrnl.bin',
+        bin_dir + 'tdlrsys.bin',
+    ]
+    target_name = bin_dir + 'tdlrcore.img'
+    
+    # Check if we need to rebuild the img
+    regenerate = False
+    for f in src_files:
+        if need_build(f, target_name):
+            regenerate = True
+            break
+        
+    if not regenerate:
+        return
+    
+    # Compose the cmd
+    cmd = tools_bin_dir + 'coreimg ' + target_name
+    for f in src_files:
+        cmd += ' ' + f
+        
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+
+
+def build_main():
+    # Build kernel
+    print_info('kernel', 'Building kernel')
+    build_dir(
+        src_dir + 'kernel/', [ '.c', '.asm' ],
+        bin_dir + 'tdlrkrnl.bin',
+        ext_flags = { 'ld/ext' : '-Ttext 0xFFF01000' },
+    )
+
+    # Build system
+    print_info('system', 'Building system')
+    build_dir(
+        src_dir + 'system/', [ '.c', '.asm' ],
+        bin_dir + 'tdlrsys.bin'
+    )
+
+
+# Setup callback functions
+arch_funcs['build_coreimg'] = build_coreimg
+arch_funcs['build_main'] = build_main

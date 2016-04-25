@@ -4,7 +4,7 @@
 boot_tools = { \
     '.c' : { \
         'exec'  : 'gcc',
-        'flags' : '-c -g -fno-builtin -fno-stack-protector -O0 -m32 -fno-tree-loop-optimize',
+        'flags' : '-c -fno-builtin -fno-stack-protector -O0 -m32 -fno-tree-loop-optimize',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
@@ -22,7 +22,7 @@ boot_tools = { \
     
     'ld' : { \
         'exec'  : 'ld',
-        'flags' : '-s -m elf_i386',
+        'flags' : '-m elf_i386 -s',
         'script': '-T __script__',
         'obj'   : '-o __target__ __obj__',
     },
@@ -47,8 +47,8 @@ def build_boot_fp():
     build_files(
         files = [ arch_dir + 'boot/floppy/floppy.c' ],
         target_name = obj_dir + 'boot/floppy/floppy.elf',
-        ld_script = arch_dir + 'boot/floppy/floppy.ld',
         ext_dep = [ arch_dir + 'boot/floppy/floppy.ld' ],
+        ext_flags = { 'ld/script' : arch_dir + 'boot/floppy/floppy.ld' },
         tools = arch_tools['boot_tools']
     )
     gen_bin(
@@ -93,8 +93,8 @@ def build_loader():
     build_files(
         files = [ arch_dir + 'loader/real.c' ],
         target_name = obj_dir + 'loader/real.elf',
-        ld_script = arch_dir + 'loader/real.ld',
         ext_dep = [ arch_dir + 'loader/real.ld' ],
+        ext_flags = { 'ld/script' : arch_dir + 'loader/real.ld' },
         tools = arch_tools['boot_tools']
     )
     gen_bin(
@@ -107,8 +107,8 @@ def build_loader():
     build_files(
         files = [ arch_dir + 'loader/protected.c' ],
         target_name = obj_dir + 'loader/protected.elf',
-        ld_script = arch_dir + 'loader/protected.ld',
         ext_dep = [ arch_dir + 'loader/protected.ld' ],
+        ext_flags = { 'ld/script' : arch_dir + 'loader/protected.ld' },
         tools = arch_tools['boot_tools']
     )
     gen_bin(
@@ -130,7 +130,11 @@ def build_loader():
     
 def build_hal():
     print_info('hal', 'Building HAL')
-    build_dir(arch_dir + 'hal/', [ '.c', '.asm' ], bin_dir + 'tdlrhal.bin')
+    build_dir(
+        arch_dir + 'hal/', [ '.c', '.asm' ],
+        bin_dir + 'tdlrhal.bin',
+        ext_flags = { 'ld/ext' : '-Ttext 0xFFF88000' },
+    )
         
 def build_arch():
     # Build boot

@@ -15,7 +15,7 @@ tools_tools = { \
 
 def build_tools():
     # Core image generator
-    print_info('coreimg', 'Building core image tool')
+    print_info('tool.coreimg', 'Building core image tool')
     direct_build_files(
         [ tools_src_dir + 'coreimg.c' ],
         tools_bin_dir + 'coreimg',
@@ -23,7 +23,7 @@ def build_tools():
     )
     
     # Floppy image generator
-    print_info('floppyimg', 'Building floppy image tool')
+    print_info('tool.floppyimg', 'Building floppy image tool')
     direct_build_files(
         [ tools_src_dir + 'floppyimg.c' ],
         tools_bin_dir + 'floppyimg',

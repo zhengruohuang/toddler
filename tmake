@@ -73,53 +73,8 @@ doc_dir         = project_dir + 'doc/'
 # VM
 vm_dir          = project_dir + 'vm/'
 
-inc_dir     = [ src_dir, arch_dir, platform_dir ]
-
-#-------------------------------------------------------------------------------
-
-
-#-------------------------------------------------------------------------------
-# Tools
-#-------------------------------------------------------------------------------
-
-global_tools = { \
-    '.c' : { \
-        'exec'  : 'gcc',
-        'flags' : '-c -g -fno-builtin -fno-stack-protector -O3 -m32',
-        'inc'   : '-I__inc__',
-        'direct': '__src__',
-        'obj'   : '-o __obj__ __src__',
-        'dep'   : '-MM __src__ > __dep__',
-    },
-
-    '.asm' : { \
-        'exec'  : 'nasm',
-        'flags' : '-f elf',
-        'inc'   : '-i__inc__',
-        'direct': '__src__',
-        'obj'   : '-o __obj__ __src__',
-        'dep'   : '-M __src__ > __dep__',
-    },
-    
-    'ld' : { \
-        'exec'  : 'ld',
-        'flags' : '-m elf_i386',
-        'script': '-T __script__',
-        'obj'   : '-o __target__ __obj__',
-    },
-    
-    'strip' : { \
-        'exec'  : 'strip',
-        'flags' : '',
-        'obj'   : '__target__',
-    },
-    
-    'gen_bin' : { \
-        'exec'  : 'objcopy',
-        'flags' : '-O binary',
-        'obj'   : '__src__ __target__',
-    },
-}
+# Include
+inc_dir         = [ src_dir, arch_dir, platform_dir ]
 
 #-------------------------------------------------------------------------------
 
@@ -345,39 +300,72 @@ def save_bdb():
 
 
 #-------------------------------------------------------------------------------
-# Internal build
+# Build tools
 #-------------------------------------------------------------------------------
 
 def get_tool(src_name, tools):
-    global global_tools
+    global arch_tools
+    global_tools = arch_tools["global_tools"]
     
     ext = get_ext(src_name)
     
-    # Check local tools
+    # Check tool ext
     if tools != None and ext in tools:
         return tools[ext]
     if global_tools != None and ext in global_tools:
         return global_tools[ext]
     
-    # Check global tools
+    # Check tool name
     if tools != None and src_name in tools:
         return tools[src_name]
     if global_tools != None and src_name in global_tools:
         return global_tools[src_name]
     
     return {}
+#-------------------------------------------------------------------------------
 
+
+#-------------------------------------------------------------------------------
+# Dependancy
+#-------------------------------------------------------------------------------
+
+# File modification time
+class file_record:
+    def __init__(self, name):
+        self.name = name
+        self.mtime = os.path.getmtime(name)
+        
+all_file_records = {}
+
+def record_file(name):
+    if name in all_file_records:
+        return
+    all_file_records[name] = file_record(name)
+    
 def need_build(src_name, obj_name):
+    if not src_name in all_file_records:
+        record_file(src_name)
+        
     if not os.path.exists(obj_name):
         return True
-    
-    src_mtime = os.path.getmtime(src_name)
-    obj_mtime = os.path.getmtime(obj_name)
+    if not obj_name in all_file_records:
+        record_file(obj_name)
+        
+    src_mtime = all_file_records[src_name].mtime
+    obj_mtime = all_file_records[obj_name].mtime
     
     result = src_mtime > obj_mtime
     return result
-    
-def get_dep_list(src_name, obj_name, ext_dep, tools):
+
+# File dependancy
+class dep_record:
+    def __init__(self, name, dep_list):
+        self.name = name
+        self.dep_list = dep_list
+
+all_src_deps = {}
+
+def get_src_dep_list(src_name, obj_name, tools):
     if print_cmd_enabled:
         lead = 'dep ' + get_filename(src_name)
         print_compile(lead, src_name)
@@ -412,12 +400,63 @@ def get_dep_list(src_name, obj_name, ext_dep, tools):
     
     d.close()
     
+    return dep_list
+    
+def record_dep(src_name, obj_name, tools):
+    dep_list = get_src_dep_list(src_name, obj_name, tools)
+    all_src_deps[src_name] = dep_record(src_name, dep_list)
+
+def get_dep_list(src_name, obj_name, ext_dep, tools):
+    if not src_name in all_src_deps:
+        record_dep(src_name, obj_name, tools)
+        
+    # Get src dep list
+    dep_list = all_src_deps[src_name].dep_list
+    
     # Append the external deps
     if ext_dep != None:
         dep_list += ext_dep
     
     return dep_list
+
+# High level interface
+def get_obj_name(src_name):
+    obj_name = ''
     
+    if platform_dir in src_name:
+        obj_name = src_name.replace(platform_dir, obj_dir)
+    elif arch_dir in src_name:
+        obj_name = src_name.replace(arch_dir, obj_dir)
+    elif src_dir in src_name:
+        obj_name = src_name.replace(src_dir, obj_dir)
+    elif tools_src_dir in src_name:
+        obj_name = src_name.replace(tools_src_dir, tools_obj_dir)
+    else:
+        panic('Unsupported src file path: ' + src_name)
+    
+    obj_name += '.o'
+    return obj_name
+
+def check_dep_changed(files, target_name, ext_dep, tools):
+    for f in files:
+        src_name = f
+        obj_name = get_obj_name(f)
+        
+        dep_list = get_dep_list(src_name, obj_name, ext_dep, tools)
+        
+        for d in dep_list:
+            if need_build(d, target_name):
+                return True
+            
+    return False
+
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Internal build
+#-------------------------------------------------------------------------------
+
 def compile_file(src_name, obj_name, dep_list, ext_flags, tools):
     global inc_dir
     
@@ -464,23 +503,6 @@ def auto_compile_file(src_name, obj_name, ext_dep, ext_flags, tools):
     
     if recompile:
         compile_file(src_name, obj_name, dep_list, ext_flags, tools)
-    
-def get_obj_name(src_name):
-    obj_name = ''
-    
-    if platform_dir in src_name:
-        obj_name = src_name.replace(platform_dir, obj_dir)
-    elif arch_dir in src_name:
-        obj_name = src_name.replace(arch_dir, obj_dir)
-    elif src_dir in src_name:
-        obj_name = src_name.replace(src_dir, obj_dir)
-    elif tools_src_dir in src_name:
-        obj_name = src_name.replace(tools_src_dir, tools_obj_dir)
-    else:
-        panic('Unsupported src file path: ' + src_name)
-    
-    obj_name += '.o'
-    return obj_name
     
 def auto_compile(files, ext_dep, ext_flags, tools):
     objs = []
@@ -601,20 +623,26 @@ def auto_direct_build(files, target_name, ext_dep, tools):
 #-------------------------------------------------------------------------------
     
 def build_dir(dir_name, ext, target_name, ext_dep = None, ext_flags = None, tools = None):
+    files = get_all_files(dir_name, ext)
+    if not check_dep_changed(files, target_name, ext_dep, tools):
+        return
+    
     lead = get_filename(target_name)
     print_action(lead, 'Start building: {0}, extension: {1}, source: {2}'.format(
-        target_name, str(ext), dir_name))
+       target_name, str(ext), dir_name))
     
     target_dir = get_dir(target_name)
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
         
-    files = get_all_files(dir_name, ext)
     auto_build(files, target_name, ext_dep, ext_flags, tools)
     
     print_action(lead, 'Done building: ' + target_name)
     
 def build_files(files, target_name, ext_dep = None, ext_flags = None, tools = None):
+    if not check_dep_changed(files, target_name, ext_dep, tools):
+        return
+    
     lead = get_filename(target_name)
     print_action(lead, 'Start building: ' + target_name)
     
@@ -797,8 +825,12 @@ if 'build_coreimg' in arch_funcs:
 if 'build_disk' in arch_funcs:
     arch_funcs['build_disk']()
 
+print_title('Toddler build completed')
+
 # Start emulator
 if 'start_emu' in arch_funcs:
     arch_funcs['start_emu']()
+
+print_title('Toddler testing completed')
 
 #-------------------------------------------------------------------------------

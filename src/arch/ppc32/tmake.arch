@@ -42,7 +42,7 @@ global_tools = { \
 
 boot_tools = { \
     '.c' : { \
-        'exec'  : 'gcc',
+        'exec'  : 'powerpc-linux-gnu-gcc',
         'flags' : '-c -fno-builtin -fno-stack-protector -O0 -m32 -fno-tree-loop-optimize',
         'inc'   : '-I__inc__',
         'direct': '__src__',
@@ -51,7 +51,7 @@ boot_tools = { \
     },
 
     '.asm' : { \
-        'exec'  : 'nasm',
+        'exec'  : 'powerpc-linux-gnu-as',
         'flags' : '',
         'inc'   : '-i__inc__',
         'direct': '__src__',
@@ -60,7 +60,7 @@ boot_tools = { \
     },
     
     'ld' : { \
-        'exec'  : 'ld',
+        'exec'  : 'powerpc-linux-gnu-ld',
         'flags' : '-m elf_i386 -s',
         'script': '-T __script__',
         'obj'   : '-o __target__ __obj__',
@@ -227,11 +227,11 @@ def start_emu():
     img_name = img_dir + 'floppy.img'
     
     # Compose the cmd
-    cmd = 'qemu-system-i386' + \
+    cmd = 'qemu-system-ppc' + \
         ' -m 128' + \
         ' -no-shutdown -no-reboot -no-kvm' + \
         ' -smp cores=2,threads=2,sockets=2' + \
-        ' -drive if=floppy,format=raw,file=' + img_name
+        ' -fda ' + img_name
         
     # Execute the cmd
     code = exec_cmd(cmd)

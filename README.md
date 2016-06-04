@@ -20,6 +20,7 @@ The lock-free idea has been abandoned since it created too much unnecessary comp
 ## Ports
 
 |Architecture|Bits|Platform|Status|
+|---|---|---|---|---|
 |IA32|32|PC|Active|
 |PowerPC|32|Mac Mini G4, PowerMac G4|Initial|
 |ARMv7|32|Raspberry 2|Initial|

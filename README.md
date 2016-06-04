@@ -30,6 +30,8 @@ The lock-free idea has been abandoned since it created too much unnecessary comp
 |ppc64|64|PowerMac G5|Planned|
 |armv8|64|Raspberry Pi 3|Planned|
 |sparcv9|64|UltraSPARC II|Planned|
-|Itaium|64|Itaium 2|No Plan|
+|riscv|64|RISC V|Planned|
+|itaium|64|Itaium 2|No Plan|
 |alpha|64|ES40|No Plan|
+|hppa|64|HP RA-RISC|No Plan|
 |s390|64|S390|No Plan|

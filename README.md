@@ -21,15 +21,15 @@ The lock-free idea has been abandoned since it created too much unnecessary comp
 
 |Architecture|Bits|Platform|Status|
 |---|---|---|---|---|
-|IA32|32|Pentium 4-based PC|Active|
-|PPC|32|Mac Mini G4, PowerMac G4|Initial|
-|ARMv7|32|Raspberry Pi 2|Initial|
-|SPARCv8|32|SuperSPARC II|Planned|
-|M68K|32|M68K|No Plan|
-|AMD64|64|Skylake-based PC|Planned|
-|PPC64|64|PowerMac G5|Planned|
-|ARMv8|64|Raspberry Pi 3|Planned|
-|SPARCv9|64|UltraSPARC II|Planned|
+|ia32|32|Pentium 4-based PC|Active|
+|ppc|32|Mac Mini G4, PowerMac G4|Initial|
+|armv7|32|Raspberry Pi 2|Initial|
+|sparcv8|32|SuperSPARC II|Planned|
+|m68k|32|M68K|No Plan|
+|amd64|64|Skylake-based PC|Planned|
+|ppc64|64|PowerMac G5|Planned|
+|armv8|64|Raspberry Pi 3|Planned|
+|sparcv9|64|UltraSPARC II|Planned|
 |Itaium|64|Itaium 2|No Plan|
-|ALPHA|64|ES40|No Plan|
-|S390|64|S390|No Plan|
+|alpha|64|ES40|No Plan|
+|s390|64|S390|No Plan|

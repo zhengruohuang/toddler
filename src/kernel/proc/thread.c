@@ -147,6 +147,11 @@ struct thread *create_thread(
         
         t->memory.stack_limit_offset = PAGE_SIZE * 3;
         t->memory.stack_top_offset = PAGE_SIZE * 4;
+        
+        t->memory.msg_send_paddr = t->memory.thread_block_base + t->memory.msg_send_offset;
+        t->memory.msg_recv_paddr = t->memory.thread_block_base + t->memory.msg_recv_offset;
+        t->memory.tls_start_paddr = t->memory.thread_block_base + t->memory.tls_start_offset;
+        t->memory.stack_top_paddr = t->memory.thread_block_base + t->memory.stack_top_offset;
     } else {
         // Round up stack size and tls size
         if (stack_size % PAGE_SIZE) {
@@ -183,6 +188,7 @@ struct thread *create_thread(
             paddr, PAGE_SIZE, 0, 1, 1, 0
         );
         assert(succeed);
+        t->memory.msg_send_paddr = paddr;
         
         paddr = PFN_TO_ADDR(palloc(1));
         assert(paddr);
@@ -192,6 +198,7 @@ struct thread *create_thread(
             paddr, PAGE_SIZE, 0, 1, 1, 0
         );
         assert(succeed);
+        t->memory.msg_recv_paddr = paddr;
         
         paddr = PFN_TO_ADDR(palloc(tls_size / PAGE_SIZE));
         assert(paddr);
@@ -201,6 +208,7 @@ struct thread *create_thread(
             paddr, tls_size, 0, 1, 1, 0
         );
         assert(succeed);
+        t->memory.tls_start_paddr = paddr;
         
         paddr = PFN_TO_ADDR(palloc(stack_size / PAGE_SIZE));
         assert(paddr);
@@ -210,14 +218,12 @@ struct thread *create_thread(
             paddr, stack_size, 0, 1, 1, 0
         );
         assert(succeed);
+        t->memory.stack_top_paddr = paddr + stack_size;
     }
     
-    // Prepare the param. Note that for user thread, we have to use indirect map, therefore we can't do a simple mem write
-    if (p->type == process_kernel) {
-        ulong *param_ptr = (ulong *)(t->memory.thread_block_base + t->memory.stack_top_offset - sizeof(ulong));
-        *param_ptr = param;
-    } else {
-    }
+    // Prepare the param
+    ulong *param_ptr = (ulong *)(t->memory.stack_top_paddr - sizeof(ulong));
+    *param_ptr = param;
     
     // Context
     hal->init_context(&t->context, entry_point,

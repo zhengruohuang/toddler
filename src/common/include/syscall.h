@@ -23,28 +23,35 @@
 #define SYSCALL_GET_TCB         0x20
 
 // IPC
-#define SYSCALL_REG_HANDLER     0x30
-#define SYSCALL_REL_HANDLER     0x31
+#define SYSCALL_REG_MSG_HANDLER     0x30
+#define SYSCALL_UNREG_MSG_HANDLER   0x31
 #define SYSCALL_SEND            0x32
 #define SYSCALL_REQUEST         0x33
 #define SYSCALL_RECV            0x34
 #define SYSCALL_REPLY           0x35
 #define SYSCALL_RESPOND         0x36
 
+// KAPI
+#define SYSCALL_REG_KAPI_SERVER     0x40
+#define SYSCALL_UNREG_KAPI_SERVER   0x41
+
+
 /*
  * IPC
  */
-// Default destinations
-#define IPC_DEST_NONE           0x0
-#define IPC_DEST_KERNEL         0x1
-#define IPC_DEST_THIS_PROCESS   0x10
-#define IPC_DEST_THIS_THREAD    0x11
+// Default mailbox
+#define IPC_MAILBOX_NONE            0x0
+#define IPC_MAILBOX_KERNEL          0x1
+#define IPC_MAILBOX_THIS_PROCESS    0x2
+
+// Default opcode
+#define IPC_OPCODE_NONE         0x0
+#define IPC_OPCODE_KAPI         0x1
 
 enum msg_param_type {
-    msg_param_empty,
-    msg_param_value,
-    msg_param_addr_ro,
-    msg_param_addr_rw,
+    msg_param_empty = 0,
+    msg_param_value = 1,
+    msg_param_buffer = 2,
 };
 
 struct msg_param {
@@ -54,23 +61,23 @@ struct msg_param {
         unsigned long value;
         
         struct {
-            void *vaddr;
-            unsigned long size;
+            int offset;
+            int size;
         };
     };
 };
 
 struct msg {
-    unsigned long dest_mailbox_id;
-    unsigned long msg_num;
-    int need_response;
+    unsigned long mailbox_id;
+    unsigned long opcode;
+    unsigned long func_num;
+    int msg_size;
     int param_count;
-    struct msg_param params[10];
-};
+    struct msg_param params[8];
+} packedstruct;
 
 typedef volatile struct msg msg_t;
-
-typedef asmlinkage void (*dynamic_msg_handler_t)(msg_t *msg);
+typedef asmlinkage void (*msg_handler_t)(msg_t *msg);
 
 
 /*

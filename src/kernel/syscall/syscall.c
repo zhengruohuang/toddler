@@ -33,7 +33,6 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
     switch (disp_info->syscall.num) {
     case SYSCALL_KPUTS:
         t = create_thread(kernel_proc, (ulong)&kputs_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
-        dup_disp_info->syscall.worker = t;
         assert(t);
         break;
     
@@ -46,20 +45,42 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
         break;
         
     // IPC
-    case SYSCALL_REG_HANDLER:
-        reg_handler_worker(disp_info);
+    case SYSCALL_REG_MSG_HANDLER:
+        kprintf("syscall reg msg handler\n");
+        t = create_thread(kernel_proc, (ulong)&reg_msg_handler_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
+        assert(t);
         break;
-    case SYSCALL_REL_HANDLER:
+    case SYSCALL_UNREG_MSG_HANDLER:
+        unreg_msg_handler_worker(disp_info);
         break;
     case SYSCALL_SEND:
-        break;
-    case SYSCALL_REQUEST:
-        break;
-    case SYSCALL_RECV:
-        break;
-    case SYSCALL_RESPOND:
+        send_worker(disp_info);
         break;
     case SYSCALL_REPLY:
+        reply_worker(disp_info);
+        break;
+    case SYSCALL_RECV:
+        t = create_thread(kernel_proc, (ulong)&recv_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
+        assert(t);
+        break;
+    case SYSCALL_REQUEST:
+        kprintf("syscall request\n");
+        t = create_thread(kernel_proc, (ulong)&request_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
+        assert(t);
+        break;
+    case SYSCALL_RESPOND:
+        t = create_thread(kernel_proc, (ulong)&respond_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
+        assert(t);
+        break;
+        
+    // KAPI
+    case SYSCALL_REG_KAPI_SERVER:
+        kprintf("syscall reg kapi server\n");
+        t = create_thread(kernel_proc, (ulong)&reg_kapi_server_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
+        assert(t);
+        break;
+    case SYSCALL_UNREG_KAPI_SERVER:
+        unreg_kapi_server_worker(disp_info);
         break;
         
     // Invalid syscall
@@ -69,8 +90,11 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
     
     // Take care of reschedule flag
     if (t) {
+        dup_disp_info->syscall.worker = t;
         run_thread(t);
         resched = 1;
+    } else {
+        free(dup_disp_info);
     }
     
     return resched;

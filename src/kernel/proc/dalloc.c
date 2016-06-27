@@ -21,6 +21,12 @@ void create_dalloc(struct process *p)
 
 ulong dalloc(struct process *p, ulong size)
 {
+    if (size % PAGE_SIZE) {
+        size /= PAGE_SIZE;
+        size++;
+        size *= PAGE_SIZE;
+    }
+    
     assert(p->dynamic.cur_top - p->memory.heap_end > size);
     assert(p->type != process_kernel);
     

@@ -15,6 +15,10 @@ static char buf[256];
 asmlinkage void _start()
 {
     int i = 0;
+    
+    syscall_kputs("User process started!\n");
+    
+    kapi_init();
 
     do {
         __asm__ __volatile__
@@ -31,6 +35,7 @@ asmlinkage void _start()
                   tcb, tcb->proc_id, tcb->thread_id, tcb->cpu_id, msg);
         
         syscall_kputs(buf);
+        kapi_write(0, buf, 10);
         syscall_kputs("USER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11\n");
     } while (1);
 }

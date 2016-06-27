@@ -25,6 +25,7 @@ typedef struct list {
 } list_t;
 
 //extern void init_list();
+//extern void init_list();
 extern void list_create(list_t *l);
 extern void list_push_back(list_t *l, void *n);
 extern void list_remove(list_t *l, list_node_t *s);
@@ -60,6 +61,7 @@ extern void init_hashtable();
 extern void hashtable_create(hashtable_t *l, ulong bucket_count, hashtable_func_t hash_func);
 extern int hashtable_contains(hashtable_t *l, ulong key);
 extern void *hashtable_obtain(hashtable_t *l, ulong key);
+extern void hashtable_release(hashtable_t *l, ulong key, void *n);
 extern int hashtable_insert(hashtable_t *l, ulong key, void *n);
 extern int hashtable_remove(hashtable_t *l, ulong key);
 

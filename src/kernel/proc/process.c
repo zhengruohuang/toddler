@@ -84,6 +84,9 @@ struct process *create_process(
         p->memory.dynamic_bottom = p->dynamic.cur_top;
     }
     
+    // Msg handlers
+    hashtable_create(&p->msg_handlers, 0, NULL);
+    
     // Insert the process into process list
     p->prev = NULL;
     p->next = processes.next;

@@ -337,10 +337,17 @@ class file_record:
         
 all_file_records = {}
 
+def record_update(name):
+    all_file_records[name] = file_record(name)
+    
+def record_remove(name):
+    if name in all_file_records:
+        del all_file_records[name]
+
 def record_file(name):
     if name in all_file_records:
         return
-    all_file_records[name] = file_record(name)
+    record_update(name)
     
 def need_build(src_name, obj_name):
     if not src_name in all_file_records:
@@ -487,6 +494,9 @@ def compile_file(src_name, obj_name, dep_list, ext_flags, tools):
     verify_cmd(code)
     assert(code == 0)
     
+    # Update record
+    record_update(obj_name)
+    
 def auto_compile_file(src_name, obj_name, ext_dep, ext_flags, tools):
     obj_dir = get_dir(obj_name)
     if not os.path.exists(obj_dir):
@@ -545,6 +555,9 @@ def auto_link_target(obj_files, target_name, ext_flags, tools):
     verify_cmd(code)
     assert(code == 0)
     
+    # Update record
+    record_update(target_name)
+    
 def auto_link(obj_files, target_name, ext_dep, ext_flags, tools):
     if ext_dep != None:
         dep_list = obj_files + ext_dep
@@ -595,6 +608,9 @@ def direct_build(files, target_name, tools):
     code = exec_cmd(cmd)
     verify_cmd(code)
     assert(code == 0)
+    
+    # Update record
+    record_update(target_name)
     
 def auto_direct_build(files, target_name, ext_dep, tools):
     rebuild = False
@@ -654,7 +670,7 @@ def build_files(files, target_name, ext_dep = None, ext_flags = None, tools = No
     
     print_action(lead, 'Done building: ' + target_name)
     
-def direct_build_dir(dir_name, ext, target_name = None, ext_dep = None, tools = None):
+def direct_build_dir(dir_name, ext, target_name, ext_dep = None, tools = None):
     target_dir = get_dir(target_name)
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
@@ -724,6 +740,9 @@ def gen_bin(src_name, target_name, tools):
     verify_cmd(code)
     assert(code == 0)
     
+    # Update record
+    record_update(target_name)
+    
 def strip_target(target_name, tools):
     lead = get_filename(target_name)
     print_action(lead, 'Strip: ' + target_name)
@@ -739,6 +758,9 @@ def strip_target(target_name, tools):
     code = exec_cmd(cmd)
     verify_cmd(code)
     assert(code == 0)
+    
+    # Update record
+    record_update(target_name)
 
 def cat_files(files, target_name, tools):
     recat = False
@@ -767,6 +789,9 @@ def cat_files(files, target_name, tools):
     code = exec_cmd(cmd)
     verify_cmd(code)
     assert(code == 0)
+    
+    # Update record
+    record_update(target_name)
         
 def remove_files(files, tools):
     print_action('remove', str(files))
@@ -781,6 +806,10 @@ def remove_files(files, tools):
     code = exec_cmd(cmd)
     verify_cmd(code)
     assert(code == 0)
+    
+    # Update record
+    for f in files:
+        record_remove(f)
     
 #-------------------------------------------------------------------------------
 

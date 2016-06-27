@@ -27,7 +27,7 @@ void kernel_demo_thread(ulong param)
     do {
         int index = param;
         int cpu_id = hal->get_cur_cpu_id();
-        kprintf("Kernel demo thread #%d on CPU #%d%s!\n", index, cpu_id , index == cpu_id ? ", Thread ID == CPU ID" : "");
+        //kprintf("Kernel demo thread #%d on CPU #%d%s!\n", index, cpu_id , index == cpu_id ? ", Thread ID == CPU ID" : "");
         hal->sleep();
     } while (1);
 }
@@ -35,7 +35,7 @@ void kernel_demo_thread(ulong param)
 void kernel_tclean_thread(ulong param)
 {
     do {
-        kprintf("Cleaning thrads\n");
+        //kprintf("Cleaning thrads\n");
         destroy_absent_threads(kernel_proc);
         //buddy_print();
         hal->sleep();

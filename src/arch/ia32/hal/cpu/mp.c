@@ -106,7 +106,8 @@ void init_mp()
         tcb->proc_id = 0;
         tcb->thread_id = 0;
         tcb->tls = 0;
-        tcb->msg = 0;
+        tcb->msg_send = 0;
+        tcb->msg_recv = 0;
     }
     //panic("TCB padded size: %p\n", tcb_padded_size);
 }
@@ -176,6 +177,7 @@ void bringup_mp()
 void release_mp_lock()
 {
     start_working_lock = 0;
+    __sync_synchronize();
 }
 
 /*

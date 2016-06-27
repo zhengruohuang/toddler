@@ -221,6 +221,9 @@ def build_disk():
     code = exec_cmd(cmd)
     assert(code == 0)
     
+    # Update record
+    record_update(target_name)
+    
 def start_emu():
     print_info('emulator', 'Starting emulator')
     
@@ -230,8 +233,11 @@ def start_emu():
     cmd = 'qemu-system-i386' + \
         ' -m 128' + \
         ' -no-shutdown -no-reboot -no-kvm' + \
-        ' -smp cores=2,threads=2,sockets=2' + \
+        ' -smp cores=1,threads=1,sockets=1' + \
         ' -drive if=floppy,format=raw,file=' + img_name
+    
+    bochs_dir = vm_dir + 'bochs/'
+    cmd = 'cd ' + bochs_dir + ' && bochs -f ' + bochs_dir + 'bochsrc -q -log ' + bochs_dir + 'bochslog.txt -rc ' + bochs_dir + 'bochscmd;'
         
     # Execute the cmd
     code = exec_cmd(cmd)

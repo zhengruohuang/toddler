@@ -93,14 +93,22 @@ enum thread_state {
 };
 
 struct thread_memory {
+    // Virtual base
     ulong thread_block_base;
     
+    // Virtual offset
     ulong stack_top_offset;
     ulong stack_limit_offset;
     ulong tls_start_offset;
     
     ulong msg_recv_offset;
     ulong msg_send_offset;
+    
+    // Physical address
+    ulong stack_top_paddr;
+    ulong tls_start_paddr;
+    ulong msg_recv_paddr;
+    ulong msg_send_paddr;
 };
 
 struct thread {
@@ -239,7 +247,7 @@ extern void dfree(struct process *p, ulong base);
 /*
  * Process
  */
-extern struct process *kernel_proc;;
+extern struct process *kernel_proc;
 
 extern void init_process();
 extern struct process *create_process(

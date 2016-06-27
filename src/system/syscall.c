@@ -19,7 +19,7 @@ no_opt struct thread_control_block *get_tcb()
     return (struct thread_control_block *)addr;
 }
 
-no_opt int do_syscall(unsigned long num, unsigned long param, unsigned long *out1, unsigned long *out2)
+no_opt int do_syscall(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2)
 {
     int succeed = 0;
     unsigned long value1 = 0, value2 = 0;
@@ -34,7 +34,7 @@ no_opt int do_syscall(unsigned long num, unsigned long param, unsigned long *out
         ".align 4;"
         "_sysenter_ret:;"
         : "=a" (succeed), "=S" (value1), "=D" (value2)
-        : "S" (num), "D" (param)
+        : "S"(num), "D" (param1), "a" (param2)
     );
     
     if (out1) {
@@ -50,12 +50,12 @@ no_opt int do_syscall(unsigned long num, unsigned long param, unsigned long *out
 
 int syscall_ping(unsigned long ping, unsigned long *pong)
 {
-    return do_syscall(SYSCALL_PING, ping, pong, NULL);
+    return do_syscall(SYSCALL_PING, ping, 0, pong, NULL);
 }
 
 int syscall_kputs(char *s)
 {
-    return do_syscall(SYSCALL_KPUTS, (unsigned long)s, NULL, NULL);
+    return do_syscall(SYSCALL_KPUTS, (unsigned long)s, 0, NULL, NULL);
 }
 
 msg_t *syscall_msg()
@@ -65,38 +65,91 @@ msg_t *syscall_msg()
         return NULL;
     }
     
-    msg_t *msg = tcb->msg;
-    msg->dest_mailbox_id = IPC_DEST_NONE;
-    msg->msg_num = 0;
-    msg->need_response = 0;
+    msg_t *msg = tcb->msg_send;
+    msg->mailbox_id = IPC_MAILBOX_NONE;
+    msg->opcode = IPC_OPCODE_NONE;
+    msg->func_num = 0;
     msg->param_count = 0;
+    
+    msg->msg_size = (int)sizeof(msg_t);
+    if (msg->msg_size % (int)sizeof(unsigned long)) {
+        msg->msg_size /= (int)sizeof(unsigned long);
+        msg->msg_size++;
+        msg->msg_size *= (int)sizeof(unsigned long);
+    }
     
     return msg;
 }
 
-int syscall_send(msg_t *msg)
+static msg_t *get_recv_msg()
 {
-    int succeed = do_syscall(SYSCALL_SEND, (unsigned long)msg, NULL, NULL);
+    struct thread_control_block *tcb = get_tcb();
+    if (!tcb) {
+        return NULL;
+    }
+    
+    msg_t *msg = tcb->msg_recv;
+    return msg;
+}
+
+int syscall_send()
+{
+    int succeed = do_syscall(SYSCALL_SEND, 0, 0, NULL, NULL);
+    return succeed;
+}
+
+int syscall_reply()
+{
+    int succeed = do_syscall(SYSCALL_REPLY, 0, 0, NULL, NULL);
     return succeed;
 }
 
 msg_t *syscall_recv()
 {
-    return NULL;
+    int succeed = do_syscall(SYSCALL_RECV, 0, 0, NULL, NULL);
+    if (succeed) {
+        return get_recv_msg();
+    } else {
+        return NULL;
+    }
 }
 
-msg_t *syscall_request(msg_t *msg)
+msg_t *syscall_request()
 {
-    return NULL;
+    int succeed = do_syscall(SYSCALL_REQUEST, 0, 0, NULL, NULL);
+    if (succeed) {
+        return get_recv_msg();
+    } else {
+        return NULL;
+    }
 }
 
-int syscall_respond(msg_t *in_msg, msg_t *out_msg)
+int syscall_respond()
 {
-    return 0;
+    int succeed = do_syscall(SYSCALL_RESPOND, 0, 0, NULL, NULL);
+    return succeed;
 }
 
-int syscall_reg_msg_handler(unsigned long msg_num, dynamic_msg_handler_t msg_handler)
+int syscall_reg_msg_handler(unsigned long msg_num, msg_handler_t msg_handler)
 {
-    return 0;
+    int succeed = do_syscall(SYSCALL_REG_MSG_HANDLER, msg_num, (unsigned long)msg_handler, NULL, NULL);
+    return succeed;
 }
 
+int syscall_unreg_msg_handler(unsigned long msg_num)
+{
+    int succeed = do_syscall(SYSCALL_UNREG_MSG_HANDLER, msg_num, 0, NULL, NULL);
+    return succeed;
+}
+
+int syscall_reg_kapi_server(unsigned long kapi_num)
+{
+    int succeed = do_syscall(SYSCALL_REG_KAPI_SERVER, kapi_num, 0, NULL, NULL);
+    return succeed;
+}
+
+int syscall_unreg_kapi_server(unsigned long kapi_num)
+{
+    int succeed = do_syscall(SYSCALL_UNREG_KAPI_SERVER, kapi_num, 0, NULL, NULL);
+    return succeed;
+}

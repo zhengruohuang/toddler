@@ -246,7 +246,8 @@ void asmlinkage no_opt switch_context(ulong sched_id, struct context *context,
     
     // Set TCB
     struct thread_control_block *cur_tcb = (struct thread_control_block *)get_my_cpu_tcb_start_vaddr();
-    cur_tcb->msg = tcb->msg;
+    cur_tcb->msg_send = tcb->msg_send;
+    cur_tcb->msg_recv = tcb->msg_recv;
     cur_tcb->tls = tcb->tls;
     cur_tcb->proc_id = tcb->proc_id;
     cur_tcb->thread_id = tcb->thread_id;

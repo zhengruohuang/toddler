@@ -30,6 +30,9 @@ def build_coreimg():
     # Execute the cmd
     code = exec_cmd(cmd)
     assert(code == 0)
+    
+    # Update record
+    record_update(target_name)
 
 
 def build_main():

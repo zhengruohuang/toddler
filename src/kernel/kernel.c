@@ -2,6 +2,7 @@
 #include "kernel/include/mem.h"
 #include "kernel/include/proc.h"
 #include "kernel/include/coreimg.h"
+#include "kernel/include/ds.h"
 #include "kernel/include/syscall.h"
 
 
@@ -76,10 +77,17 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     init_malloc();
     test_malloc();
     
+    // Init built-in data structions
+    init_hashtable();
+    
     // Init process mgr
     init_sched();
     init_process();
     init_thread();
+    
+    // Init syscall
+    //init_list();
+    init_ipc();
     
     // Init namespace dispatcher
     

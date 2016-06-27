@@ -10,15 +10,14 @@ static msg_t *kapi_msg(int kapi_num)
 {
     msg_t *msg = syscall_msg();
     
-    msg->dest_mailbox_id = IPC_DEST_KERNEL;
-    msg->msg_num = kapi_num;
-    msg->need_response = 1;
-    msg->param_count = 0;
+    msg->mailbox_id = IPC_MAILBOX_KERNEL;
+    msg->opcode = IPC_OPCODE_KAPI;
+    msg->func_num = kapi_num;
     
     return msg;
 }
 
-static void kapi_param_value(msg_t *m, unsigned long value)
+static void param_value(msg_t *m, unsigned long value)
 {
     int index = m->param_count;
     
@@ -28,18 +27,45 @@ static void kapi_param_value(msg_t *m, unsigned long value)
     m->param_count++;
 }
 
-static void kapi_param_ptr(msg_t *m, void *p, unsigned long size, int writable)
+static void param_buffer(msg_t *m, void *buf, size_t size)
 {
     int index = m->param_count;
+    unsigned char *src = NULL;
+    unsigned char *dest = NULL;
+    //unsigned char temp = 0;
+    int i;
     
-    m->params[index].type = writable ? msg_param_addr_rw : msg_param_addr_ro;
-    m->params[index].vaddr = p;
-    m->params[index].size = size;
+    // Align the size
+    int extra_msg_size = (int)size;
+    if (extra_msg_size % (int)sizeof(unsigned long)) {
+        extra_msg_size /= (int)sizeof(unsigned long);
+        extra_msg_size++;
+        extra_msg_size *= (int)sizeof(unsigned long);
+    }
     
+    // Set param
+    m->params[index].type = msg_param_buffer;
+    m->params[index].offset = m->msg_size;
+    m->params[index].size = (int)size;
+    
+    // Copy the buffer content
+    src = (unsigned char *)buf;
+    dest = ((unsigned char *)m) + m->msg_size;
+    
+    for (i = 0; i < size; i++) {
+        //src[i] = src[i];
+        //temp = *src++;
+        //*src++ = temp;
+        //*dest++ = temp;
+        //*dest++ = *src++;
+    }
+    
+    // Set size and count
+    m->msg_size += extra_msg_size;
     m->param_count++;
 }
 
-static unsigned long kapi_return_value(msg_t *m)
+static unsigned long return_value(msg_t *m)
 {
     return m->params[0].value;
 }
@@ -81,24 +107,39 @@ int kapi_write(int fd, void *buf, size_t count)
 {
     // Setup the msg
     msg_t *s = kapi_msg(KAPI_WRITE);
+    msg_t *r = NULL;
+    int sys_ret = 0;
+    int result = 0;
+    
+    //syscall_kputs("To set up the msg!\n");
     
     // Setup the params
-    kapi_param_value(s, (unsigned long)fd);
-    kapi_param_ptr(s, (void *)buf, count, 0);
-    kapi_param_value(s, (unsigned long)count);
+    param_value(s, (unsigned long)fd);
+    param_buffer(s, buf, count);
+    param_value(s, (unsigned long)count);
+    
+    syscall_kputs("To call syscall request!\n");
+    
+    __asm__ __volatile__
+    (
+        "xchgw %%bx, %%bx;"
+        :
+        :
+    );
     
     // Issue the KAPI and obtain the result
-    msg_t *r = syscall_request(s);
+    r = syscall_request();
     
     // Setup the result
-    int result = (int)kapi_return_value(r);
+    result = (int)return_value(r);
     
     return result;
 }
 
 asmlinkage void kapi_write_handler(msg_t *msg)
 {
-    thread_exit(NULL);
+    syscall_kputs("I got a msg!!!\n");
+    //thread_exit(NULL);
 }
 
 //  int lseek(int file, int ptr, int dir);
@@ -126,6 +167,7 @@ int kapi_init()
 {
     int reg = 0;
     
+    syscall_reg_kapi_server(KAPI_WRITE);
     reg += syscall_reg_msg_handler(KAPI_WRITE, kapi_write_handler);
     
     return reg;

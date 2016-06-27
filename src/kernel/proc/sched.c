@@ -307,7 +307,8 @@ void sched()
     // Construct the TCB template
     struct thread_control_block tcb;
     ulong base = s->thread->memory.thread_block_base;
-    tcb.msg = (void *)(base + s->thread->memory.msg_send_offset);
+    tcb.msg_send = (void *)(base + s->thread->memory.msg_send_offset);
+    tcb.msg_recv = (void *)(base + s->thread->memory.msg_recv_offset);
     tcb.tls = (void *)(base + s->thread->memory.tls_start_offset);
     tcb.proc_id = s->proc_id;
     tcb.thread_id = s->thread_id;

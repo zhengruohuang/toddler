@@ -17,7 +17,8 @@ struct thread_control_block {
     int cpu_id;
     
     void *tls;
-    void *msg;
+    void *msg_send;
+    void *msg_recv;
 } packedstruct;
 
 

@@ -21,7 +21,7 @@ The lock-free idea has been abandoned since it created too much unnecessary comp
 
 |Architecture|Bits|Platform|Status|
 |---|---|---|---|---|
-|ia32|32|Pentium 4-based PC|Active|
+|ia32|32|NetBurst-based PC|Active|
 |ppc32|32|Mac Mini G4, PowerMac G4|Initial|
 |armv7|32|Raspberry Pi 2|Initial|
 |mips32|32|MIPS 32|Planned|
@@ -31,7 +31,7 @@ The lock-free idea has been abandoned since it created too much unnecessary comp
 |ppc64|64|PowerMac G5|Planned|
 |armv8|64|Raspberry Pi 3|Planned|
 |mips64|64|MIPS 64|Planned|
-|sparcv9|64|UltraSPARC II|Planned|
+|sparcv9|64|Sun UltraSPARC II Workstation|Planned|
 |riscv|64|RISC V|Planned|
 |ia64|64|Itaium 2|No Plan|
 |alpha|64|ES40|No Plan|

@@ -13,3 +13,27 @@ though a shell was not implemented or ported.
 The new Toddler, on the other hand, is designed with a completely different goal.
 Alghough it is still a hobby project, it aims to provide a fully usable microkernel and a complete OS environment for multiple architectures and platforms.
 The lock-free idea has been abandoned since it created too much unnecessary complexity.
+
+
+## Architecture
+
+## Ports
+
+|Architecture|Bits|Platform|Status|
+|---|---|---|---|---|
+|ia32|32|Pentium 4-based PC|Active|
+|ppc32|32|Mac Mini G4, PowerMac G4|Initial|
+|armv7|32|Raspberry Pi 2|Initial|
+|mips32|32|MIPS 32|Planned|
+|sparcv8|32|SuperSPARC II|Planned|
+|m68k|32|M68K|No Plan|
+|amd64|64|Skylake-based PC|Planned|
+|ppc64|64|PowerMac G5|Planned|
+|armv8|64|Raspberry Pi 3|Planned|
+|mips64|64|MIPS 64|Planned|
+|sparcv9|64|UltraSPARC II|Planned|
+|riscv|64|RISC V|Planned|
+|ia64|64|Itaium 2|No Plan|
+|alpha|64|ES40|No Plan|
+|hppa|64|HP RA-RISC|No Plan|
+|s390|64|S390|No Plan|

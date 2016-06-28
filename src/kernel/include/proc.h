@@ -263,6 +263,7 @@ extern int load_image(struct process *p, char *url);
 extern void init_thread();
 
 extern void create_thread_lists(struct process *p);
+extern void set_thread_arg(struct thread *t, ulong arg);
 extern struct thread *create_thread(
     struct process *p, ulong entry_point, ulong param,
     int pin_cpu_id,

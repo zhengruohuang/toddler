@@ -85,6 +85,8 @@ typedef asmlinkage void (*msg_handler_t)(msg_t *msg);
  */
 #define KAPI_NONE           0x0
 #define KAPI_WRITE          0x1
+#define KAPI_READ           0x2
+#define KAPI_THREAD_EXIT    0x3
 
 
 #endif

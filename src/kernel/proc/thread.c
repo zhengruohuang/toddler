@@ -118,6 +118,12 @@ void create_thread_lists(struct process *p)
     init_list(&p->threads.absent);
 }
 
+void set_thread_arg(struct thread *t, ulong arg)
+{
+    ulong *param_ptr = (ulong *)(t->memory.stack_top_paddr - sizeof(ulong));
+    *param_ptr = arg;
+}
+
 struct thread *create_thread(
     struct process *p, ulong entry_point, ulong param,
     int pin_cpu_id,

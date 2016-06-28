@@ -10,7 +10,7 @@ int a = 0;
 
 extern int asmlinkage vsnprintf(char *buf, size_t size, char *fmt, ...);
 
-static char buf[256];
+static char buf[128];
 
 asmlinkage void _start()
 {
@@ -31,11 +31,11 @@ asmlinkage void _start()
         struct thread_control_block *tcb = get_tcb();
         msg_t *msg = syscall_msg();
         
-        vsnprintf(buf, 256, "User process iteration: %d, TCB: %p, Proc ID: %p, Thread ID: %p, CPU ID: %d, Msg: %p\n", i++,
+        vsnprintf(buf, 128, "User process iteration: %d, TCB: %p, Proc ID: %p, Thread ID: %p, CPU ID: %d, Msg: %p\n", i++,
                   tcb, tcb->proc_id, tcb->thread_id, tcb->cpu_id, msg);
         
         syscall_kputs(buf);
-        kapi_write(0, buf, 10);
+        kapi_write(0, buf, 128);
         syscall_kputs("USER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11\n");
     } while (1);
 }

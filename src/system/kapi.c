@@ -90,6 +90,30 @@ static unsigned long return_value(msg_t *m)
  */
 void thread_exit(void *retval)
 {
+    // Setup the msg
+    msg_t *s = kapi_msg(KAPI_THREAD_EXIT);
+    
+    //syscall_kputs("To set up the msg!\n");
+    
+    // Setup the params
+    param_value(s, (unsigned long)retval);
+    
+    syscall_kputs("To call thread exit syscall!\n");
+    
+    __asm__ __volatile__
+    (
+        "xchgw %%bx, %%bx;"
+        :
+        :
+    );
+    
+    // Issue the KAPI
+    syscall_request();
+    
+    // Should never reach here
+    do {
+        // Nothing
+    } while (1);
 }
 
 /*
@@ -120,6 +144,38 @@ int kapi_write(int fd, void *buf, size_t count)
     
     syscall_kputs("To call syscall request!\n");
     
+//     __asm__ __volatile__
+//     (
+//         "xchgw %%bx, %%bx;"
+//         :
+//         :
+//     );
+    
+    // Issue the KAPI and obtain the result
+    r = syscall_request();
+    
+    // Setup the result
+    //result = (int)return_value(r);
+    
+    return result;
+}
+
+extern int asmlinkage vsnprintf(char *buf, size_t size, char *fmt, ...);
+static char buf[128];
+
+asmlinkage void kapi_write_handler(msg_t *msg)
+{
+    unsigned long reply_mbox_id = msg->mailbox_id;
+    
+    vsnprintf(buf, 128, "I got a msg, mailbox_id: %p\n", reply_mbox_id);
+    syscall_kputs(buf);
+    
+    // Setup the msg
+    msg_t *s = syscall_msg();
+    s->mailbox_id = reply_mbox_id;
+    
+    syscall_kputs("To call syscall respond!\n");
+    
     __asm__ __volatile__
     (
         "xchgw %%bx, %%bx;"
@@ -128,18 +184,12 @@ int kapi_write(int fd, void *buf, size_t count)
     );
     
     // Issue the KAPI and obtain the result
-    r = syscall_request();
+    syscall_respond();
     
-    // Setup the result
-    result = (int)return_value(r);
-    
-    return result;
-}
-
-asmlinkage void kapi_write_handler(msg_t *msg)
-{
-    syscall_kputs("I got a msg!!!\n");
-    //thread_exit(NULL);
+    // Should never reach here
+    do {
+        // Nothing
+    } while (1);
 }
 
 //  int lseek(int file, int ptr, int dir);

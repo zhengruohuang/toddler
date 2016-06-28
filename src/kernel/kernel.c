@@ -4,6 +4,7 @@
 #include "kernel/include/coreimg.h"
 #include "kernel/include/ds.h"
 #include "kernel/include/syscall.h"
+#include "kernel/include/kapi.h"
 
 
 struct hal_exports *hal;
@@ -78,6 +79,7 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     test_malloc();
     
     // Init built-in data structions
+    //init_list();
     init_hashtable();
     
     // Init process mgr
@@ -85,9 +87,10 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     init_process();
     init_thread();
     
-    // Init syscall
-    //init_list();
+    // Init syscall and KAPI
+    init_syscall();
     init_ipc();
+    init_kapi();
     
     // Init namespace dispatcher
     

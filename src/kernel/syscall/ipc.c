@@ -7,13 +7,13 @@
 #include "kernel/include/proc.h"
 #include "kernel/include/lib.h"
 #include "kernel/include/ds.h"
+#include "kernel/include/kapi.h"
 
 
 static int msg_salloc_id;
 static int msg_node_salloc_id;
 static int msg_handler_salloc_id;
-
-static hashtable_t kapi_servers;
+static int kernel_msg_handler_arg_salloc_id;
 
 
 void init_ipc()
@@ -21,45 +21,23 @@ void init_ipc()
     msg_salloc_id = salloc_create(sizeof(msg_t), 0, 0, NULL, NULL);
     msg_node_salloc_id = salloc_create(sizeof(struct msg_node), 0, 0, NULL, NULL);
     msg_handler_salloc_id = salloc_create(sizeof(struct msg_handler), 0, 0, NULL, NULL);
+    kernel_msg_handler_arg_salloc_id = salloc_create(sizeof(struct kernel_msg_handler_arg), 0, 0, NULL, NULL);
     
-    hashtable_create(&kapi_servers, 0, NULL);
-    
-    kprintf("\tIPC node salloc IDs, Message: %d, Node: %d, Handler: %d\n",
-            msg_salloc_id, msg_node_salloc_id, msg_handler_salloc_id
+    kprintf("\tIPC node salloc IDs, Message: %d, Node: %d, Handler: %d, Kernel Msg Handler Arg: %d\n",
+            msg_salloc_id, msg_node_salloc_id, msg_handler_salloc_id, kernel_msg_handler_arg_salloc_id
     );
 }
 
 
-void reg_msg_handler_worker_thread(ulong param)
+void reg_msg_handler_worker(struct kernel_dispatch_info *disp_info)
 {
     // Get the params
-    struct kernel_dispatch_info *disp_info = (struct kernel_dispatch_info *)param;
-    struct thread *worker = disp_info->syscall.worker;
-    
     struct process *p = disp_info->proc;
     ulong msg_num = disp_info->syscall.param0;
     ulong thread_entry = disp_info->syscall.param1;
     
     // Register the msg handler
     hashtable_insert(&p->msg_handlers, msg_num, (void *)thread_entry);
-    
-    // Reenable the user thread
-    run_thread(disp_info->thread);
-    
-    // Cleanup
-    free(disp_info);
-    terminate_thread(worker);
-    
-    // Wait for this thread to be terminated
-    do {
-        hal->sleep();
-    } while (1);
-    
-    // Should never reach here
-    kprintf("kputs.c: Should never reach here!\n");
-    do {
-        hal->sleep();
-    } while (1);
 }
 
 void unreg_msg_handler_worker(struct kernel_dispatch_info *disp_info)
@@ -73,37 +51,16 @@ void unreg_msg_handler_worker(struct kernel_dispatch_info *disp_info)
 }
 
 
-void reg_kapi_server_worker_thread(ulong param)
+void reg_kapi_server_worker(struct kernel_dispatch_info *disp_info)
 {
     // Get the params
-    struct kernel_dispatch_info *disp_info = (struct kernel_dispatch_info *)param;
-    struct thread *worker = disp_info->syscall.worker;
-    
     struct process *p = disp_info->proc;
     ulong kapi_num = disp_info->syscall.param0;
     
     // Unregister the KAPI server
     hashtable_insert(&kapi_servers, kapi_num, (void *)p);
     
-    kprintf("KAPI num: %p registered\n", kapi_num);
-    
-    // Reenable the user thread
-    run_thread(disp_info->thread);
-    
-    // Cleanup
-    free(disp_info);
-    terminate_thread(worker);
-    
-    // Wait for this thread to be terminated
-    do {
-        hal->sleep();
-    } while (1);
-    
-    // Should never reach here
-    kprintf("kputs.c: Should never reach here!\n");
-    do {
-        hal->sleep();
-    } while (1);
+    //kprintf("KAPI num: %p registered\n", kapi_num);
 }
 
 void unreg_kapi_server_worker(struct kernel_dispatch_info *disp_info)
@@ -188,11 +145,12 @@ static struct msg_node *duplicate_msg(
     // Create a new copy of the msg content
     n->msg = (msg_t *)salloc(msg_salloc_id);
     memcpy((void *)s, (void *)n->msg, s->msg_size);
+    n->msg->mailbox_id = (ulong)src_t;
     
     return n;
 }
 
-static void free_msg(struct msg_node *n)
+static void sfree_msg(struct msg_node *n)
 {
     assert(n);
     assert(n->msg);
@@ -201,9 +159,9 @@ static void free_msg(struct msg_node *n)
     sfree(n);
 }
 
-static void copy_msg_to_recv(struct thread *t)
+static void copy_msg_to_recv(msg_t *src, struct thread *t)
 {
-    msg_t *src = t->cur_msg->msg;
+    //msg_t *src = t->cur_msg->msg;
     msg_t *dest = (msg_t *)t->memory.msg_recv_paddr;
     
     memcpy((void *)src, (void *)dest, src->msg_size);
@@ -231,28 +189,50 @@ static void transfer_msg(msg_t *s, int sender_blocked, struct process *src_p, st
         :
     );
     
-    // Setup msg node
-    struct msg_node *n = duplicate_msg(s, sender_blocked, src_p, src_t, dest_p, NULL);
+    kprintf("Msg duplicated!\n");
     
-    if (hashtable_contains(&src_p->msg_handlers, s->func_num)) {
+    // Transfer the msg
+    if (hashtable_contains(&dest_p->msg_handlers, s->func_num)) {
+        kprintf("To create thread!\n");
+        
         // Create a new thread to handle the msg
-        void *entry_point = hashtable_obtain(&src_p->msg_handlers, s->func_num);
+        void *entry_point = hashtable_obtain(&dest_p->msg_handlers, s->func_num);
         struct thread *t = create_thread(dest_p, (ulong)entry_point, 0, -1, PAGE_SIZE, PAGE_SIZE);
+        hashtable_release(&dest_p->msg_handlers, s->func_num, entry_point);
+        
+        kprintf("To create thread!\n");
+        
+        // Prepare the arguments
+        if (dest_p->type == process_kernel) {
+            struct kernel_msg_handler_arg *arg = (struct kernel_msg_handler_arg *)salloc(kernel_msg_handler_arg_salloc_id);
+            arg->handler_thread = t;
+            arg->sender_thread = src_t;
+            arg->msg = (msg_t *)(void *)(t->memory.thread_block_base + t->memory.msg_recv_offset);
+            set_thread_arg(t, (ulong)arg);
+        } else {
+            set_thread_arg(t, t->memory.thread_block_base + t->memory.msg_recv_offset);
+        }
+        
+        kprintf("Thread created!\n");
         
         // Attach the msg to the thread
-        t->cur_msg = n;
+        //t->cur_msg = n;
         
         // Copy the msg content to thread's recv window
-        copy_msg_to_recv(t);
+        s->mailbox_id = (ulong)src_t;
+        copy_msg_to_recv(s, t);
         
         // Run the thread
         run_thread(t);
-        
-        // Release the hashtable node
-        hashtable_release(&src_p->msg_handlers, s->func_num, entry_point);
     } else {
         // Push the node into the dest's msg queue
+        kprintf("To push to msg queue!\n");
+        
+        // Setup msg node
+        struct msg_node *n = duplicate_msg(s, sender_blocked, src_p, src_t, dest_p, NULL);
         list_push_back(&dest_p->msgs, n);
+        
+        kprintf("Pushed to msg queue!\n");
     }
 }
 
@@ -270,32 +250,29 @@ void send_worker(struct kernel_dispatch_info *disp_info)
 
 void reply_worker(struct kernel_dispatch_info *disp_info)
 {
+    kprintf("To reply!\n");
+    
     // Get src info
     struct process *src_p = disp_info->proc;
     struct thread *src_t = disp_info->thread;
     msg_t *s = (msg_t *)src_t->memory.msg_send_paddr;
     assert(s);
     
-    // Obtain the msg that is being replied to
-    struct msg_node *n = src_t->cur_msg;
-    assert(n);
-    assert(n->sender_blocked);
-    
     // Get dest info
     struct thread *dest_t = get_thread_by_mailbox_id(s->mailbox_id); //n->dest.thread;
     struct process *dest_p = dest_t->proc; //n->dest.proc;
     
-    // Setup msg node
-    struct msg_node *dest_n = duplicate_msg(n->msg, 0, src_p, src_t, dest_p, dest_t);
-
-    // Reply to the thread
-    if (dest_t->cur_msg) {
-        free_msg(dest_t->cur_msg);
-    }
-    dest_t->cur_msg = dest_n;
+//     // Setup msg node
+//     struct msg_node *dest_n = duplicate_msg(s, 0, src_p, src_t, dest_p, dest_t);
+// 
+//     // Reply to the thread
+//     if (dest_t->cur_msg) {
+//         sfree_msg(dest_t->cur_msg);
+//     }
+//     dest_t->cur_msg = dest_n;
     
     // Copy the msg to the recv window
-    copy_msg_to_recv(dest_t);
+    copy_msg_to_recv(s, dest_t);
     
     // Wake up the thread
     run_thread(dest_t);
@@ -322,27 +299,33 @@ void recv_worker_thread(ulong param)
         hal->sleep();
     } while (1);
     
-    // Clean the previous msg
-    if (src_t->cur_msg) {
-        free_msg(src_t->cur_msg);
-    }
-    
-    // Attach the msg to current thread
-    src_t->cur_msg = s;
+//     // Clean the previous msg
+//     if (src_t->cur_msg) {
+//         sfree_msg(src_t->cur_msg);
+//     }
+//     
+//     // Attach the msg to current thread
+//     src_t->cur_msg = s;
     
     // Copy the msg content to thread's recv window
-    copy_msg_to_recv(src_t);
+    copy_msg_to_recv(s->msg, src_t);
+    sfree_msg(s);
     
     // Wakeup the thread
     run_thread(src_t);
     
     // Cleanup
-    free(disp_info);
+    sfree(disp_info);
     terminate_thread(worker);
     
-    // Should never reach here
+    // Wait for this thread to be terminated
     do {
-        kprintf("Should never reach here!\n");
+        hal->sleep();
+    } while (1);
+    
+    // Should never reach here
+    kprintf("kputs.c: Should never reach here!\n");
+    do {
         hal->sleep();
     } while (1);
 }
@@ -365,12 +348,17 @@ void request_worker_thread(ulong param)
     transfer_msg(s, 1, src_p, src_t);
     
     // Cleanup
-    free(disp_info);
+    sfree(disp_info);
     terminate_thread(worker);
     
-    // Should never reach here
+    // Wait for this thread to be terminated
     do {
-        kprintf("Should never reach here!\n");
+        hal->sleep();
+    } while (1);
+    
+    // Should never reach here
+    kprintf("kputs.c: Should never reach here!\n");
+    do {
         hal->sleep();
     } while (1);
 }
@@ -385,16 +373,27 @@ void respond_worker_thread(ulong param)
     // Do a reply
     reply_worker(disp_info);
     
+    kprintf("To terminate src thread!\n");
+    
     // Terminate the src thread
     terminate_thread(src_t);
     
+    kprintf("To terminate worker thread!\n");
+    
     // Cleanup
-    free(disp_info);
+    sfree(disp_info);
     terminate_thread(worker);
     
-    // Should never reach here
+    kprintf("Worker thread terminated!\n");
+    
+    // Wait for this thread to be terminated
     do {
-        kprintf("Should never reach here!\n");
+        hal->sleep();
+    } while (1);
+    
+    // Should never reach here
+    kprintf("kputs.c: Should never reach here!\n");
+    do {
         hal->sleep();
     } while (1);
 }

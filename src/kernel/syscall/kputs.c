@@ -55,7 +55,7 @@ void kputs_worker_thread(ulong param)
     run_thread(disp_info->thread);
     
     // Cleanup
-    free(disp_info);
+    sfree(disp_info);
     terminate_thread(worker);
     
     // Wait for this thread to be terminated

@@ -180,27 +180,27 @@ int_handler_copr_seg_overrun:
 
 int_handler_invalid_tss:
     cli
-    push    dword 10                    ; vector_no = 10
+    push    dword 10                    ; vector_no = 10 a
     jmp     int_handler_general
 
 int_handler_segment_not_present:
     cli
-    push    dword 11                    ; vector_no = 11
+    push    dword 11                    ; vector_no = 11 b
     jmp     int_handler_general
 
 int_handler_stack_exception:
     cli
-    push    dword 12                    ; vector_no = 12
+    push    dword 12                    ; vector_no = 12 c
     jmp     int_handler_general
 
 int_handler_general_protection:
     cli
-    push    dword 13                    ; vector_no = 13
+    push    dword 13                    ; vector_no = 13 d
     jmp     int_handler_general
 
 int_handler_page_fault:
     cli
-    push    dword 14                    ; vector_no = 14
+    push    dword 14                    ; vector_no = 14 e
     jmp     int_handler_general
 
 ; Exception #15 is reserved by Intel

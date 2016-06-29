@@ -1,4 +1,5 @@
 #include "common/include/data.h"
+#include "system/include/syscall.h"
 
 
 #define __FT_UNKNOWN    0
@@ -19,6 +20,7 @@ static void print_char(char *buf, size_t size, int *index, char c)
     int idx = *index;
     
     if (idx >= size - 1) {
+        buf[size - 1] = '\0';
         return;
     }
     
@@ -266,7 +268,7 @@ static int find_token(char *tp, int *ft_count, int *size, int *prefix, int *uppe
 int asmlinkage vsnprintf(char *buf, size_t size, char *fmt, ...)
 {
     char *c = fmt;
-    int ftype = 0, ft_count, param_size, prefix, upper, has_sign;
+    int ftype, ft_count, param_size, prefix, upper, has_sign;
     
     u32 arg4 = 0;
     u64 arg8 = 0;
@@ -304,13 +306,13 @@ int asmlinkage vsnprintf(char *buf, size_t size, char *fmt, ...)
                 print_bin(buf, size, &cur_index, arg4);
                 break;
             case __FT_INT64:
-                print_int64(buf, size, &cur_index, arg4, has_sign);
+                print_int64(buf, size, &cur_index, arg8, has_sign);
                 break;
             case __FT_HEX64:
-                print_hex64(buf, size, &cur_index, arg4, prefix, upper);
+                print_hex64(buf, size, &cur_index, arg8, prefix, upper);
                 break;
             case __FT_BIN64:
-                print_bin64(buf, size, &cur_index, arg4);
+                print_bin64(buf, size, &cur_index, arg8);
                 break;
             case __FT_CHAR:
                 print_char(buf, size, &cur_index, (char)arg4);
@@ -319,7 +321,7 @@ int asmlinkage vsnprintf(char *buf, size_t size, char *fmt, ...)
                 if (param_size == 4) {
                     print_string(buf, size, &cur_index, (char *)arg4);
                 } else {
-                    print_string(buf, size, &cur_index, (char *)arg8);
+                    print_string(buf, size, &cur_index, (char *)(unsigned long)arg8);
                 }
                 break;
             case __FT_PERCENT:
@@ -341,6 +343,10 @@ int asmlinkage vsnprintf(char *buf, size_t size, char *fmt, ...)
         c++;
     }
     
+    if (cur_index >= (int)size - 1) {
+        cur_index = (int)size - 1;
+    }
     buf[cur_index] = 0;
+    
     return cur_index;
 }

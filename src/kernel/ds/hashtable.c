@@ -23,9 +23,9 @@ void hashtable_create(hashtable_t *l, ulong bucket_count, hashtable_func_t hash_
 {
     int i;
     
-    l->bucket_count = bucket_count ? bucket_count : 2;
+    l->bucket_count = bucket_count ? bucket_count : 16;
     l->node_count = 0;
-    l->buckets = (hashtable_bucket_t *)malloc(sizeof(hashtable_bucket_t) * bucket_count);
+    l->buckets = (hashtable_bucket_t *)malloc(sizeof(hashtable_bucket_t) * l->bucket_count);
     l->hash_func = hash_func ? hash_func : default_hash_func;
     
     for (i = 0; i < l->bucket_count; i++) {

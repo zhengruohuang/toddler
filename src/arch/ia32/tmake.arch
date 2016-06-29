@@ -4,7 +4,7 @@
 global_tools = { \
     '.c' : { \
         'exec'  : 'gcc',
-        'flags' : '-c -g -fno-builtin -fno-stack-protector -O3 -m32',
+        'flags' : '-c -g -fno-builtin -fno-stack-protector -O2 -m32',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',

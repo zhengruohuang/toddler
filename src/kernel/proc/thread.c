@@ -160,10 +160,18 @@ struct thread *create_thread(
         t->memory.stack_top_paddr = t->memory.thread_block_base + t->memory.stack_top_offset;
     } else {
         // Round up stack size and tls size
+        if (!stack_size) {
+            stack_size = PAGE_SIZE;
+        }
+        
         if (stack_size % PAGE_SIZE) {
             stack_size /= PAGE_SIZE;
             stack_size++;
             stack_size *= PAGE_SIZE;
+        }
+        
+        if (!tls_size) {
+            tls_size = PAGE_SIZE;
         }
         
         if (tls_size % PAGE_SIZE) {

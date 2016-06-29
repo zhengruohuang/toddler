@@ -14,6 +14,7 @@ no_opt struct thread_control_block *get_tcb()
         "movl   %%gs:(%%esi), %%edi;"
         : "=D" (addr)
         :
+        : "%esi"
     );
     
     return (struct thread_control_block *)addr;

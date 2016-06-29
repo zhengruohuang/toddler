@@ -32,7 +32,7 @@ static void param_buffer(msg_t *m, void *buf, size_t size)
     int index = m->param_count;
     unsigned char *src = NULL;
     unsigned char *dest = NULL;
-    //unsigned char temp = 0;
+    unsigned char temp = 0;
     int i;
     
     // Align the size
@@ -53,11 +53,7 @@ static void param_buffer(msg_t *m, void *buf, size_t size)
     dest = ((unsigned char *)m) + m->msg_size;
     
     for (i = 0; i < size; i++) {
-        //src[i] = src[i];
-        //temp = *src++;
-        //*src++ = temp;
-        //*dest++ = temp;
-        //*dest++ = *src++;
+        *dest++ = *src++;
     }
     
     // Set size and count
@@ -116,6 +112,8 @@ void thread_exit(void *retval)
     } while (1);
 }
 
+extern int asmlinkage vsnprintf(char *buf, size_t size, char *fmt, ...);
+
 /*
  * File
  */
@@ -137,19 +135,29 @@ int kapi_write(int fd, void *buf, size_t count)
     
     //syscall_kputs("To set up the msg!\n");
     
+//     vsnprintf((char *)buf, 128, "fd: %d, count: %p, buf: %p\n",
+//               fd, count, buf
+//     );
+//     syscall_kputs((char *)buf);
+    
     // Setup the params
     param_value(s, (unsigned long)fd);
     param_buffer(s, buf, count);
     param_value(s, (unsigned long)count);
     
+//     vsnprintf((char *)buf, 128, "fd: %d, count: %p, buf: %p\n",
+//               fd, count, buf
+//     );
+//     syscall_kputs((char *)buf);
+    
     syscall_kputs("To call syscall request!\n");
     
-//     __asm__ __volatile__
-//     (
-//         "xchgw %%bx, %%bx;"
-//         :
-//         :
-//     );
+    __asm__ __volatile__
+    (
+        "xchgw %%bx, %%bx;"
+        :
+        :
+    );
     
     // Issue the KAPI and obtain the result
     r = syscall_request();
@@ -160,14 +168,35 @@ int kapi_write(int fd, void *buf, size_t count)
     return result;
 }
 
-extern int asmlinkage vsnprintf(char *buf, size_t size, char *fmt, ...);
 static char buf[128];
 
 asmlinkage void kapi_write_handler(msg_t *msg)
 {
     unsigned long reply_mbox_id = msg->mailbox_id;
     
+    int fd = (int)msg->params[0].value;
+    size_t count = (size_t)msg->params[2].value;
+    
     vsnprintf(buf, 128, "I got a msg, mailbox_id: %p\n", reply_mbox_id);
+    syscall_kputs(buf);
+    
+    vsnprintf(buf, 128, "fd: %d, count: %p, offset: %d, size: %d\n",
+              fd, count, msg->params[1].offset, msg->params[1].size
+    );
+    syscall_kputs(buf);
+    
+    vsnprintf(buf, 128, "param0 type: %d, param1: %d, param2: %d\n",
+              msg->params[0].type, msg->params[1].type, msg->params[2].type
+    );
+    syscall_kputs(buf);
+    
+    int i;
+    char *src_buf = (char *)((unsigned long)msg + msg->params[1].offset);
+    for (i = 0; i < msg->params[1].size; i++) {
+        buf[i] = src_buf[i];
+    }
+    buf[128] = '\0';
+    
     syscall_kputs(buf);
     
     // Setup the msg

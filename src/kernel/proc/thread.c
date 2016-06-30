@@ -127,8 +127,7 @@ void set_thread_arg(struct thread *t, ulong arg)
 struct thread *create_thread(
     struct process *p, ulong entry_point, ulong param,
     int pin_cpu_id,
-    ulong stack_size, ulong tls_size
-)
+    ulong stack_size, ulong tls_size)
 {
     // Allocate a thread struct
     struct thread *t = (struct thread *)salloc(thread_salloc_id);

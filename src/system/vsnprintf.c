@@ -149,35 +149,33 @@ static void print_unknown(char *buf, size_t size, int *index)
 
 static int find_long_token(char token, int *size, int *prefix, int *upper, int *has_sign)
 {
-    *size = 0;
+    int is_long64 = sizeof(unsigned long) == sizeof(unsigned long long);
+    
+    *size = is_long64 ? 8 : 4;
     *prefix = 0;
     *upper = 0;
     *has_sign = 0;
     
     switch (token) {
     case 'd':
-        *size = 8;
         *has_sign = 1;
-        return __FT_INT64;
+        return is_long64 ? __FT_INT64 : __FT_INT;
     case 'u':
-        *size = 8;
-        return __FT_INT64;
+        return is_long64 ? __FT_INT64 : __FT_INT;
     case 'X':
         *upper = 1;
     case 'x':
-        *size = 8;
         *prefix = 1;
-        return __FT_HEX64;
+        return is_long64 ? __FT_HEX64 : __FT_HEX;
     case 'H':
         *upper = 1;
     case 'h':
-        *size = 8;
-        return __FT_HEX64;
+        return is_long64 ? __FT_HEX64 : __FT_HEX;
     case 'B':
     case 'b':
-        *size = 8;
-        return __FT_BIN64;
+        return is_long64 ? __FT_BIN64 : __FT_BIN;
     default:
+        *size = 0;
         return __FT_UNKNOWN;
     }
     

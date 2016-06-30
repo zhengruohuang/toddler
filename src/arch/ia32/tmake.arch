@@ -267,7 +267,6 @@ arch_tools['boot_tools'] = boot_tools
 # Setup callback functions
 arch_funcs['build_arch'] = build_arch
 arch_funcs['build_disk'] = build_disk
-arch_funcs['start_emu'] = start_emu
 
 arch_funcs['build_boot'] = build_boot
 arch_funcs['build_boot_fp'] = build_boot_fp

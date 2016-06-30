@@ -168,7 +168,7 @@ void init_acpi()
     
     // Get and map RSDT or XSDT
     if (acpi_v2_enabled) {
-        acpi_xsdt = (struct acpi_xsdt *)(acpi_rsdp->xsdt_address);
+        acpi_xsdt = (struct acpi_xsdt *)(ulong)(acpi_rsdp->xsdt_address);
         kernel_direct_map_array((ulong)acpi_xsdt, sizeof(struct acpi_xsdt), 0);
     } else {
         acpi_rsdt = (struct acpi_rsdt *)(acpi_rsdp->rsdt_address);
@@ -192,9 +192,9 @@ void init_acpi()
         struct acpi_sdt_header *hdr;
         
         if (acpi_v2_enabled) {
-            hdr = (struct acpi_sdt_header *)acpi_xsdt->entry[i];
+            hdr = (struct acpi_sdt_header *)(ulong)acpi_xsdt->entry[i];
         } else {
-            hdr = (struct acpi_sdt_header *)acpi_rsdt->entry[i];
+            hdr = (struct acpi_sdt_header *)(ulong)acpi_rsdt->entry[i];
         }
         
         // Map the table

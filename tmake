@@ -57,7 +57,8 @@ arch_dir        = src_dir + 'arch/' + target_arch + '/'
 platform_dir    = arch_dir + target_platform + '/'
 
 # Target
-target_dir      = project_dir + 'target/' + target_name + '/'
+target_all_dir  = project_dir + 'target/'
+target_dir      = target_all_dir + target_name + '/'
 obj_dir         = target_dir + 'obj/'
 bin_dir         = target_dir + 'bin/'
 img_dir         = target_dir + 'img/'
@@ -379,6 +380,11 @@ def get_src_dep_list(src_name, obj_name, tools):
     
     # Get the tool
     tool = get_tool(src_name, tools)
+    
+    # Create dir
+    obj_dir = get_dir(obj_name)
+    if not os.path.exists(obj_dir):
+        os.makedirs(obj_dir)
     
     # Compose the cmd line
     inc_cmd = ''
@@ -818,13 +824,31 @@ def remove_files(files, tools):
 # Main
 #-------------------------------------------------------------------------------
 
-print_title('Toddler building system')
+print_title('Toddler building system started')
+
+# Parse command line
+actions = [ "build", "emu" ]
+
+for argv in sys.argv:
+    if "arch" in argv:
+        parts = split(argv, "=")
+        target_arch = parts[1]
+    elif "platform" in argv:
+        parts = split(argv, "=")
+        target_platform = parts[1]
+    elif "suffix" in argv:
+        parts = split(argv, "=")
+        target_suffix = parts[1]
+    
+    elif "action" in argv:
+        parts = split(argv, "=")
+        actions = split(parts[1], ",")
 
 # Host and target info
 print_info('host', 'Architecture: {0}, OS: {1}'.format(host_arch, host_os))
 print_info('target', 'Architecture: {0}, platform: {1}, suffix: {2}'.format(
-     target_arch, target_platform,
-     'N/A' if target_suffix == '' else target_suffix)
+    target_arch, target_platform,
+    'N/A' if target_suffix == '' else target_suffix)
 )
 
 # Include arch specific make file
@@ -834,32 +858,72 @@ include(project_dir + 'tmake.main')
 include(tools_src_dir + 'tmake.tools')
 include(arch_dir + 'tmake.arch')
 
-# Build arch specific targets
-if 'build_arch' in arch_funcs:
-    arch_funcs['build_arch']()
+# Build
+if "build" in actions or "all" in actions:
+    print_title('Start building Toddler')
 
-# Build main components
-if 'build_main' in arch_funcs:
-    arch_funcs['build_main']()
+    # Build arch specific targets
+    if 'build_arch' in arch_funcs:
+        arch_funcs['build_arch']()
 
-# Build tools
-if 'build_tools' in arch_funcs:
-    arch_funcs['build_tools']()
+    # Build main components
+    if 'build_main' in arch_funcs:
+        arch_funcs['build_main']()
 
-# Build core image
-if 'build_coreimg' in arch_funcs:
-    arch_funcs['build_coreimg']()
+    # Build tools
+    if 'build_tools' in arch_funcs:
+        arch_funcs['build_tools']()
 
-# Build disk image
-if 'build_disk' in arch_funcs:
-    arch_funcs['build_disk']()
+    # Build core image
+    if 'build_coreimg' in arch_funcs:
+        arch_funcs['build_coreimg']()
 
-print_title('Toddler build completed')
+    # Build disk image
+    if 'build_disk' in arch_funcs:
+        arch_funcs['build_disk']()
 
-# Start emulator
-if 'start_emu' in arch_funcs:
-    arch_funcs['start_emu']()
+    # Remove action
+    if 'build' in actions:
+        actions.remove('build')
 
-print_title('Toddler testing completed')
+# Emulator
+if "emu" in actions or "all" in actions:
+    print_title('Start emulator')
+
+    # Start emulator
+    if 'start_emu' in arch_funcs:
+        arch_funcs['start_emu']()
+        
+    # Remove action
+    if 'emu' in actions:
+        actions.remove('emu')
+        
+# Remove 'all' action
+if 'all' in actions:
+    actions.remove('all')
+
+# Clean
+if "clean" in actions:
+    print_title('Cleaning target: ' + target_name)
+    
+    print_info('remove', target_dir)
+    shutil.rmtree(target_dir, ignore_errors = True)
+    actions.remove('clean')
+
+# Clean all
+if "clean_all" in actions:
+    print_title('Cleaning all')
+    
+    print_info('remove', target_all_dir)
+    shutil.rmtree(target_all_dir, ignore_errors = True)
+    actions.remove('clean_all')
+
+# Other actions
+for act in actions:
+    if act in arch_funcs:
+        print_title('Run action: ' + act)
+        arch_funcs[act]()
+
+print_title('Toddler building system completed')
 
 #-------------------------------------------------------------------------------

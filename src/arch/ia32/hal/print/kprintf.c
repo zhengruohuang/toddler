@@ -309,9 +309,9 @@ int asmlinkage kprintf(char *fmt, ...)
                 break;
             case __FT_STR:
                 if (param_size == 4) {
-                    print_string((char *)arg4);
+                    print_string((char *)(ulong)arg4);
                 } else {
-                    print_string((char *)arg8);
+                    print_string((char *)(ulong)arg8);
                 }
                 break;
             case __FT_PERCENT:

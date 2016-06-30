@@ -22,7 +22,7 @@ global_tools = { \
     
     'ld' : { \
         'exec'  : 'ld',
-        'flags' : '-m elf_i386',
+        'flags' : '-m elf_i386 -s',
         'script': '-T __script__',
         'obj'   : '-o __target__ __obj__',
     },
@@ -223,9 +223,9 @@ def build_disk():
     
     # Update record
     record_update(target_name)
-    
-def start_emu():
-    print_info('emulator', 'Starting emulator')
+
+def qemu():
+    print_info('emulator', 'Starting QEMU')
     
     img_name = img_dir + 'floppy.img'
     
@@ -236,12 +236,26 @@ def start_emu():
         ' -smp cores=1,threads=1,sockets=1' + \
         ' -drive if=floppy,format=raw,file=' + img_name
     
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def bochs():
+    print_info('emulator', 'Starting Bochs')
+    
+    # Compose the cmd
+    img_name = img_dir + 'floppy.img'
     bochs_dir = vm_dir + 'bochs/'
     cmd = 'cd ' + bochs_dir + ' && bochs -f ' + bochs_dir + 'bochsrc -q -log ' + bochs_dir + 'bochslog.txt -rc ' + bochs_dir + 'bochscmd;'
         
     # Execute the cmd
     code = exec_cmd(cmd)
     assert(code == 0)
+    
+def start_emu():
+    emu_type = 'bochs'
+    if emu_type in arch_funcs:
+        arch_funcs[emu_type]()
     
 
 # Setup global tools
@@ -259,3 +273,7 @@ arch_funcs['build_boot'] = build_boot
 arch_funcs['build_boot_fp'] = build_boot_fp
 arch_funcs['build_loader'] = build_loader
 arch_funcs['build_hal'] = build_hal
+
+arch_funcs['qemu'] = qemu
+arch_funcs['bochs'] = bochs
+arch_funcs['start_emu'] = start_emu

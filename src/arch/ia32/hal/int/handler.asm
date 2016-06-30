@@ -78,7 +78,7 @@ int_handler_general:
     ; Switch the stack
     mov     esp, eax
     
-do_int_handler
+do_int_handler:
     ; Prepare to call the handler
     add     ebx, 32 + 16
     push    dword [ebx + 4] ; Arg2:

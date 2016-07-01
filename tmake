@@ -884,9 +884,9 @@ def remove_files(files, tools):
 def stats_dir(dir_name, ext):
     files = get_all_files(dir_name, ext)
     
-    ext_list = [ 'total' ]
-    stats_count = { 'total' : 0 }
-    stats_lines = { 'total' : 0 }
+    ext_list = []
+    stats_files = {}
+    stats_lines = {}
 
     for f in files:
         fext = get_ext(f)
@@ -897,22 +897,26 @@ def stats_dir(dir_name, ext):
         
         if not fext in ext_list:
             ext_list.append(fext)
-            stats_count[fext] = 0
+            stats_files[fext] = 0
             stats_lines[fext] = 0
         lines = count_lines(f)
         
-        stats_count[fext] += 1
+        stats_files[fext] += 1
         stats_lines[fext] += lines
-        
-        stats_count['total'] += 1
-        stats_lines['total'] += lines
+    
+    total_files = 0
+    total_lines = 0
     
     print_action('stats', relative_path(dir_name))
     for fext in sorted(ext_list):
-        if 'total' == fext:
-            continue
-        print_info(fext, 'File count: {0}, line count: {1}'.format(stats_count[fext], stats_lines[fext]))
-    print_info('total', 'File count: {0}, line count: {1}'.format(stats_count['total'], stats_lines['total']))
+        print_info(fext, 'File count: {0}, line count: {1}'.format(stats_files[fext], stats_lines[fext]))
+        
+        total_files += stats_files[fext]
+        total_lines += stats_lines[fext]
+        
+    print_info('total', 'File count: {0}, line count: {1}'.format(total_files, total_lines))
+    
+    return [ ext_list, stats_files, stats_lines ]
 
 #-------------------------------------------------------------------------------
 
@@ -1024,8 +1028,48 @@ if 'all' in actions:
 if 'stats' in actions:
     print_title('Collect source code statistics')
     
-    stats_dir(doc_dir, None)
-    stats_dir(src_dir, None)
+    global_ext_list = []
+    global_files = {}
+    global_lines = {}
+    
+    dir_list = [ doc_dir, tools_src_dir, src_dir ]
+    
+    for pdir in dir_list:
+        subdirs = get_subdir(pdir)
+        for i in range(len(subdirs)):
+            subdirs[i] = pdir + subdirs[i] + '/'
+        subdirs.append(pdir)
+        
+        for dir in subdirs:
+            ret = stats_dir(dir, None)
+            
+            if dir != pdir:
+                continue;
+            
+            ext_list = ret[0]
+            stats_files = ret[1]
+            stats_lines = ret[2]
+            
+            for fext in ext_list:
+                if not fext in global_ext_list:
+                    global_ext_list.append(fext)
+                    global_files[fext] = 0
+                    global_lines[fext] = 0
+                    
+                global_files[fext] += stats_files[fext]
+                global_lines[fext] += stats_lines[fext]
+    
+    total_files = 0
+    total_lines = 0
+    
+    print_action('stats', 'Aggregate')
+    for fext in sorted(ext_list):
+        print_info(fext, 'File count: {0}, line count: {1}'.format(global_files[fext], global_lines[fext]))
+        
+        total_files += global_files[fext]
+        total_lines += global_lines[fext]
+        
+    print_info('total', 'File count: {0}, line count: {1}'.format(total_files, total_lines))
     
     actions.remove('stats')
     

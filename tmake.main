@@ -36,6 +36,13 @@ def build_coreimg():
 
 
 def build_main():
+    # Build klibc
+    print_info('klibc', 'Building klibc')
+    lib_dir(
+        src_dir + 'klibc/', [ '.c', '.asm' ],
+        bin_dir + 'tdlrklibc.a'
+    )
+    
     # Build kernel
     print_info('kernel', 'Building kernel')
     build_dir(

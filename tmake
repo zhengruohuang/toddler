@@ -115,6 +115,12 @@ def get_filename(name):
     head, tail = os.path.split(name)
     return tail
 
+def relative_path(name):
+    if project_dir in name:
+        return name.replace(project_dir, '')
+    else:
+        return name
+
 def get_ext(name):
     filename, file_extension = os.path.splitext(name)
     return file_extension
@@ -139,6 +145,16 @@ def get_all_files(path, ext):
             files += get_all_files(path + subdir + '/', ext)
     
     return files
+
+def count_lines(file_name):
+    f = open(file_name)
+    c = 0
+    
+    for l in f:
+        c += 1
+    
+    f.close()
+    return c
 
 def include(name):
     assert(os.path.exists(name))
@@ -213,6 +229,9 @@ def print_compile(lead, msg):
     
 def print_link(lead, msg):
     print(str_magenta('[' + lead + ']') + ' ' + msg)
+
+def print_archive(lead, msg):
+    print(str_magenta('[' + lead + ']') + ' ' + msg)
     
 def print_fail(msg):
     print(str_red('[fail]') + ' ' + msg)
@@ -239,15 +258,15 @@ def verify_cmd(code):
 class bdb_entry:
     def __init__(self, name, checksum, mtime):
         self.name = name
-        self.mtime = mtime if mtime != None else "{0}".format(time.ctime(os.path.getmtime(name)))
+        self.mtime = mtime if mtime != None else '{0}'.format(time.ctime(os.path.getmtime(name)))
         self.checksum = checksum if checksum != None else hashfile(name)
     
     def update(self):
-        self.mtime = "{0}".format(time.ctime(os.path.getmtime(self.name)))
+        self.mtime = '{0}'.format(time.ctime(os.path.getmtime(self.name)))
         self.checksum = hashfile(self.name)
     
     def check(self):
-        new_mtime = "{0}".format(time.ctime(os.path.getmtime(self.name)))
+        new_mtime = '{0}'.format(time.ctime(os.path.getmtime(self.name)))
         new_hash = hashfile(self.name)
         return new_mtime == self.mtime and new_hash == self.checksum
     
@@ -306,7 +325,7 @@ def save_bdb():
 
 def get_tool(src_name, tools):
     global arch_tools
-    global_tools = arch_tools["global_tools"]
+    global_tools = arch_tools['global_tools']
     
     ext = get_ext(src_name)
     
@@ -375,8 +394,8 @@ all_src_deps = {}
 
 def get_src_dep_list(src_name, obj_name, tools):
     if print_cmd_enabled:
-        lead = 'dep ' + get_filename(src_name)
-        print_compile(lead, src_name)
+        lead = 'dep.' + get_filename(src_name)
+        print_compile(lead, relative_path(src_name))
     
     # Get the tool
     tool = get_tool(src_name, tools)
@@ -470,12 +489,15 @@ def check_dep_changed(files, target_name, ext_dep, tools):
 # Internal build
 #-------------------------------------------------------------------------------
 
+#
+# Compile
+#
 def compile_file(src_name, obj_name, dep_list, ext_flags, tools):
     global inc_dir
     
     # Print the action
     lead = get_filename(src_name)
-    print_compile(lead, src_name + ' -> ' + obj_name)
+    print_compile(lead, 'Compile: ' + relative_path(src_name) + ' -> ' + relative_path(obj_name))
     
     # Get the tool
     ext = get_ext(src_name)
@@ -532,9 +554,12 @@ def auto_compile(files, ext_dep, ext_flags, tools):
     
     return objs
 
+#
+# Link and Build
+#
 def auto_link_target(obj_files, target_name, ext_flags, tools):
     lead = get_filename(target_name)
-    print_link(lead, target_name)
+    print_link(lead, 'Link: ' + relative_path(target_name))
     
     # Get the tool
     tool = get_tool('ld', tools)
@@ -585,10 +610,66 @@ def auto_build(files, target_name, ext_dep, ext_flags, tools):
     
     # Link the obj files
     auto_link(objs, target_name, ext_dep, ext_flags, tools)
+
+#
+# Archive and Lib
+#
+def auto_archive_target(obj_files, target_name, ext_flags, tools):
+    lead = get_filename(target_name)
+    print_archive(lead, 'Archive: ' + relative_path(target_name))
     
+    # Get the tool
+    tool = get_tool('ar', tools)
+    
+    # Compose the cmd line
+    obj_cmd = ''
+    for obj in obj_files:
+        obj_cmd += ' ' + obj
+    obj_cmd = tool['obj'].replace('__target__', target_name).replace('__obj__', obj_cmd)
+        
+    ext_cmd = ''
+    if ext_flags != None and 'ar/ext' in ext_flags:
+        ext_cmd = ext_flags['ar/ext']
+    
+    cmd = tool['exec'] + ' ' + tool['flags'] + ' ' + ext_cmd + ' ' + obj_cmd
+    print_cmd(cmd)
+    
+    # Execute the cmd to compile
+    code = exec_cmd(cmd)
+    verify_cmd(code)
+    assert(code == 0)
+    
+    # Update record
+    record_update(target_name)
+
+def auto_archive(obj_files, target_name, ext_dep, ext_flags, tools):
+    if ext_dep != None:
+        dep_list = obj_files + ext_dep
+    else:
+        dep_list = obj_files
+        
+    rearchive = False
+    for obj in dep_list:
+        if need_build(obj, target_name):
+            rearchive = True
+            break
+    
+    if rearchive:
+        auto_archive_target(obj_files, target_name, ext_flags, tools)
+
+def auto_lib(files, target_name, ext_dep, ext_flags, tools):
+    # Compile every file
+    objs = auto_compile(files, ext_dep, ext_flags, tools)
+    
+    # Archive the obj files
+    auto_archive(objs, target_name, ext_dep, ext_flags, tools)
+
+#
+# Direct build
+#
 def direct_build(files, target_name, tools):
     lead = get_filename(target_name)
-    print_compile(lead, target_name)
+    print_compile(lead, 'Direct Build: ' + relative_path(target_name))
     
     ext = get_ext(files[0])
     
@@ -643,47 +724,21 @@ def auto_direct_build(files, target_name, ext_dep, tools):
 #-------------------------------------------------------------------------------
 # Public interface for build
 #-------------------------------------------------------------------------------
-    
-def build_dir(dir_name, ext, target_name, ext_dep = None, ext_flags = None, tools = None):
-    files = get_all_files(dir_name, ext)
-    if not check_dep_changed(files, target_name, ext_dep, tools):
-        return
-    
-    lead = get_filename(target_name)
-    print_action(lead, 'Start building: {0}, extension: {1}, source: {2}'.format(
-       target_name, str(ext), dir_name))
-    
-    target_dir = get_dir(target_name)
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir)
-        
-    auto_build(files, target_name, ext_dep, ext_flags, tools)
-    
-    print_action(lead, 'Done building: ' + target_name)
-    
+
 def build_files(files, target_name, ext_dep = None, ext_flags = None, tools = None):
     if not check_dep_changed(files, target_name, ext_dep, tools):
         return
     
-    lead = get_filename(target_name)
-    print_action(lead, 'Start building: ' + target_name)
-    
     target_dir = get_dir(target_name)
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
     
     auto_build(files, target_name, ext_dep, ext_flags, tools)
-    
-    print_action(lead, 'Done building: ' + target_name)
-    
-def direct_build_dir(dir_name, ext, target_name, ext_dep = None, tools = None):
-    target_dir = get_dir(target_name)
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir)
-        
+
+def build_dir(dir_name, ext, target_name, ext_dep = None, ext_flags = None, tools = None):
     files = get_all_files(dir_name, ext)
-    auto_direct_build(files, target_name, ext_dep, tools)
-    
+    build_files(files, target_name, ext_dep, ext_flags, tools)
+
 def direct_build_files(files, target_name, ext_dep = None, tools = None):
     target_dir = get_dir(target_name)
     if not os.path.exists(target_dir):
@@ -691,29 +746,35 @@ def direct_build_files(files, target_name, ext_dep = None, tools = None):
         
     auto_direct_build(files, target_name, ext_dep, tools)
 
-def compile_dir(dir_name, ext = None, ext_dep = None, tools = None):
-    print('[COMPILE] Start compiling directory: ' + dir_name)
+def direct_build_dir(dir_name, ext, target_name, ext_dep = None, tools = None):
+    files = get_all_files(dir_name, ext)
+    direct_build_files(files, target_name, ext_dep, tools)
+
+def lib_files(files, target_name, ext_dep = None, ext_flags = None, tools = None):
+    if not check_dep_changed(files, target_name, ext_dep, tools):
+        return
     
+    target_dir = get_dir(target_name)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    
+    auto_lib(files, target_name, ext_dep, ext_flags, tools)
+    
+def lib_dir(dir_name, ext, target_name, ext_dep = None, ext_flags = None, tools = None):
+    files = get_all_files(dir_name, ext)
+    lib_files(files, target_name, ext_dep, ext_flags, tools)
+    
+def compile_dir(dir_name, ext = None, ext_dep = None, tools = None):
     files = get_all_files(dir_name, ext)
     objs = auto_compile(files, tools)
-    
-    print('[COMPILE] Done compiling')
     return objs
 
 def compile_files(files, ext_dep = None, tools = None):
-    print('[COMPILE] Start compiling files')
-    
     objs = auto_compile(files, tools)
-    
-    print('[COMPILE] Done compiling')
     return objs
 
 def link_files(files, target_name, ext_dep = None, ext_flags = None, tools = None):
-    print('[LINK] Start linking: ' + target_name)
-    
     auto_link_target(files, target_name, tools)
-    
-    print('[LINK] Done linking: ' + target_name)
     
 #-------------------------------------------------------------------------------
 
@@ -727,7 +788,7 @@ def gen_bin(src_name, target_name, tools):
         return
     
     lead = get_filename(target_name)
-    print_action(lead, 'Generate binary: ' + src_name + ' -> ' + target_name)
+    print_action(lead, 'Generate binary: ' + relative_path(src_name) + ' -> ' + relative_path(target_name))
     
     target_dir = get_dir(target_name)
     if not os.path.exists(target_dir):
@@ -751,7 +812,7 @@ def gen_bin(src_name, target_name, tools):
     
 def strip_target(target_name, tools):
     lead = get_filename(target_name)
-    print_action(lead, 'Strip: ' + target_name)
+    print_action(lead, 'Strip: ' + relative_path(target_name))
     
     # Get the tool
     tool = get_tool('strip', tools)
@@ -778,7 +839,7 @@ def cat_files(files, target_name, tools):
         return
     
     lead = get_filename(target_name)
-    print_action(lead, 'Concatinate: ' + target_name)
+    print_action(lead, 'Concatinate: ' + relative_path(target_name))
     
     target_dir = get_dir(target_name)
     if not os.path.exists(target_dir):
@@ -800,7 +861,10 @@ def cat_files(files, target_name, tools):
     record_update(target_name)
         
 def remove_files(files, tools):
-    print_action('remove', str(files))
+    rel_files = []
+    for f in files:
+        rel_files.append(relative_path(f))
+    print_action('remove', str(rel_files))
     
     # Compose the cmd
     cmd = 'rm'
@@ -816,7 +880,40 @@ def remove_files(files, tools):
     # Update record
     for f in files:
         record_remove(f)
+
+def stats_dir(dir_name, ext):
+    files = get_all_files(dir_name, ext)
     
+    ext_list = [ 'total' ]
+    stats_count = { 'total' : 0 }
+    stats_lines = { 'total' : 0 }
+
+    for f in files:
+        fext = get_ext(f)
+        if 'tmake' in f:
+            fext = 'tmake'
+        if fext == '':
+            fext = 'empty'
+        
+        if not fext in ext_list:
+            ext_list.append(fext)
+            stats_count[fext] = 0
+            stats_lines[fext] = 0
+        lines = count_lines(f)
+        
+        stats_count[fext] += 1
+        stats_lines[fext] += lines
+        
+        stats_count['total'] += 1
+        stats_lines['total'] += lines
+    
+    print_action('stats', relative_path(dir_name))
+    for fext in sorted(ext_list):
+        if 'total' == fext:
+            continue
+        print_info(fext, 'File count: {0}, line count: {1}'.format(stats_count[fext], stats_lines[fext]))
+    print_info('total', 'File count: {0}, line count: {1}'.format(stats_count['total'], stats_lines['total']))
+
 #-------------------------------------------------------------------------------
 
 
@@ -826,23 +923,17 @@ def remove_files(files, tools):
 
 print_title('Toddler building system started')
 
-# Parse command line
-actions = [ "build", "emu" ]
-
+# Parse arch command line
 for argv in sys.argv:
-    if "arch" in argv:
-        parts = split(argv, "=")
+    if 'arch' in argv:
+        parts = split(argv, '=')
         target_arch = parts[1]
-    elif "platform" in argv:
-        parts = split(argv, "=")
+    elif 'platform' in argv:
+        parts = split(argv, '=')
         target_platform = parts[1]
-    elif "suffix" in argv:
-        parts = split(argv, "=")
+    elif 'suffix' in argv:
+        parts = split(argv, '=')
         target_suffix = parts[1]
-    
-    elif "action" in argv:
-        parts = split(argv, "=")
-        actions = split(parts[1], ",")
 
 # Host and target info
 print_info('host', 'Architecture: {0}, OS: {1}'.format(host_arch, host_os))
@@ -858,8 +949,35 @@ include(project_dir + 'tmake.main')
 include(tools_src_dir + 'tmake.tools')
 include(arch_dir + 'tmake.arch')
 
+
+# Parse action cmd line
+supported_actions = [ 'all', 'build', 'emu', 'stats', 'clean', 'clean_all' ]
+actions = []
+
+for argv in sys.argv:
+    if 'action' in argv:
+        parts = split(argv, '=')
+        actions = split(parts[1], ',')
+    elif not '=' in argv:
+        if ',' in argv:
+            parts = split(argv, ',')
+        else:
+            parts = [ argv ]
+        for p in parts:
+            if p in supported_actions or p in arch_funcs:
+                if p in actions:
+                    actions.remove(p)
+                actions.append(p)
+
+if not len(actions):
+    actions = [ 'all' ]
+
+if 'all' in actions and 'build' in actions and 'emu' in actions:
+    actions.remove('build')
+    actions.remove('emu')
+
 # Build
-if "build" in actions or "all" in actions:
+if 'build' in actions or 'all' in actions:
     print_title('Start building Toddler')
 
     # Build arch specific targets
@@ -887,7 +1005,7 @@ if "build" in actions or "all" in actions:
         actions.remove('build')
 
 # Emulator
-if "emu" in actions or "all" in actions:
+if 'emu' in actions or 'all' in actions:
     print_title('Start emulator')
 
     # Start emulator
@@ -903,26 +1021,16 @@ if 'all' in actions:
     actions.remove('all')
     
 # Lines of code
-if 'lines' in actions:
-    print_title('Calculate number of lines code')
+if 'stats' in actions:
+    print_title('Collect source code statistics')
     
-    print_info('lines', src_dir)
+    stats_dir(doc_dir, None)
+    stats_dir(src_dir, None)
     
-    # Compose the cmd
-    cmd = 'find ' + src_dir + ' -type f -exec cat {} + | wc -l'
-    print_cmd(cmd)
+    actions.remove('stats')
     
-    # Execute thte cmd
-    code = exec_cmd(cmd)
-    verify_cmd(code)
-    assert(code == 0)
-    
-    # Remove action
-    actions.remove('lines')
-    
-
 # Clean
-if "clean" in actions:
+if 'clean' in actions:
     print_title('Cleaning target: ' + target_name)
     
     print_info('remove', target_dir)
@@ -930,7 +1038,7 @@ if "clean" in actions:
     actions.remove('clean')
 
 # Clean all
-if "clean_all" in actions:
+if 'clean_all' in actions:
     print_title('Cleaning all')
     
     print_info('remove', target_all_dir)

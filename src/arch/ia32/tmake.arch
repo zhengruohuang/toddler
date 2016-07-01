@@ -27,6 +27,12 @@ global_tools = { \
         'obj'   : '-o __target__ __obj__',
     },
     
+    'ar' : { \
+        'exec'  : 'ar',
+        'flags' : 'crD',
+        'obj'   : '__target__ __obj__',
+    },
+    
     'strip' : { \
         'exec'  : 'strip',
         'flags' : '',

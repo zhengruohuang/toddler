@@ -1,5 +1,5 @@
-#ifndef __SYSTEM_KAPI_H__
-#define __SYSTEM_KAPI_H__
+#ifndef __SYSTEM_INCLUDE_KAPI__
+#define __SYSTEM_INCLUDE_KAPI__
 
 #include "common/include/data.h"
 #include "common/include/syscall.h"

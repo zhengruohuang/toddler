@@ -571,6 +571,9 @@ def auto_link_target(obj_files, target_name, ext_libs, ext_flags, tools):
             obj_cmd += ' ' + obj
     for obj in obj_files:
         obj_cmd += ' ' + obj
+    if ext_libs != None:
+        for obj in ext_libs:
+            obj_cmd += ' ' + obj
     obj_cmd = tool['obj'].replace('__target__', target_name).replace('__obj__', obj_cmd)
     
     script_cmd = ''

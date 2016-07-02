@@ -103,7 +103,10 @@ void thread_exit(void *retval)
  * File
  */
 //  int open(const char *name, int flags, ...);
-//  int close(int fd); 
+int kapi_close(int fd)
+{
+    return 0;
+}
 
 int kapi_read(int fd, char *buf, size_t count)
 {
@@ -127,7 +130,7 @@ int kapi_write(int fd, void *buf, size_t count)
     r = syscall_request();
     
     // Setup the result
-    result = (int)kapi_return_value(r);
+    //result = (int)kapi_return_value(r);
     
     return result;
 }

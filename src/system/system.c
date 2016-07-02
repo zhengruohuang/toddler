@@ -1,10 +1,31 @@
 #include "common/include/data.h"
 #include "klibc/include/stdio.h"
+#include "klibc/include/sys.h"
+#include "system/include/kapi.h"
 
 
 int main(int argc, char *argv[])
 {
-    kprintf("User process started!\n");
+    kprintf("Toddler system process started!\n");
+    
+    // Initialize
+    kapi_init();
+    kprintf("KAPI handlers initialized!\n");
+    
+    // Do some tests
+    int i = 0;
+    char buf[64];
+    do {
+        struct thread_control_block *tcb = get_tcb();
+        msg_t *msg = syscall_msg();
+        
+        kprintf("User process iteration: %d, TCB: %p, Proc ID: %p, Thread ID: %p, CPU ID: %d, Msg: %p\n", i++,
+                    tcb, tcb->proc_id, tcb->thread_id, tcb->cpu_id, msg);
+        
+        ksnprintf(buf, 64, "This to be displayed in the msg handler!\n");
+        kapi_write(0, buf, 64);
+    } while (1);
+    
     return 0;
 }
 

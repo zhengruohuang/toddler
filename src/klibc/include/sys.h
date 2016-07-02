@@ -48,6 +48,7 @@ extern void msg_param_buffer(msg_t *m, void *buf, size_t size);
 
 extern void thread_exit(void *retval);
 
+extern int kapi_close(int fd);
 extern int kapi_read(int fd, char *buf, size_t count);
 extern int kapi_write(int fd, void *buf, size_t count);
 

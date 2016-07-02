@@ -1,12 +1,13 @@
-#ifndef __KAPI_H__
-#define __KAPI_H__
+#ifndef __SYSTEM_KAPI_H__
+#define __SYSTEM_KAPI_H__
 
 #include "common/include/data.h"
 #include "common/include/syscall.h"
 
 
-extern int kapi_init();
-extern int kapi_write(int fd, void *buf, size_t count);
+extern void kapi_init();
+
+extern asmlinkage void kapi_write_handler(msg_t *msg);
 
 
 #endif

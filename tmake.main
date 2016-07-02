@@ -55,7 +55,8 @@ def build_main():
     print_info('system', 'Building system')
     build_dir(
         src_dir + 'system/', [ '.c', '.asm' ],
-        bin_dir + 'tdlrsys.bin'
+        bin_dir + 'tdlrsys.bin',
+        ext_libs = [ bin_dir + 'tdlrklibc.a' ]
     )
 
 

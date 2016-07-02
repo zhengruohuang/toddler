@@ -49,9 +49,9 @@
 #define IPC_OPCODE_KAPI         0x1
 
 enum msg_param_type {
-    msg_param_empty = 0,
-    msg_param_value = 1,
-    msg_param_buffer = 2,
+    msg_param_type_empty = 0,
+    msg_param_type_value = 1,
+    msg_param_type_buffer = 2,
 };
 
 struct msg_param {

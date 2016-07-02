@@ -557,7 +557,7 @@ def auto_compile(files, ext_dep, ext_flags, tools):
 #
 # Link and Build
 #
-def auto_link_target(obj_files, target_name, ext_flags, tools):
+def auto_link_target(obj_files, target_name, ext_libs, ext_flags, tools):
     lead = get_filename(target_name)
     print_link(lead, 'Link: ' + relative_path(target_name))
     
@@ -566,6 +566,9 @@ def auto_link_target(obj_files, target_name, ext_flags, tools):
     
     # Compose the cmd line
     obj_cmd = ''
+    if ext_libs != None:
+        for obj in ext_libs:
+            obj_cmd += ' ' + obj
     for obj in obj_files:
         obj_cmd += ' ' + obj
     obj_cmd = tool['obj'].replace('__target__', target_name).replace('__obj__', obj_cmd)
@@ -580,6 +583,7 @@ def auto_link_target(obj_files, target_name, ext_flags, tools):
     
     cmd = tool['exec'] + ' ' + tool['flags'] + ' ' + ext_cmd + ' ' + script_cmd + ' ' + obj_cmd
     print_cmd(cmd)
+    print(cmd)
     
     # Execute the cmd to compile
     code = exec_cmd(cmd)
@@ -589,11 +593,8 @@ def auto_link_target(obj_files, target_name, ext_flags, tools):
     # Update record
     record_update(target_name)
     
-def auto_link(obj_files, target_name, ext_dep, ext_flags, tools):
-    if ext_dep != None:
-        dep_list = obj_files + ext_dep
-    else:
-        dep_list = obj_files
+def auto_link(obj_files, target_name, ext_dep, ext_libs, ext_flags, tools):
+    dep_list = combine_lists([obj_files, ext_dep, ext_libs])
         
     relink = False
     for obj in dep_list:
@@ -602,19 +603,19 @@ def auto_link(obj_files, target_name, ext_dep, ext_flags, tools):
             break
     
     if relink:
-        auto_link_target(obj_files, target_name, ext_flags, tools)
+        auto_link_target(obj_files, target_name, ext_libs, ext_flags, tools)
 
-def auto_build(files, target_name, ext_dep, ext_flags, tools):
+def auto_build(files, target_name, ext_dep, ext_libs, ext_flags, tools):
     # Compile every file
     objs = auto_compile(files, ext_dep, ext_flags, tools)
     
     # Link the obj files
-    auto_link(objs, target_name, ext_dep, ext_flags, tools)
+    auto_link(objs, target_name, ext_dep, ext_libs, ext_flags, tools)
 
 #
 # Archive and Lib
 #
-def auto_archive_target(obj_files, target_name, ext_flags, tools):
+def auto_archive_target(obj_files, target_name, ext_libs, ext_flags, tools):
     lead = get_filename(target_name)
     print_archive(lead, 'Archive: ' + relative_path(target_name))
     
@@ -625,6 +626,9 @@ def auto_archive_target(obj_files, target_name, ext_flags, tools):
     obj_cmd = ''
     for obj in obj_files:
         obj_cmd += ' ' + obj
+    if ext_libs != None:
+        for obj in ext_libs:
+            obj_cmd += ' ' + obj
     obj_cmd = tool['obj'].replace('__target__', target_name).replace('__obj__', obj_cmd)
         
     ext_cmd = ''
@@ -642,12 +646,9 @@ def auto_archive_target(obj_files, target_name, ext_flags, tools):
     # Update record
     record_update(target_name)
 
-def auto_archive(obj_files, target_name, ext_dep, ext_flags, tools):
-    if ext_dep != None:
-        dep_list = obj_files + ext_dep
-    else:
-        dep_list = obj_files
-        
+def auto_archive(obj_files, target_name, ext_dep, ext_libs, ext_flags, tools):
+    dep_list = combine_lists([obj_files, ext_dep, ext_libs])
+    
     rearchive = False
     for obj in dep_list:
         if need_build(obj, target_name):
@@ -655,19 +656,19 @@ def auto_archive(obj_files, target_name, ext_dep, ext_flags, tools):
             break
     
     if rearchive:
-        auto_archive_target(obj_files, target_name, ext_flags, tools)
+        auto_archive_target(obj_files, target_name, ext_libs, ext_flags, tools)
 
-def auto_lib(files, target_name, ext_dep, ext_flags, tools):
+def auto_lib(files, target_name, ext_dep, ext_libs, ext_flags, tools):
     # Compile every file
     objs = auto_compile(files, ext_dep, ext_flags, tools)
     
     # Archive the obj files
-    auto_archive(objs, target_name, ext_dep, ext_flags, tools)
+    auto_archive(objs, target_name, ext_dep, ext_libs, ext_flags, tools)
 
 #
 # Direct build
 #
-def direct_build(files, target_name, tools):
+def direct_build(files, target_name, ext_libs, tools):
     lead = get_filename(target_name)
     print_compile(lead, 'Direct Build: ' + relative_path(target_name))
     
@@ -685,6 +686,9 @@ def direct_build(files, target_name, tools):
     for f in files:
         assert(ext == get_ext(f))
         src_name += ' ' + tool['direct'].replace('__src__', f)
+    if ext_libs != None:
+        for f in ext_libs:
+            src_name += ' ' + tool['direct'].replace('__src__', f)
         
     obj_cmd = tool['obj'].replace('__src__', src_name).replace('__obj__', target_name)
     
@@ -699,15 +703,16 @@ def direct_build(files, target_name, tools):
     # Update record
     record_update(target_name)
     
-def auto_direct_build(files, target_name, ext_dep, tools):
+def auto_direct_build(files, target_name, ext_dep, ext_libs, tools):
     rebuild = False
     for f in files:
         obj_name = get_obj_name(f)
         target_dir = get_dir(obj_name)
         if not os.path.exists(obj_name):
             os.makedirs(obj_name)
-        
-        dep_list = [ f ] + get_dep_list(f, obj_name, ext_dep, tools)
+            
+        ext_list = combine_lists([ext_dep, ext_libs])
+        dep_list = [ f ] + get_dep_list(f, obj_name, ext_list, tools)
         for d in dep_list:
             if need_build(d, target_name):
                 rebuild = True
@@ -716,7 +721,7 @@ def auto_direct_build(files, target_name, ext_dep, tools):
             break
         
     if rebuild:
-        direct_build(files, target_name, tools)
+        direct_build(files, target_name, ext_libs, tools)
     
 #-------------------------------------------------------------------------------
 
@@ -725,44 +730,54 @@ def auto_direct_build(files, target_name, ext_dep, tools):
 # Public interface for build
 #-------------------------------------------------------------------------------
 
-def build_files(files, target_name, ext_dep = None, ext_flags = None, tools = None):
-    if not check_dep_changed(files, target_name, ext_dep, tools):
+def combine_lists(lists):
+    r = []
+    for l in lists:
+        if l == None:
+            continue
+        for e in l:
+            if not e in r:
+                r.append(e)
+    return r
+
+def build_files(files, target_name, ext_dep = None, ext_libs = None, ext_flags = None, tools = None):
+    if not check_dep_changed(files, target_name, combine_lists([ext_dep, ext_libs]), tools):
         return
     
     target_dir = get_dir(target_name)
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
     
-    auto_build(files, target_name, ext_dep, ext_flags, tools)
+    auto_build(files, target_name, ext_dep, ext_libs, ext_flags, tools)
 
-def build_dir(dir_name, ext, target_name, ext_dep = None, ext_flags = None, tools = None):
+def build_dir(dir_name, ext, target_name, ext_dep = None, ext_libs = None, ext_flags = None, tools = None):
     files = get_all_files(dir_name, ext)
-    build_files(files, target_name, ext_dep, ext_flags, tools)
+    build_files(files, target_name, ext_dep, ext_libs, ext_flags, tools)
 
-def direct_build_files(files, target_name, ext_dep = None, tools = None):
+def direct_build_files(files, target_name, ext_dep = None, ext_libs = None, tools = None):
     target_dir = get_dir(target_name)
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
         
-    auto_direct_build(files, target_name, ext_dep, tools)
+    auto_direct_build(files, target_name, ext_dep, ext_libs, tools)
 
 def direct_build_dir(dir_name, ext, target_name, ext_dep = None, tools = None):
     files = get_all_files(dir_name, ext)
     direct_build_files(files, target_name, ext_dep, tools)
 
-def lib_files(files, target_name, ext_dep = None, ext_flags = None, tools = None):
-    if not check_dep_changed(files, target_name, ext_dep, tools):
+def lib_files(files, target_name, ext_dep = None, ext_libs = None, ext_flags = None, tools = None):
+    if not check_dep_changed(files, target_name, combine_lists([ext_dep, ext_libs]), tools):
         return
     
     target_dir = get_dir(target_name)
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
     
-    auto_lib(files, target_name, ext_dep, ext_flags, tools)
+    auto_lib(files, target_name, ext_dep, ext_libs, ext_flags, tools)
     
-def lib_dir(dir_name, ext, target_name, ext_dep = None, ext_flags = None, tools = None):
+def lib_dir(dir_name, ext, target_name, ext_dep = None, ext_libs = None, ext_flags = None, tools = None):
     files = get_all_files(dir_name, ext)
-    lib_files(files, target_name, ext_dep, ext_flags, tools)
+    lib_files(files, target_name, ext_dep, ext_libs, ext_flags, tools)
     
 def compile_dir(dir_name, ext = None, ext_dep = None, tools = None):
     files = get_all_files(dir_name, ext)
@@ -773,8 +788,8 @@ def compile_files(files, ext_dep = None, tools = None):
     objs = auto_compile(files, tools)
     return objs
 
-def link_files(files, target_name, ext_dep = None, ext_flags = None, tools = None):
-    auto_link_target(files, target_name, tools)
+#def link_files(files, target_name, ext_dep = None, ext_libs = None, ext_flags = None, tools = None):
+    #auto_link_target(files, target_name, tools)
     
 #-------------------------------------------------------------------------------
 

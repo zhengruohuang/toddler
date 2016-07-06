@@ -21,6 +21,7 @@
 // Reset CPU
 #define I8042_CMD_RESET     0xFE
 
+extern void init_keyboard();
 extern int keyboard_interrupt_handler(struct int_context *context, struct kernel_dispatch_info *kdi);
 
 

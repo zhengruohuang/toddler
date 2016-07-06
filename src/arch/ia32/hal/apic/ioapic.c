@@ -77,7 +77,6 @@ static void ioapic_override_madt()
     int irq = 0, vector = 0, polarity = 0, trigger = 0;
     struct acpi_madt_intr_src_ovrd *int_entry = NULL;
     
-    
     for (i = 0; i < madt_int_count; i++) {
         int_entry = get_next_acpi_int_entry(int_entry, &irq, &vector, &polarity, &trigger);
         assert(int_entry);

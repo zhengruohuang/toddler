@@ -8,6 +8,7 @@ def build_coreimg():
     src_files = [ \
         bin_dir + 'tdlrhal.bin',
         bin_dir + 'tdlrkrnl.bin',
+        bin_dir + 'tdlrdrv.bin',
         bin_dir + 'tdlrsys.bin',
     ]
     target_name = bin_dir + 'tdlrcore.img'
@@ -49,6 +50,14 @@ def build_main():
         src_dir + 'kernel/', [ '.c', '.asm' ],
         bin_dir + 'tdlrkrnl.bin',
         ext_flags = { 'ld/ext' : '-Ttext 0xFFF01000' },
+    )
+    
+    # Build driver
+    print_info('driver', 'Building driver')
+    build_dir(
+        src_dir + 'driver/', [ '.c', '.asm' ],
+        bin_dir + 'tdlrdrv.bin',
+        ext_libs = [ bin_dir + 'tdlrklibc.a' ]
     )
 
     # Build system

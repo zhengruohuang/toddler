@@ -4,31 +4,13 @@
 #include "system/include/kapi.h"
 
 
-static asmlinkage void keyboard_handler(msg_t *msg)
-{
-//     __asm__ __volatile__
-//     (
-//         "xchgw %%bx, %%bx;"
-//         :
-//         :
-//     );
-    
-    kprintf("Got a keyboard interrupt!\n");
-
-    kapi_thread_exit(NULL);
-}
-
 int main(int argc, char *argv[])
 {
     kprintf("Toddler system process started!\n");
     
     // Initialize
-    kapi_init();
+    init_kapi();
     kprintf("KAPI handlers initialized!\n");
-    
-    // Register keyboard handler
-    kapi_interrupt_reg(1, keyboard_handler);
-    kprintf("Keyboard handler registered\n");
     
     // Do some tests
     int i = 0;

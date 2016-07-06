@@ -5,7 +5,7 @@
 #include "common/include/syscall.h"
 
 
-extern void kapi_init();
+extern void init_kapi();
 
 extern asmlinkage void kapi_write_handler(msg_t *msg);
 

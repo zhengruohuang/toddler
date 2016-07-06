@@ -10,7 +10,7 @@ static int check_flag(u32 flags, int bit)
     return flags & (0x1 << bit);
 }
 
-int keyboard_interrupt_handler(struct int_context *context, struct kernel_dispatch_info *kdi)
+static ulong read_scan_code()
 {
     u32 temp, value;
     
@@ -24,8 +24,20 @@ int keyboard_interrupt_handler(struct int_context *context, struct kernel_dispat
         }
     } while (check_flag(temp, I8042_STATUS_UDATA));
     
+    return value;
+}
+
+
+void init_keyboard()
+{
+    read_scan_code();
+    kprintf("Keyboard initialized\n");
+}
+
+int keyboard_interrupt_handler(struct int_context *context, struct kernel_dispatch_info *kdi)
+{
     // Dispatch info
-    kdi->interrupt.param0 = (ulong)value;
+    kdi->interrupt.param0 = read_scan_code();
     
     return 1;
 }

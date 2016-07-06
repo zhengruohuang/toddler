@@ -118,6 +118,4 @@ void interrupt_worker(struct kernel_dispatch_info *disp_info)
     if (handler) {
         hashtable_release(&interrupt_handlers, disp_info->interrupt.irq, handler);
     }
-    
-    kprintf("Here?\n");
 }

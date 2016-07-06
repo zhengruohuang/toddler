@@ -12,6 +12,7 @@
 #include "hal/include/time.h"
 #include "hal/include/kernel.h"
 #include "hal/include/syscall.h"
+#include "hal/include/drv.h"
 
 
 static void hal_entry()
@@ -69,6 +70,9 @@ static void hal_entry()
     // Init time
     init_rtc();
     init_blocked_delay();
+    
+    // Init devices
+    init_keyboard();
     
     // Init user high 4MB page
     init_user_hi4();

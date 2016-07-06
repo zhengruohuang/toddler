@@ -11,7 +11,7 @@ static void reg_kapi_handler(unsigned long kapi_num, msg_handler_t handler)
     syscall_reg_msg_handler(kapi_num, handler);
 }
 
-void kapi_init()
+void init_kapi()
 {
     reg_kapi_handler(KAPI_FILE_WRITE, kapi_write_handler);
 }

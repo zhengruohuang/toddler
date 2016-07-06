@@ -80,7 +80,7 @@ void *hashtable_obtain(hashtable_t *l, ulong key)
     s = bucket->head;
     while (s) {
         if (s->key == key) {
-            kprintf("Searching key: %x, compare: %x\n", s->key, key);
+            //kprintf("Searching key: %x, compare: %x\n", s->key, key);
             found = 1;
             break;
         }

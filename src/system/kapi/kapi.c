@@ -13,7 +13,7 @@ static void reg_kapi_handler(unsigned long kapi_num, msg_handler_t handler)
 
 void kapi_init()
 {
-    reg_kapi_handler(KAPI_WRITE, kapi_write_handler);
+    reg_kapi_handler(KAPI_FILE_WRITE, kapi_write_handler);
 }
 
 

@@ -259,5 +259,7 @@ void start_working()
     lapic_eoi();
     start_lapic_timer();
     
+    ioapic_start();
+    
     enable_local_int();
 }

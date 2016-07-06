@@ -73,8 +73,8 @@ struct sched {
 
 struct sched_list {
     ulong count;
-    struct sched *next;
-    struct sched *prev;
+    struct sched *head;
+    struct sched *tail;
     
     spinlock_t lock;
 };

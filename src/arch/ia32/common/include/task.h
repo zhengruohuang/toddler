@@ -44,6 +44,9 @@ struct context {
 enum kernel_dispatch_type {
     kdisp_unknown,
     kdisp_syscall,
+    kdisp_interrupt,
+    kdisp_exception,
+    
     kdisp_page_fault,
     kdisp_protection,
     kdisp_illegal_instr,
@@ -63,15 +66,26 @@ struct kernel_dispatch_info {
             ulong param1;
             ulong param2;
             
-            // Filled by kernel
-            void *worker;
-            
             // Filled by kernel syscall handler
             ulong ret_value;
         } syscall;
+        
+        struct {
+            // Filled by HAL
+            ulong vector;
+            ulong irq;
+            
+            ulong param0;
+            ulong param1;
+            ulong param2;
+        } interrupt;
     };
     
+    // Filled by HAL
     struct context *context;
+    
+    // Filled by kernel
+    void *worker;
     
     /*
      * Filled by kernel

@@ -40,8 +40,8 @@ struct sched *get_sched(ulong sched_id)
 static void init_list(struct sched_list *l)
 {
     l->count = 0;
-    l->next = NULL;
-    l->prev = NULL;
+    l->head = NULL;
+    l->tail = NULL;
     
     spin_init(&l->lock);
 }
@@ -51,41 +51,69 @@ static void push_back(struct sched_list *l, struct sched *s)
     spin_lock_int(&l->lock);
     
     s->next = NULL;
-    s->prev = l->prev;
+    s->prev = NULL;
     
-    if (l->prev) {
-        l->prev->next = s;
-    }
-    l->prev = s;
-    
-    if (!l->next) {
-        l->next = s;
+    if (l->count) {
+        s->prev = l->tail;
+        l->tail->next = s;
+        l->tail = s;
+    } else {
+        l->tail = s;
+        l->head = s;
     }
     
     l->count++;
+    
+//     if (l == &stall_queue) {
+//         int printed = 0;
+//         kprintf("List: %p, Push back: %p, Count: %d,", l, s, l->count);
+//         struct sched *p = l->head;
+//         while (p) {
+//             kprintf(" %p", p);
+//             p = p->next;
+//             printed++;
+//             
+//             assert(printed <= l->count);
+//         }
+//         kprintf("\n");
+//     }
     
     spin_unlock_int(&l->lock);
 }
 
 static void inline do_remove(struct sched_list *l, struct sched *s)
 {
-    if (s->prev) {
+    if (l->count == 1) {
+        assert(l->head == s);
+        assert(l->tail == s);
+        
+        l->head = l->tail = NULL;
+    } else if (l->head == s) {
+        l->head = s->next;
+        s->next->prev = NULL;
+    } else if (l->tail == s) {
+        l->tail = s->prev;
+        s->prev->next = NULL;
+    } else {
         s->prev->next = s->next;
-    }
-    
-    if (s->next) {
         s->next->prev = s->prev;
     }
     
-    if (l->prev == s) {
-        l->prev = s->prev;
-    }
-    
-    if (l->next == s) {
-        l->next = s->next;
-    }
-    
     l->count--;
+    
+//     if (l == &stall_queue) {
+//         int printed = 0;
+//         kprintf("List: %p, Do remove: %p, Count: %d,", l, s, l->count);
+//         struct sched *p = l->head;
+//         while (p) {
+//             kprintf(" %p", p);
+//             p = p->next;
+//             printed++;
+//             
+//             assert(printed <= l->count);
+//         }
+//         kprintf("\n");
+//     }
 }
 
 static void remove(struct sched_list *l, struct sched *s)
@@ -104,9 +132,9 @@ static struct sched *pop_front(struct sched_list *l)
     spin_lock_int(&l->lock);
     
     if (l->count) {
-        assert(l->next);
+        assert(l->head);
         
-        s = l->next;
+        s = l->head;
         do_remove(l, s);
     }
     
@@ -170,7 +198,11 @@ void ready_sched(struct sched *s)
     assert(s->state == sched_enter || s->state == sched_stall);
     
     // Remove the entry from its current list
-    remove(&enter_queue, s);
+    if (s->state == sched_enter) {
+        remove(&enter_queue, s);
+    } else if (s->state == sched_stall) {
+        remove(&stall_queue, s);
+    }
     
     // Setup the sched struct
     s->is_idle = 0;

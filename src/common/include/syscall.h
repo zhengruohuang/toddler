@@ -48,14 +48,13 @@
 #define IPC_OPCODE_NONE         0x0
 #define IPC_OPCODE_KAPI         0x1
 
-enum msg_param_type {
-    msg_param_type_empty = 0,
-    msg_param_type_value = 1,
-    msg_param_type_buffer = 2,
-};
+// Message param type
+#define MSG_PARAM_EMPTY         0x0
+#define MSG_PARAM_VALUE         0x1
+#define MSG_PARAM_BUFFER        0x2
 
 struct msg_param {
-    enum msg_param_type type;
+    int type;
     
     union {
         unsigned long value;
@@ -83,10 +82,28 @@ typedef asmlinkage void (*msg_handler_t)(msg_t *msg);
 /*
  * KAPI
  */
-#define KAPI_NONE           0x0
-#define KAPI_WRITE          0x1
-#define KAPI_READ           0x2
-#define KAPI_THREAD_EXIT    0x3
+#define KAPI_NONE               0x0
+
+#define KAPI_PROCESS_CREATE     0x10
+#define KAPI_PROCESS_EXIT       0x11
+#define KAPI_PROCESS_KILL       0x12
+#define KAPI_PROCESS_ID         0x13
+
+#define KAPI_THREAD_CREATE      0x20
+#define KAPI_THREAD_EXIT        0x21
+#define KAPI_THREAD_KILL        0x22
+#define KAPI_THREAD_ID          0x23
+
+#define KAPI_FILE_OPEN          0x30
+#define KAPI_FILE_CLOSE         0x31
+#define KAPI_FILE_WRITE         0x32
+#define KAPI_FILE_READ          0x33
+
+#define KAPI_TIME_TIMES         0x40
+#define KAPI_TIME_DAY           0x41
+
+#define KAPI_INTERRUPT_REG      0x50
+#define KAPI_INTERRUPT_UNREG    0x51
 
 
 #endif

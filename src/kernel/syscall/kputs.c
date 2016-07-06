@@ -16,7 +16,7 @@ void kputs_worker_thread(ulong param)
     struct kernel_dispatch_info *disp_info = (struct kernel_dispatch_info *)param;
     
     struct process *p = disp_info->proc;
-    struct thread *worker = disp_info->syscall.worker;
+    struct thread *worker = disp_info->worker;
     ulong vaddr = disp_info->syscall.param0;
     ulong paddr = 0;
     

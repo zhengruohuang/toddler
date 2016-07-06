@@ -46,11 +46,37 @@ extern unsigned long kapi_return_value(msg_t *m);
 extern void msg_param_value(msg_t *m, unsigned long value);
 extern void msg_param_buffer(msg_t *m, void *buf, size_t size);
 
-extern void thread_exit(void *retval);
+/*
+ * Process
+ */
+extern void kapi_process_exit(int err_code);
+extern int kpai_process_kill(unsigned long process_id);
+extern unsigned long kapi_process_id();
 
-extern int kapi_close(int fd);
-extern int kapi_read(int fd, char *buf, size_t count);
-extern int kapi_write(int fd, void *buf, size_t count);
+/*
+ * Thread
+ */
+typedef void *(*kapi_thread_start_routine)(void *arg);
+
+extern unsigned long kapi_thread_create(kapi_thread_start_routine start_routine, void *arg);
+extern void kapi_thread_exit(void *retval);
+extern int kpai_thread_kill(unsigned long thread_id);
+extern unsigned long kapi_thread_id();
+
+/*
+ * File
+ */
+extern unsigned long kapi_file_open(char *name, int mode);
+extern int kapi_file_close(unsigned long fd);
+extern int kapi_file_read(unsigned long fd, char *buf, size_t count);
+extern int kapi_file_write(unsigned long fd, void *buf, size_t count);
+
+
+/*
+ * Interrupt
+ */
+extern int kapi_interrupt_reg(unsigned long irq, void *handler_entry);
+extern int kapi_interrupt_unreg(unsigned long irq);
 
 
 #endif

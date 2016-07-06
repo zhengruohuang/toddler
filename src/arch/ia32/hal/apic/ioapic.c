@@ -9,24 +9,23 @@
 #include "hal/include/mem.h"
 #include "hal/include/cpu.h"
 #include "hal/include/int.h"
+#include "hal/include/drv.h"
 #include "hal/include/apic.h"
 
 
 struct apic_irq_to_pin {
-    u8              chip;
-    u8              pin;
-    union {
-        u8          vector;
-        u8          irq;
-    };
+    int  chip;
+    int  pin;
+    int  vector;
+    int  irq;
     
     union {
-        u8          flags;
+        uint        flags;
         
         struct {
-            u8      trigger         : 1;
-            u8      polarity        : 1;
-            u8      available       : 1;
+            uint      trigger         : 1;
+            uint      polarity        : 1;
+            uint      available       : 1;
         };
     };
 };
@@ -40,28 +39,33 @@ int ioapic_count = 8;
 
 static int ioapic_handler(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
-    //kprintf("IO APIC Interrupt Vector %d, IRQ %d\n", vector_map[vector_num].vector, vector_map[vector_num].irq);
+//     kprintf("IO APIC Interrupt Vector %d, IRQ %d\n", context->vector, vector_map[context->vector].irq);
     
     u32 result = 1;
+    int irq = vector_map[context->vector].irq;
     
-    // Dissable IRQ
-    //ioapic_disable_irq(vector_map[vector_num].irq);
+    // Disable IRQ
+    ioapic_disable_irq(irq);
     
-    switch (vector_map[context->vector].irq) {
-        case 0:
-            //result = hal_interrupt_handler_global_timer();
-            break;
-        case 1:
-            //result = hal_interrupt_handler_keyboard();
-            break;
-        default:
-            break;
+    // Dispatch
+    kdi->dispatch_type = kdisp_interrupt;
+    kdi->interrupt.irq = irq;
+    kdi->interrupt.vector = context->vector;
+    
+    switch (irq) {
+    case 0:
+        //result = hal_interrupt_handler_global_timer();
+        break;
+    case 1:
+        result = keyboard_interrupt_handler(context, kdi);
+        break;
+    default:
+        break;
     }
     
     // Enable IRQ
     lapic_eoi();
-    ioapic_enable_irq(vector_map[context->vector].irq);
-    
+    ioapic_enable_irq(irq);
     
     return result;
 }
@@ -78,6 +82,7 @@ static void ioapic_override_madt()
         int_entry = get_next_acpi_int_entry(int_entry, &irq, &vector, &polarity, &trigger);
         assert(int_entry);
 
+        irq_map[irq].irq = irq;
         irq_map[irq].vector = vector;
         struct acpi_madt_ioapic* ioapic_entry = NULL;
         
@@ -222,15 +227,19 @@ static void ioapic_override_mps()
 
 void ioapic_start()
 {
-    ioapic_enable_irq(0);
+    //ioapic_enable_irq(0);
     ioapic_enable_irq(1);
+    //ioapic_enable_irq(15);
 }
 
 void ioapic_init_redirection_table(int chip, int pin, int vector, int trigger, int polarity)
 {
+    int addr = APIC_IO_REDTBL + pin * 2;
+//     kprintf("Init redirection table, pin: %d, addr: %x, vector: %d\n", pin, addr, vector);
+//     
     struct io_redirection_register reg;
-    reg.low = ioapic_read(chip, APIC_IO_REDTBL + pin * 2);
-    reg.high = ioapic_read(chip, APIC_IO_REDTBL + pin * 2 + 1);
+    reg.low = ioapic_read(chip, addr);
+    reg.high = ioapic_read(chip, addr + 1);
     
     reg.destmod = APIC_DESTMOD_PHYS;
     reg.delmod = APIC_DELMOD_FIXED;
@@ -241,8 +250,8 @@ void ioapic_init_redirection_table(int chip, int pin, int vector, int trigger, i
     
     reg.dest = 0; //0xff;
     
-    ioapic_write(chip, APIC_IO_REDTBL + pin * 2, reg.low);
-    ioapic_write(chip, APIC_IO_REDTBL + pin * 2 + 1, reg.high);
+    ioapic_write(chip, addr, reg.low);
+    ioapic_write(chip, addr + 1, reg.high);
 }
 
 void ioapic_change_io_redirection_table(int chip, int pin, int dest, int vec, u32 flags)
@@ -251,8 +260,7 @@ void ioapic_change_io_redirection_table(int chip, int pin, int dest, int vec, u3
     
     if (flags & APIC_LOPRI) {
         dlvr = APIC_DELMOD_LOWPRI;
-    }
-    else {
+    } else {
         dlvr = APIC_DELMOD_FIXED;
     }
     
@@ -271,14 +279,14 @@ void ioapic_change_io_redirection_table(int chip, int pin, int dest, int vec, u3
     ioapic_write(chip, APIC_IO_REDTBL + pin * 2 + 1, reg.high);
 }
 
-void ioapic_disable_irq(u16 irq)
+void ioapic_disable_irq(int irq)
 {
     struct apic_irq_to_pin pin_record = irq_map[irq];
-    u8 pin = pin_record.pin;
-    u8 chip = pin_record.chip;
+    int pin = pin_record.pin;
+    int chip = pin_record.chip;
     
     if (pin != -1 && chip != -1) {
-        struct io_redirection_register reg;
+        volatile struct io_redirection_register reg;
         
         reg.low = ioapic_read(chip, APIC_IO_REDTBL + pin * 2);
         reg.masked = 1;
@@ -286,19 +294,34 @@ void ioapic_disable_irq(u16 irq)
     }
 }
 
-void ioapic_enable_irq(u16 irq)
+void ioapic_enable_irq(int irq)
 {
     struct apic_irq_to_pin pin_record = irq_map[irq];
-    u8 pin = pin_record.pin;
-    u8 chip = pin_record.chip;
+    int pin = pin_record.pin;
+    int chip = pin_record.chip;
     
     if (pin != -1 && chip != -1) {
+        int addr = APIC_IO_REDTBL + pin * 2;
         struct io_redirection_register reg;
         
-        reg.low = ioapic_read(chip, APIC_IO_REDTBL + pin * 2);
+        reg.low = ioapic_read(chip, addr);
         reg.masked = 0;
-        ioapic_write(chip, APIC_IO_REDTBL + pin * 2, reg.low);
+        ioapic_write(chip, addr, reg.low);
+        
+//         kprintf("IRQ enabled, vector: %x, IRQ: %d\n", reg.vector, irq);
     }
+/*    
+    int i;
+    for (i = 0; i < 32; i++) {
+        int addr = APIC_IO_REDTBL + i * 2;
+        struct io_redirection_register reg;
+        
+        reg.low = ioapic_read(chip, addr);
+        
+        kprintf("IRQ query, vector: %x, IRQ: %d\n", reg.vector, irq);
+    }
+    
+    panic("here");*/
 }
 
 u32 *ioapic_get_chip_base(int chip)
@@ -307,16 +330,16 @@ u32 *ioapic_get_chip_base(int chip)
     
     u32 result = IOAPIC_TOP_VADDR - PAGE_SIZE * (chip + 1);
     
-    return (u32*)result;
+    return (u32 *)result;
 }
 
 u32 ioapic_read(int chip, int address)
 {
     struct apic_io_regseclect_register regsel;
-    u32* chip_base = ioapic_get_chip_base(chip);
+    volatile u32 *chip_base = ioapic_get_chip_base(chip);
     
     regsel.value = chip_base[APIC_IO_REGSEL];
-    regsel.reg_addr = address;
+    regsel.reg_addr = (u32)address;
     chip_base[APIC_IO_REGSEL] = regsel.value;
     
     u32 result = chip_base[APIC_IO_WIN];
@@ -327,10 +350,10 @@ u32 ioapic_read(int chip, int address)
 void ioapic_write(int chip, int address, u32 val)
 {
     struct apic_io_regseclect_register regsel;
-    u32* chip_base = ioapic_get_chip_base(chip);
+    volatile u32 *chip_base = ioapic_get_chip_base(chip);
     
     regsel.value = chip_base[APIC_IO_REGSEL];
-    regsel.reg_addr = address;
+    regsel.reg_addr = (u32)address;
     chip_base[APIC_IO_REGSEL] = regsel.value;
     
     chip_base[APIC_IO_WIN] = val;
@@ -344,6 +367,8 @@ void init_ioapic()
     ioapic_count = 8;
     
     if (acpi_supported && madt_supported) {
+        kprintf("acpi supported!\n");
+        
         if (madt_ioapic_count < ioapic_count) {
             ioapic_count = madt_ioapic_count;
         }
@@ -377,8 +402,7 @@ void init_ioapic()
             ioapic_vaddr -= PAGE_SIZE;
             
             kernel_indirect_map_array(
-                IOAPIC_TOP_VADDR - PAGE_SIZE * i, ioapic_paddr,
-                PAGE_SIZE, 1, 1
+                ioapic_vaddr, ioapic_paddr, PAGE_SIZE, 1, 1
             );
             
             kprintf("\tIOAPIC #%d mapped: %p -> %p\n", i, ioapic_vaddr, ioapic_paddr);
@@ -397,6 +421,7 @@ void init_ioapic()
     for (i = 0; i < 16; i++) {
         irq_map[i].chip = 0;
         irq_map[i].pin = i;
+        irq_map[i].irq = i;
         irq_map[i].vector = i;
         irq_map[i].available = 1;
         
@@ -422,13 +447,12 @@ void init_ioapic()
             continue;
         }
         
-        kprintf("\t\tIRQ: %d, Vector: %d, Chip: %d, Pin: %d, Trigger: %d, Polarity: %d\n",
-                i,
-                irq_map[i].vector,
-                irq_map[i].chip,
-                irq_map[i].pin,
-                irq_map[i].trigger,
-                irq_map[i].polarity
+        kprintf("\t\tIRQ: %d, Chip: %d, Pin: %d, Trigger: %d, Polarity: %d\n",
+            irq_map[i].irq,
+            irq_map[i].chip,
+            irq_map[i].pin,
+            irq_map[i].trigger,
+            irq_map[i].polarity
         );
     }
     
@@ -446,13 +470,18 @@ void init_ioapic()
         }
         
         int vector = alloc_int_vector(ioapic_handler);
-        vector_map[vector].irq = i;
+        vector_map[vector].vector = vector;
+        vector_map[vector].irq = irq_map[i].irq;
         
         vector_map[vector].chip = irq_map[i].chip;
         vector_map[vector].pin = irq_map[i].pin;
         vector_map[vector].available = irq_map[i].available;
         vector_map[vector].trigger = irq_map[i].trigger;
         vector_map[vector].polarity = irq_map[i].polarity;
+        
+//         if (irq_map[i].irq >= 2) {
+//             continue;
+//         }
         
         // Redirection Table
         ioapic_init_redirection_table(
@@ -464,12 +493,14 @@ void init_ioapic()
         );
         
         kprintf("\t\tVector: %d, IRQ: %d, Chip: %d, Pin: %d, Trigger: %d, Polarity: %d\n",
-                vector,
-                vector_map[vector].vector,
-                vector_map[vector].chip,
-                vector_map[vector].pin,
-                vector_map[vector].trigger,
-                vector_map[vector].polarity
+            vector,
+            vector_map[vector].irq,
+            vector_map[vector].chip,
+            vector_map[vector].pin,
+            vector_map[vector].trigger,
+            vector_map[vector].polarity
         );
     }
+    
+    //panic("here");
 }

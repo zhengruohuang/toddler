@@ -40,6 +40,9 @@ static void asmlinkage dispatch(ulong sched_id, struct kernel_dispatch_info *dis
     case kdisp_syscall:
         dispatch_syscall(disp_info);
         break;
+    case kdisp_interrupt:
+        dispatch_interrupt(disp_info);
+        break;
     default:
         break;
     }
@@ -87,10 +90,15 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     init_process();
     init_thread();
     
+    // Init sys dispatch
+    init_dispatch();
+    
     // Init syscall and KAPI
-    init_syscall();
     init_ipc();
     init_kapi();
+    
+    // Init interrupt
+    init_interrupt();
     
     // Init namespace dispatcher
     

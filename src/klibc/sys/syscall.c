@@ -46,7 +46,7 @@ no_opt int do_syscall(unsigned long num, unsigned long param1, unsigned long par
         *out2 = value2;
     }
     
-    return succeed;
+    return 1;
 }
 
 int syscall_ping(unsigned long ping, unsigned long *pong)

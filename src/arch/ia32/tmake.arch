@@ -237,7 +237,7 @@ def qemu():
     
     # Compose the cmd
     cmd = 'qemu-system-i386' + \
-        ' -m 128' + \
+        ' -m 512' + \
         ' -no-shutdown -no-reboot -no-kvm' + \
         ' -smp cores=1,threads=1,sockets=1' + \
         ' -drive if=floppy,format=raw,file=' + img_name
@@ -259,7 +259,7 @@ def bochs():
     assert(code == 0)
     
 def start_emu():
-    emu_type = 'bochs'
+    emu_type = 'qemu'
     if emu_type in arch_funcs:
         arch_funcs[emu_type]()
     

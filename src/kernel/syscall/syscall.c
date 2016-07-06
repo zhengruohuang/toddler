@@ -1,5 +1,5 @@
 /*
- * System call dispatch
+ * System dispatch
  */
 
 
@@ -16,10 +16,10 @@
 static int kernel_dispatch_salloc_id;
 
 
-void init_syscall()
+void init_dispatch()
 {
     kernel_dispatch_salloc_id = salloc_create(sizeof(struct kernel_dispatch_info), 0, 0, NULL, NULL);
-    kprintf("\tSyscall kernel dispatch node salloc ID: %d\n", kernel_dispatch_salloc_id);
+    kprintf("\tKernel dispatch node salloc ID: %d\n", kernel_dispatch_salloc_id);
 }
 
 static struct kernel_dispatch_info *prepare_thread(struct kernel_dispatch_info *disp_info)
@@ -106,10 +106,22 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
     
     // Take care of reschedule flag
     if (t) {
-        dup_disp_info->syscall.worker = t;
+        dup_disp_info->worker = t;
         run_thread(t);
         resched = 1;
     }
     
     return resched;
+}
+
+
+/*
+ * Interrupt
+ */
+int dispatch_interrupt(struct kernel_dispatch_info *disp_info)
+{
+    // Do the actual dispatch
+    interrupt_worker(disp_info);
+    
+    return 1;
 }

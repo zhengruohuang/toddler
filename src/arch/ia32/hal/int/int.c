@@ -124,8 +124,21 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
     // Get context
     struct context *context = get_per_cpu(struct context, cur_context);
     
-    //kprintf("Interrupt, vector: %x, err_code: %x, eip: %x, esp: %x, cs: %x, ds: %x, es: %x, fs: %x, ss: %x eflags: %x\n",
-    //        vector_num, error_code, context->eip, context->esp, context->cs, context->ds, context->es, context->fs, context->ss, context->eflags);
+//     if (vector_num != 0x22) {
+//         // Switch to kernel AS, temp trick
+//         __asm__ __volatile__
+//         (
+//             "movl   %%eax, %%cr3;"
+//             "jmp    _cr3_switched;"
+//             "_cr3_switched:"
+//             "nop;"
+//             :
+//             : "a" (KERNEL_PDE_PFN << 12)
+//         );
+//         
+//         kprintf("Interrupt, vector: %x, err_code: %x, eip: %x, esp: %x, cs: %x, ds: %x, es: %x, fs: %x, ss: %x eflags: %x\n",
+//             vector_num, error_code, context->eip, context->esp, context->cs, context->ds, context->es, context->fs, context->ss, context->eflags);
+//     }
     
     // Get the actual interrupt handler
     int_handler handler = int_handler_list[vector_num];

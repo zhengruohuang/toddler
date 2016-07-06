@@ -387,7 +387,7 @@ void init_thread()
     }
     
     // Create kernel demo threads
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < 2; i++) {
         ulong param = i;
         struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, param, -1, 0, 0);
         run_thread(t);

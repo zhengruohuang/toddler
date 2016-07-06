@@ -586,7 +586,6 @@ def auto_link_target(obj_files, target_name, ext_libs, ext_flags, tools):
     
     cmd = tool['exec'] + ' ' + tool['flags'] + ' ' + ext_cmd + ' ' + script_cmd + ' ' + obj_cmd
     print_cmd(cmd)
-    print(cmd)
     
     # Execute the cmd to compile
     code = exec_cmd(cmd)

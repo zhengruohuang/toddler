@@ -182,12 +182,12 @@ static void transfer_msg(msg_t *s, int sender_blocked, struct process *src_p, st
     }
     
     kprintf("Transferring msg!\n");
-    __asm__ __volatile__
-    (
-        "xchgw %%bx, %%bx;"
-        :
-        :
-    );
+//     __asm__ __volatile__
+//     (
+//         "xchgw %%bx, %%bx;"
+//         :
+//         :
+//     );
     
     kprintf("Msg duplicated!\n");
     
@@ -282,7 +282,7 @@ void recv_worker_thread(ulong param)
 {
     // Get the params
     struct kernel_dispatch_info *disp_info = (struct kernel_dispatch_info *)param;
-    struct thread *worker = disp_info->syscall.worker;
+    struct thread *worker = disp_info->worker;
     
     // Get recv info
     struct process *src_p = disp_info->proc;
@@ -334,7 +334,7 @@ void request_worker_thread(ulong param)
 {
     // Get the params
     struct kernel_dispatch_info *disp_info = (struct kernel_dispatch_info *)param;
-    struct thread *worker = disp_info->syscall.worker;
+    struct thread *worker = disp_info->worker;
     
     // Get src info
     struct process *src_p = disp_info->proc;
@@ -367,7 +367,7 @@ void respond_worker_thread(ulong param)
 {
     // Get the params
     struct kernel_dispatch_info *disp_info = (struct kernel_dispatch_info *)param;
-    struct thread *worker = disp_info->syscall.worker;
+    struct thread *worker = disp_info->worker;
     struct thread *src_t = disp_info->thread;
     
     // Do a reply

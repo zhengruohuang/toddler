@@ -9,9 +9,11 @@
 
 
 /*
- * Dispatcher
+ * Dispatch
  */
+extern void init_dispatch();
 extern int dispatch_syscall(struct kernel_dispatch_info *disp_info);
+extern int dispatch_interrupt(struct kernel_dispatch_info *disp_info);
 
 
 /*
@@ -23,7 +25,6 @@ struct kernel_msg_handler_arg {
     msg_t *msg;
 };
 
-extern void init_syscall();
 extern void init_ipc();
 
 extern void kputs_worker_thread(ulong param);
@@ -41,6 +42,15 @@ extern void respond_worker_thread(ulong param);
 
 extern void reg_kapi_server_worker(struct kernel_dispatch_info *disp_info);
 extern void unreg_kapi_server_worker(struct kernel_dispatch_info *disp_info);
+
+
+/*
+ * Interrupt
+ */
+extern void init_interrupt();
+extern void reg_interrupt(struct process *p, unsigned long irq, unsigned long thread_entry);
+extern void unreg_interrupt(struct process *p, unsigned long irq);
+extern void interrupt_worker(struct kernel_dispatch_info *disp_info);
 
 
 #endif

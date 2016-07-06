@@ -20,31 +20,10 @@ static void register_kapi(ulong kapi_num, kernel_msg_handler_t handler)
 void init_kapi()
 {
     hashtable_create(&kapi_servers, 0, NULL);
+    
     register_kapi(KAPI_THREAD_EXIT, thread_exit_handler);
+    register_kapi(KAPI_INTERRUPT_REG, reg_interrupt_handler);
+    register_kapi(KAPI_INTERRUPT_UNREG, unreg_interrupt_handler);
     
     kprintf("KAPI Initialized\n");
-}
-
-
-asmlinkage void thread_exit_handler(struct kernel_msg_handler_arg *arg)
-{
-    kprintf("To terminate user thread: %p\n", arg->sender_thread);
-    
-    terminate_thread(arg->sender_thread);
-    terminate_thread(arg->handler_thread);
-    
-    sfree(arg);
-    
-    kprintf("Threads should have been terminated\n");
-    
-    // Wait for this thread to be terminated
-    do {
-        hal->sleep();
-    } while (1);
-    
-    // Should never reach here
-    kprintf("kapi.c: Should never reach here!\n");
-    do {
-        hal->sleep();
-    } while (1);
 }

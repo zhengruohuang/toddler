@@ -19,8 +19,8 @@ void init_user_hi4()
     assert(user_hi4_pfn);
     
     // Obtain the pages
-    struct page_frame *kpage = (struct page_frame *)PFN_TO_ADDR(KERNEL_PTE_HI4_PFN);
-    struct page_frame *upage = (struct page_frame *)PFN_TO_ADDR(user_hi4_pfn);
+    volatile struct page_frame *kpage = (struct page_frame *)PFN_TO_ADDR(KERNEL_PTE_HI4_PFN);
+    volatile struct page_frame *upage = (struct page_frame *)PFN_TO_ADDR(user_hi4_pfn);
     
     // Duplicate the content
     int i;
@@ -42,7 +42,7 @@ void init_user_hi4()
 
 void init_user_page_dir(ulong page_dir_pfn)
 {
-    struct page_frame *page = (struct page_frame *)PFN_TO_ADDR(page_dir_pfn);
+    volatile struct page_frame *page = (struct page_frame *)PFN_TO_ADDR(page_dir_pfn);
 
     int i;
     for (i = 0; i < 1024; i++) {
@@ -65,7 +65,7 @@ void init_user_page_dir(ulong page_dir_pfn)
 ulong get_paddr(ulong page_dir_pfn, ulong vaddr)
 {
     // PDE
-    struct page_frame *page = (struct page_frame *)PFN_TO_ADDR(page_dir_pfn);
+    volatile struct page_frame *page = (struct page_frame *)PFN_TO_ADDR(page_dir_pfn);
     int index = GET_PDE_INDEX(vaddr);
     
     if (!page->value_u32[index]) {
@@ -92,7 +92,7 @@ static int user_indirect_map(
     int exec, int write, int cacheable, int override)
 {
     // PDE
-    struct page_frame *page = (struct page_frame *)PFN_TO_ADDR(page_dir_pfn);
+    volatile struct page_frame *page = (struct page_frame *)PFN_TO_ADDR(page_dir_pfn);
     int index = GET_PDE_INDEX(vaddr);
     
     if (!page->value_u32[index]) {
@@ -188,7 +188,7 @@ int user_indirect_map_array(
 void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int override)
 {
     // PDE
-    struct page_frame *page = (struct page_frame *)KERNEL_PDE_PADDR;
+    volatile struct page_frame *page = (struct page_frame *)KERNEL_PDE_PADDR;
     int index = GET_PDE_INDEX(vaddr);
     
     if (!page->value_u32[index]) {

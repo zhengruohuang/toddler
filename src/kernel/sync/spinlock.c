@@ -36,12 +36,12 @@ void spin_unlock(spinlock_t *lock)
 
 void spin_lock_int(spinlock_t *lock)
 {
+    int enabled = hal->disable_local_interrupt();
+    
     do {
         do {
         } while (lock->value);
     } while (!atomic_cas(&lock->value, 0, 1));
-    
-    int enabled = hal->disable_local_interrupt();
     
     spinlock_t newlock;
     newlock.locked = 1;
@@ -56,6 +56,10 @@ void spin_unlock_int(spinlock_t *lock)
     
     assert(lock->locked);
     lock->value = 0;
+    
+//     if (enabled) {
+//         kprintf("spin store: %d\n", enabled);
+//     }
     
     hal->restore_local_interrupt(enabled);
 }

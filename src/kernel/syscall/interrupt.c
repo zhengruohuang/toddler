@@ -104,7 +104,6 @@ void interrupt_worker(struct kernel_dispatch_info *disp_info)
         m->opcode = 0;
         m->param_count = 0;
         
-        msg_param_value(m, 0);
         msg_param_value(m, disp_info->interrupt.irq);
         msg_param_value(m, disp_info->interrupt.vector);
         msg_param_value(m, disp_info->interrupt.param0);

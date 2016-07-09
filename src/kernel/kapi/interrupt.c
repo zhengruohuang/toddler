@@ -23,15 +23,7 @@ asmlinkage void reg_interrupt_handler(struct kernel_msg_handler_arg *arg)
     sfree(arg);
     
     // Wait for this thread to be terminated
-    do {
-        hal->sleep();
-    } while (1);
-    
-    // Should never reach here
-    kprintf("kapi.c: Should never reach here!\n");
-    do {
-        hal->sleep();
-    } while (1);
+    kernel_unreachable();
 }
 
 asmlinkage void unreg_interrupt_handler(struct kernel_msg_handler_arg *arg)
@@ -47,13 +39,5 @@ asmlinkage void unreg_interrupt_handler(struct kernel_msg_handler_arg *arg)
     sfree(arg);
     
     // Wait for this thread to be terminated
-    do {
-        hal->sleep();
-    } while (1);
-    
-    // Should never reach here
-    kprintf("kapi.c: Should never reach here!\n");
-    do {
-        hal->sleep();
-    } while (1);
+    kernel_unreachable();
 }

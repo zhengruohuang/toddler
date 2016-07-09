@@ -13,16 +13,19 @@
 /*
  * Wrappers
  */
-extern int asmlinkage wrap_user_map(ulong page_dir, ulong vaddr, ulong paddr, size_t size, int exec, int write, int cacheable, int override);
-extern ulong asmlinkage wrap_get_paddr(ulong page_dir_pfn, ulong vaddr);
-extern int asmlinkage wrap_load_exe(ulong image_start, ulong dest_page_dir_pfn,
+extern int wrap_user_map(ulong page_dir, ulong vaddr, ulong paddr, size_t size, int exec, int write, int cacheable, int override);
+extern ulong wrap_get_paddr(ulong page_dir_pfn, ulong vaddr);
+extern int wrap_load_exe(ulong image_start, ulong dest_page_dir_pfn,
                                     ulong *entry_out, ulong *vaddr_start_out, ulong *vaddr_end_out);
-extern void asmlinkage wrap_init_addr_space(ulong page_dir_pfn);
-extern void asmlinkage wrap_halt();
-extern void asmlinkage wrap_sleep();
-extern int asmlinkage wrap_get_cur_cpu_id();
-extern ulong asmlinkage wrap_io_in(ulong port, ulong size);
-extern void asmlinkage wrap_io_out(ulong port, ulong size, ulong data);
+extern void wrap_init_addr_space(ulong page_dir_pfn);
+extern int wrap_get_cur_cpu_id();
+
+extern ulong wrap_io_in(ulong port, ulong size);
+extern void wrap_io_out(ulong port, ulong size, ulong data);
+
+extern void wrap_halt();
+extern void wrap_sleep();
+extern void wrap_yield();
 
 
 /*
@@ -30,7 +33,7 @@ extern void asmlinkage wrap_io_out(ulong port, ulong size, ulong data);
  */
 extern ulong paddr_space_end;
 
-extern int asmlinkage get_next_mem_zone(struct kernel_mem_zone *cur);
+extern int get_next_mem_zone(struct kernel_mem_zone *cur);
 extern void init_kmem_zone();
 extern void full_direct_map();
 

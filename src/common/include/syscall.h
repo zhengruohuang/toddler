@@ -12,14 +12,15 @@
 #define SYSCALL_NONE            0x0
 #define SYSCALL_PING            0x1
 #define SYSCALL_KPUTS           0x2
+#define SYSCALL_YIELD           0x3
 
-// IO ports
-// On systems with only memory-mapped IO, calling these syscalls is unnecessary
+// I/O ports
+// On systems with only memory-mapped I/O, making these calls is unnecessary
 #define SYSCALL_IO_OUT          0x10
 #define SYSCALL_IO_IN           0x11
 
 // Thread control block
-// On systems with fast TCB support, calling this syscall is unecessary
+// On systems with fast TCB support, making these calls is unecessary
 #define SYSCALL_GET_TCB         0x20
 
 // IPC

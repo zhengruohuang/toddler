@@ -16,7 +16,7 @@ dec_per_cpu(int, cur_in_user_mode);
 dec_per_cpu(struct context, cur_context);
 
 
-void asmlinkage init_thread_context(struct context *context, ulong entry, ulong stack_top, int user_mode)
+void init_thread_context(struct context *context, ulong entry, ulong stack_top, int user_mode)
 {
     // Segmentation registers
     if (user_mode) {
@@ -223,7 +223,7 @@ static void no_opt switch_to_kernel(struct context *context)
     );
 }
 
-void asmlinkage no_opt switch_context(ulong sched_id, struct context *context,
+void no_opt switch_context(ulong sched_id, struct context *context,
                                       ulong page_dir_pfn, int user_mode, ulong asid,
                                       struct thread_control_block *tcb)
 {

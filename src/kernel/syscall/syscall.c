@@ -44,10 +44,13 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
     
     // Do the actual dispatch
     switch (disp_info->syscall.num) {
+    // Internal
     case SYSCALL_KPUTS:
         dup_disp_info = prepare_thread(disp_info);
         t = create_thread(kernel_proc, (ulong)&kputs_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
         assert(t);
+        break;
+    case SYSCALL_YIELD:
         break;
     
     // IO Ports
@@ -57,7 +60,7 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
     case SYSCALL_IO_OUT:
         io_out_worker(disp_info);
         break;
-        
+    
     // IPC
     case SYSCALL_REG_MSG_HANDLER:
         kprintf("syscall reg msg handler\n");
@@ -89,7 +92,7 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
         t = create_thread(kernel_proc, (ulong)&respond_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
         assert(t);
         break;
-        
+    
     // KAPI
     case SYSCALL_REG_KAPI_SERVER:
         kprintf("syscall reg kapi server\n");
@@ -98,7 +101,7 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
     case SYSCALL_UNREG_KAPI_SERVER:
         unreg_kapi_server_worker(disp_info);
         break;
-        
+    
     // Invalid syscall
     default:
         break;

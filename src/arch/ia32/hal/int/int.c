@@ -31,7 +31,7 @@ void set_local_int_state(int enabled)
     *ptr = enabled;
 }
 
-int asmlinkage disable_local_int()
+int disable_local_int()
 {
     __asm__ __volatile__
     (
@@ -46,7 +46,7 @@ int asmlinkage disable_local_int()
     return enabled;
 }
 
-void asmlinkage restore_local_int(int enabled)
+void restore_local_int(int enabled)
 {
     int cur_state = get_local_int_state();
     
@@ -66,7 +66,7 @@ void asmlinkage restore_local_int(int enabled)
     }
 }
 
-void asmlinkage enable_local_int()
+void enable_local_int()
 {
     __asm__ __volatile__
     (

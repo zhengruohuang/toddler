@@ -8,6 +8,7 @@
 #include "hal/include/cpu.h"
 #include "hal/include/task.h"
 #include "hal/include/kernel.h"
+#include "hal/include/int.h"
 #include "hal/include/syscall.h"
 
 
@@ -24,6 +25,22 @@ static void init_syscall_msr()
     msr_write(SYSENTER_MSR_CS, &sysenter_cs);
     msr_write(SYSENTER_MSR_ESP, &sysenter_esp);
     msr_write(SYSENTER_MSR_EIP, &sysenter_eip);
+}
+
+static int int_syscall_handler(struct int_context *context, struct kernel_dispatch_info *kdi)
+{
+    ulong num = context->context->esi;
+    ulong param0 = context->context->edi;
+    ulong param1 = context->context->eax;
+    ulong param2 = context->context->edx;
+    
+    kdi->dispatch_type = kdisp_syscall;
+    kdi->syscall.num = num;
+    kdi->syscall.param0 = param0;
+    kdi->syscall.param1 = param1;
+    kdi->syscall.param2 = param2;
+    
+    return 1;
 }
 
 
@@ -45,6 +62,7 @@ void init_syscall()
     );
     
     init_syscall_msr();
+    set_int_vector(INT_VECTOR_SYS_CALL, int_syscall_handler);
 }
 
 void asmlinkage save_context_sysenter(struct context *context)

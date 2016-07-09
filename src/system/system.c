@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
     int i = 0;
     char buf[64];
     do {
+        syscall_yield();
         //kprintf("still alive %d\n", i++);
 //         struct thread_control_block *tcb = get_tcb();
 //         msg_t *msg = syscall_msg();

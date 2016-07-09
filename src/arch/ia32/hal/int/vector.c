@@ -4,7 +4,7 @@
 
 
 static enum int_vector_state int_vector_table[256];
-static int syscall_vector[] = { 0x90 };
+static int syscall_vector[] = { INT_VECTOR_SYS_CALL };
 
 
 void init_int_vector()
@@ -21,10 +21,23 @@ void init_int_vector()
         int_vector_table[i] = int_vector_free;
     }
     
-    // Reserved by Syscalls
+    // Reserved by syscalls
     for (i = 0; i < sizeof(syscall_vector) / sizeof(int); i++) {
         int_vector_table[syscall_vector[i]] = int_vector_reserved;
     }
+}
+
+int set_int_vector(int vector, int_handler hdlr)
+{
+    assert(int_vector_table[vector] == int_vector_free || int_vector_table[vector] == int_vector_reserved);
+    
+    int_vector_table[vector] = int_vector_allocated;
+    
+    if (NULL != hdlr) {
+        int_handler_list[vector] = hdlr;
+    }
+    
+    return 1;
 }
 
 int alloc_int_vector(int_handler hdlr)

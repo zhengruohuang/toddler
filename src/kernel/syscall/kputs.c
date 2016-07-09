@@ -59,13 +59,5 @@ void kputs_worker_thread(ulong param)
     terminate_thread(worker);
     
     // Wait for this thread to be terminated
-    do {
-        hal->sleep();
-    } while (1);
-    
-    // Should never reach here
-    kprintf("kputs.c: Should never reach here!\n");
-    do {
-        hal->sleep();
-    } while (1);
+    kernel_unreachable();
 }

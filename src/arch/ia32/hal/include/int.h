@@ -129,9 +129,9 @@ extern void int_handlers();
  */
 extern int get_local_int_state();
 extern void set_local_int_state(int enabled);
-extern int asmlinkage disable_local_int();
-extern void asmlinkage restore_local_int(int enabled);
-extern void asmlinkage enable_local_int();
+extern int disable_local_int();
+extern void restore_local_int(int enabled);
+extern void enable_local_int();
 
 extern void init_int_state_mp();
 extern void init_int_state();
@@ -170,6 +170,7 @@ enum int_vector_state {
 };
 
 extern void init_int_vector();
+extern int set_int_vector(int vector, int_handler hdlr);
 extern int alloc_int_vector(int_handler hdlr);
 extern void free_int_vector(int vector);
 

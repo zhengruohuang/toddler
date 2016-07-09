@@ -20,7 +20,7 @@ static struct kernel_mem_zone mem_zones[MAX_KERNEL_MEM_ZONE_COUNT];
 ulong paddr_space_end = 0x400000;
 
 
-int asmlinkage get_next_mem_zone(struct kernel_mem_zone *cur)
+int get_next_mem_zone(struct kernel_mem_zone *cur)
 {
     int i;
     

@@ -296,7 +296,7 @@ void recv_worker_thread(ulong param)
             break;
         }
         
-        hal->sleep();
+        hal->yield();
     } while (1);
     
 //     // Clean the previous msg
@@ -319,15 +319,7 @@ void recv_worker_thread(ulong param)
     terminate_thread(worker);
     
     // Wait for this thread to be terminated
-    do {
-        hal->sleep();
-    } while (1);
-    
-    // Should never reach here
-    kprintf("kputs.c: Should never reach here!\n");
-    do {
-        hal->sleep();
-    } while (1);
+    kernel_unreachable();
 }
 
 void request_worker_thread(ulong param)
@@ -352,15 +344,7 @@ void request_worker_thread(ulong param)
     terminate_thread(worker);
     
     // Wait for this thread to be terminated
-    do {
-        hal->sleep();
-    } while (1);
-    
-    // Should never reach here
-    kprintf("kputs.c: Should never reach here!\n");
-    do {
-        hal->sleep();
-    } while (1);
+    kernel_unreachable();
 }
 
 void respond_worker_thread(ulong param)
@@ -387,13 +371,5 @@ void respond_worker_thread(ulong param)
     kprintf("Worker thread terminated!\n");
     
     // Wait for this thread to be terminated
-    do {
-        hal->sleep();
-    } while (1);
-    
-    // Should never reach here
-    kprintf("kputs.c: Should never reach here!\n");
-    do {
-        hal->sleep();
-    } while (1);
+    kernel_unreachable();
 }

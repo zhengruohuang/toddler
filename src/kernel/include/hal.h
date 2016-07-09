@@ -42,7 +42,7 @@ struct hal_exports {
     
     // General functions
     int asmlinkage (*kprintf)(char *s, ...);
-    void asmlinkage (*halt)();
+    void (*halt)();
     
     // Kernel info
     ulong kernel_page_dir_pfn;
@@ -52,38 +52,43 @@ struct hal_exports {
     
     // MP
     int num_cpus;
-    int asmlinkage (*get_cur_cpu_id)();
+    int (*get_cur_cpu_id)();
     
     // Physical memory info
     ulong free_mem_start_addr;
     ulong paddr_space_end;
-    int asmlinkage (*get_next_mem_zone)(struct kernel_mem_zone *cur);
+    int (*get_next_mem_zone)(struct kernel_mem_zone *cur);
     
     // IO Ports
-    ulong asmlinkage (*io_in)(ulong addr, ulong size);
-    void asmlinkage (*io_out)(ulong addr, ulong size, ulong data);
+    ulong (*io_in)(ulong addr, ulong size);
+    void (*io_out)(ulong addr, ulong size, ulong data);
     
     // Interrupts
-    int asmlinkage (*disable_local_interrupt)();
-    void asmlinkage (*enable_local_interrupt)();
-    void asmlinkage (*restore_local_interrupt)(int enabled);
+    int (*disable_local_interrupt)();
+    void (*enable_local_interrupt)();
+    void (*restore_local_interrupt)(int enabled);
     
     // Mapping
-    int asmlinkage (*map_user)(ulong page_dir_pfn, ulong vaddr, ulong paddr,
+    int (*map_user)(ulong page_dir_pfn, ulong vaddr, ulong paddr,
                                size_t length, int exec, int write, int cacheable, int overwrite);
-    ulong asmlinkage (*get_paddr)(ulong page_dir_pfn, ulong vaddr);
+    int (*unmap_user)(ulong page_dir_pfn, ulong vaddr, ulong paddr, size_t length);
+    ulong (*get_paddr)(ulong page_dir_pfn, ulong vaddr);
     
     // Load image
-    int asmlinkage (*load_exe)(ulong image_start, ulong dest_page_dir_pfn,
+    int (*load_exe)(ulong image_start, ulong dest_page_dir_pfn,
                                ulong *entry_out, ulong *vaddr_start_out, ulong *vaddr_end_out);
     
     // Task
-    void asmlinkage (*init_addr_space)(ulong page_dir_pfn);
-    void asmlinkage (*init_context)(struct context *context, ulong entry, ulong stack_top, int user_mode);
-    void asmlinkage (*switch_context)(ulong sched_id, struct context *context,
+    void (*init_addr_space)(ulong page_dir_pfn);
+    void (*init_context)(struct context *context, ulong entry, ulong stack_top, int user_mode);
+    void (*switch_context)(ulong sched_id, struct context *context,
                                       ulong page_dir_pfn, int user_mode, ulong asid,
                                       struct thread_control_block *tcb);
-    void asmlinkage (*sleep)();
+    void (*sleep)();
+    void (*yield)();
+    
+    // TLB
+    void (*tlb_shootdown)(ulong asid, ulong vaddr);
 };
 
 
@@ -118,7 +123,18 @@ do {                                \
     hal->kprintf(__VA_ARGS__);      \
     spin_unlock_int(&kprintf_lock); \
 } while (0)
+
 #define halt            (hal->halt)
+
+#define kernel_unreachable() do {   \
+    do {                            \
+        hal->yield();               \
+    } while (1);                    \
+    kprintf("kputs.c: Should never reach here!\n"); \
+    do {                            \
+        hal->sleep();               \
+    } while (1);                    \
+} while (0)
 #endif
 
 

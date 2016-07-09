@@ -36,6 +36,7 @@ no_opt int do_syscall(unsigned long num, unsigned long param1, unsigned long par
         "_sysenter_ret:;"
         : "=a" (succeed), "=S" (value1), "=D" (value2)
         : "S"(num), "D" (param1), "a" (param2)
+        : "%ecx", "%edx"
     );
     
     if (out1) {
@@ -57,6 +58,11 @@ int syscall_ping(unsigned long ping, unsigned long *pong)
 int syscall_kputs(char *s)
 {
     return do_syscall(SYSCALL_KPUTS, (unsigned long)s, 0, NULL, NULL);
+}
+
+int syscall_yield()
+{
+    return do_syscall(SYSCALL_YIELD, 0, 0, NULL, NULL);
 }
 
 msg_t *syscall_msg()

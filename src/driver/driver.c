@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
     
     // Done
     do {
+        syscall_yield();
     } while (1);
     
     return 0;

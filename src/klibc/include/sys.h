@@ -21,6 +21,7 @@ extern int do_syscall(unsigned long num, unsigned long param1, unsigned long par
 
 extern int syscall_ping(unsigned long ping, unsigned long *pong);
 extern int syscall_kputs(char *s);
+extern int syscall_yield();
 
 extern msg_t *syscall_msg();
 

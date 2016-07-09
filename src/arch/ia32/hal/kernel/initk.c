@@ -74,6 +74,7 @@ void init_kernel()
     hexp->init_context = init_thread_context;
     hexp->switch_context = switch_context;
     hexp->sleep = wrap_sleep;
+    hexp->yield = wrap_yield;
     
     /*
      * Call kernel's entry

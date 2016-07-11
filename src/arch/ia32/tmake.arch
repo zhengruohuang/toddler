@@ -230,6 +230,22 @@ def build_disk():
     # Update record
     record_update(target_name)
 
+def qemu8():
+    print_info('emulator', 'Starting CMP QEMU')
+    
+    img_name = img_dir + 'floppy.img'
+    
+    # Compose the cmd
+    cmd = 'qemu-system-i386' + \
+        ' -m 512' + \
+        ' -no-shutdown -no-reboot -no-kvm' + \
+        ' -smp cores=2,threads=2,sockets=2' + \
+        ' -drive if=floppy,format=raw,file=' + img_name
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
 def qemu():
     print_info('emulator', 'Starting QEMU')
     
@@ -280,5 +296,6 @@ arch_funcs['build_loader'] = build_loader
 arch_funcs['build_hal'] = build_hal
 
 arch_funcs['qemu'] = qemu
+arch_funcs['qemu8'] = qemu8
 arch_funcs['bochs'] = bochs
 arch_funcs['start_emu'] = start_emu

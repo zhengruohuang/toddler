@@ -43,6 +43,8 @@ void trigger_tlb_shootdown(ulong addr, size_t size)
     int cpu_count = hal->num_cpus;
     int cur_cpu_id = hal->get_cur_cpu_id();
     
+    kprintf("[TLB] cpu count: %d\n", cpu_count);
+    
     assert(!records[cur_cpu_id].valid);
     hal->invalidate_tlb(0, addr, size);
     

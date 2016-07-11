@@ -42,6 +42,12 @@ static inline int atomic_cas_uint(volatile void *target, unsigned int old_value,
  */
 static inline void atomic_inc(volatile unsigned long *target)
 {
+    unsigned long old_val, new_val;
+    
+    do {
+        old_val = *target;
+        new_val = old_val + 1;
+    } while (!atomic_cas(target, old_val, new_val));
 }
 
 

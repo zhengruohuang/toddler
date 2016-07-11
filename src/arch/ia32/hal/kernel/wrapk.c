@@ -16,6 +16,11 @@ int wrap_user_map(ulong page_dir_pfn, ulong vaddr, ulong paddr, ulong size, int 
     return user_indirect_map_array(page_dir_pfn, vaddr, paddr, size, exec, write, cacheable, override);
 }
 
+int wrap_user_unmap(ulong page_dir_pfn, ulong vaddr, ulong paddr, ulong size)
+{
+    return user_indirect_unmap_array(page_dir_pfn, vaddr, paddr, size);
+}
+
 ulong wrap_get_paddr(ulong page_dir_pfn, ulong vaddr)
 {
     return get_paddr(page_dir_pfn, vaddr);
@@ -45,6 +50,11 @@ ulong wrap_io_in(ulong port, ulong size)
 void wrap_io_out(ulong port, ulong size, ulong data)
 {
     
+}
+
+void wrap_invalidate_tlb(ulong asid, ulong vaddr, size_t size)
+{
+    invalidate_tlb_array(vaddr, size);
 }
 
 void wrap_halt()

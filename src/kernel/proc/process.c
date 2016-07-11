@@ -93,6 +93,12 @@ struct process *create_process(
     processes.next = p;
     processes.count++;
     
+    // Create cleaning thread
+    if (type != process_kernel) {
+        struct thread *t = create_thread(kernel_proc, (ulong)&kernel_tclean_thread, (ulong)p, -1, 0, 0);
+        run_thread(t);
+    }
+    
     // Done
     return p;
 }

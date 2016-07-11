@@ -64,6 +64,7 @@ void init_kernel()
     
     // Mapping
     hexp->map_user = wrap_user_map;
+    hexp->unmap_user = wrap_user_unmap;
     hexp->get_paddr = wrap_get_paddr;
     
     // Load image
@@ -75,6 +76,9 @@ void init_kernel()
     hexp->switch_context = switch_context;
     hexp->sleep = wrap_sleep;
     hexp->yield = wrap_yield;
+    
+    // TLB
+    hexp->invalidate_tlb = wrap_invalidate_tlb;
     
     /*
      * Call kernel's entry

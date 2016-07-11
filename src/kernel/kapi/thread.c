@@ -9,10 +9,10 @@
 
 asmlinkage void thread_exit_handler(struct kernel_msg_handler_arg *arg)
 {
-    //kprintf("To terminate user thread: %p\n", arg->sender_thread);
+    kprintf("To terminate user thread: %p, process: %s\n", arg->sender_thread, arg->sender_thread->proc->name);
     
     terminate_thread(arg->sender_thread);
-    terminate_thread(arg->handler_thread);
+    terminate_thread_self(arg->handler_thread);
     
     sfree(arg);
     

@@ -14,40 +14,57 @@ spinlock_t kprintf_lock = { {0} };
 /*
  * Kernel function wrappers
  */
-ulong asmlinkage wrap_palloc_tag(int count, int tag)
+static ulong wrap_palloc_tag(int count, int tag)
 {
     return palloc_tag(count, tag);
 }
 
-ulong asmlinkage wrap_palloc(int count)
+static ulong wrap_palloc(int count)
 {
     return palloc(count);
+}
+
+static int wrap_pfree(ulong pfn)
+{
+    return pfree(pfn);
 }
 
 
 /*
  * Dispatch
  */
-static void asmlinkage dispatch(ulong sched_id, struct kernel_dispatch_info *disp_info)
+static void dispatch(ulong sched_id, struct kernel_dispatch_info *disp_info)
 {
-    // Fill in the dispatch infio
     struct sched *s = get_sched(sched_id);
-    disp_info->proc = s->proc;
-    disp_info->thread = s->thread;
-    disp_info->sched = s;
     
-    switch (disp_info->dispatch_type) {
-    case kdisp_syscall:
-        dispatch_syscall(disp_info);
-        break;
-    case kdisp_interrupt:
-        dispatch_interrupt(disp_info);
-        break;
-    default:
-        break;
+    // Deschedule current thread
+    int need_dispatch = desched(sched_id, disp_info->context);
+    
+    // TLB shootdown
+    service_tlb_shootdown();
+    
+    if (need_dispatch) {
+        // Fill in the dispatch infio
+        disp_info->proc = s->proc;
+        disp_info->thread = s->thread;
+        disp_info->sched = s;
+        
+        
+        
+        switch (disp_info->dispatch_type) {
+        case kdisp_syscall:
+            dispatch_syscall(disp_info);
+            break;
+        case kdisp_interrupt:
+            dispatch_interrupt(disp_info);
+            break;
+        default:
+            break;
+        }
+        
+        resched(sched_id);
     }
     
-    desched(sched_id, disp_info->context);
     sched();
 }
 
@@ -59,6 +76,7 @@ static void init_kexp()
     hal->kernel->dispatch = dispatch;
     hal->kernel->palloc_tag = wrap_palloc_tag;
     hal->kernel->palloc = wrap_palloc;
+    hal->kernel->pfree = wrap_pfree;
 }
 
 /*
@@ -89,16 +107,16 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     init_sched();
     init_process();
     init_thread();
+    init_dalloc();
+    init_tlb_mgmt();
     
-    // Init sys dispatch
+    // Init dispatch, syscall, interrupt, and exception
     init_dispatch();
+    init_interrupt();
     
-    // Init syscall and KAPI
+    // Init IPC and KAPI
     init_ipc();
     init_kapi();
-    
-    // Init interrupt
-    init_interrupt();
     
     // Init namespace dispatcher
     

@@ -226,31 +226,23 @@ void idle_sched(struct sched *s)
     push_back(&idle_queue, s);
 }
 
+void wait_sched(struct sched *s)
+{
+    assert(s->state == sched_ready);
+    
+    s->state = sched_stall;
+    push_back(&stall_queue, s);
+}
+
 void exit_sched(struct sched *s)
 {
-    // If the thread is running, we don't push_back it into exit list immediately
-    if (s->state == sched_run) {
-        // To support lazy sched, we also need to notify the target processor
-        // however this is necessary for now
-        
-        s->state = sched_exit;
-        return;
-    }
+    assert(s->state == sched_ready || s->state == sched_stall);
     
-    else if (s->state == sched_exit) {
-        return;
+    if (s->state == sched_stall) {
+        remove(&stall_queue, s);
     }
-    
-    else {
-        if (s->state == sched_ready) {
-            remove(&ready_queue, s);
-        } else if (s->state == sched_enter) {
-            remove(&enter_queue, s);
-        }
-        
-        s->state = sched_exit;
-        push_back(&exit_queue, s);
-    }
+    s->state = sched_exit;
+    push_back(&exit_queue, s);
 }
 
 void clean_sched(struct sched *s)
@@ -265,10 +257,12 @@ void clean_sched(struct sched *s)
 /*
  * Deschedule current thread
  */
-void desched(ulong sched_id, struct context *context)
+int desched(ulong sched_id, struct context *context)
 {
+    int need_dispatch = 1;
+    
     if (!sched_id) {
-        return;
+        return 0;
     }
     
     //kprintf("Deschedule\n");
@@ -276,8 +270,6 @@ void desched(ulong sched_id, struct context *context)
     // Get the sched struct
     struct sched *s = get_sched(sched_id);
     assert(s);
-    assert(s->state == sched_run);
-    remove(&run_queue, s);
     
     // Get thread struct
     struct thread *t = s->thread;
@@ -286,26 +278,75 @@ void desched(ulong sched_id, struct context *context)
     assert(context);
     memcpy(context, &t->context, sizeof(struct context));
     
-    // Setup thread state
-    switch (t->state) {
-    case thread_normal:
-        s->state = sched_ready;
-        push_back(&ready_queue, s);
-        break;
-    case thread_stall:
-    case thread_wait:
-        s->state = sched_stall;
-        push_back(&stall_queue, s);
-        break;
-    case thread_exit:
-        s->state = sched_exit;
-        push_back(&exit_queue, s);
+    // Setup state
+    assert(s->state == sched_run);
+    remove(&run_queue, s);
+    s->state = sched_ready;
+    
+    spin_lock_int(&t->lock);
+    
+    if (t->state == thread_exit) {
+        exit_sched(t->sched);
         clean_thread(t);
-        break;
-    default:
-        panic("Unsupported thread state: %d", t->state);
-        break;
+        need_dispatch = 0;
+    } else {
+        t->state = thread_sched;
     }
+    
+    spin_unlock_int(&t->lock);
+    
+    return need_dispatch;
+    
+    // Setup thread state
+    //sched_enqueue(t, s);
+    
+//     switch (t->state) {
+//     case thread_normal:
+//         s->state = sched_ready;
+//         push_back(&ready_queue, s);
+//         break;
+//     case thread_stall:
+//     case thread_wait:
+//         s->state = sched_stall;
+//         push_back(&stall_queue, s);
+//         break;
+//     case thread_exit:
+//         s->state = sched_exit;
+//         push_back(&exit_queue, s);
+//         clean_thread(t);
+//         break;
+//     default:
+//         panic("Unsupported thread state: %d", t->state);
+//         break;
+//     }
+}
+
+void resched(ulong sched_id)
+{
+    // Get the sched struct
+    struct sched *s = get_sched(sched_id);
+    assert(s);
+    
+    // Get thread struct
+    struct thread *t = s->thread;
+    assert(t);
+    
+    spin_lock_int(&t->lock);
+    
+    if (t->state == thread_sched) {
+        if (s->is_idle) {
+            s->state = sched_idle;
+            push_back(&idle_queue, s);
+        } else {
+            s->state = sched_ready;
+            push_back(&ready_queue, s);
+        }
+    } else if (t->state == thread_exit) {
+        exit_sched(t->sched);
+        clean_thread(t);
+    }
+    
+    spin_unlock_int(&t->lock);
 }
 
 /*
@@ -338,7 +379,7 @@ void sched()
     
     // Construct the TCB template
     struct thread_control_block tcb;
-    ulong base = s->thread->memory.thread_block_base;
+    ulong base = s->thread->memory.block_base;
     tcb.msg_send = (void *)(base + s->thread->memory.msg_send_offset);
     tcb.msg_recv = (void *)(base + s->thread->memory.msg_recv_offset);
     tcb.tls = (void *)(base + s->thread->memory.tls_start_offset);
@@ -353,8 +394,8 @@ void sched()
 /*
  * Deschedule + schedule
  */
-void resched(ulong sched_id, struct context *context)
-{
-    desched(sched_id, context);
-    sched();
-}
+// void resched(ulong sched_id, struct context *context)
+// {
+//     desched(sched_id, context);
+//     sched();
+// }

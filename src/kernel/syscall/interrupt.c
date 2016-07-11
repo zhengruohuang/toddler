@@ -94,7 +94,7 @@ void interrupt_worker(struct kernel_dispatch_info *disp_info)
         //kprintf("Thread created, proc: %s, entry: %p\n", handler->process->name, handler->handler_entry);
         
         t = create_thread(handler->process, handler->handler_entry, 0, -1, 0, 0);
-        set_thread_arg(t, t->memory.thread_block_base + t->memory.msg_recv_offset);
+        set_thread_arg(t, t->memory.block_base + t->memory.msg_recv_offset);
         
         // Setup a message
         m = (msg_t *)t->memory.msg_recv_paddr;

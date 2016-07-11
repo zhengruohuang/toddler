@@ -38,6 +38,14 @@ static inline int atomic_cas_uint(volatile void *target, unsigned int old_value,
 
 
 /*
+ * Fetch and add
+ */
+static inline void atomic_inc(volatile unsigned long *target)
+{
+}
+
+
+/*
  * Memory barriers
  */
 static inline void membar()

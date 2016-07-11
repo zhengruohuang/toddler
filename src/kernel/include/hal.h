@@ -12,9 +12,10 @@
  * Kernel exported variables and functions
  */
 struct kernel_exports {
-    ulong asmlinkage (*palloc_tag)(int count, int tag);
-    ulong asmlinkage (*palloc)(int count);
-    void asmlinkage (*dispatch)(ulong sched_id, struct kernel_dispatch_info *int_info);
+    ulong (*palloc_tag)(int count, int tag);
+    ulong (*palloc)(int count);
+    int (*pfree)(ulong pfn);
+    void (*dispatch)(ulong sched_id, struct kernel_dispatch_info *int_info);
 };
 
 
@@ -88,7 +89,7 @@ struct hal_exports {
     void (*yield)();
     
     // TLB
-    void (*tlb_shootdown)(ulong asid, ulong vaddr);
+    void (*invalidate_tlb)(ulong asid, ulong vaddr, size_t size);
 };
 
 

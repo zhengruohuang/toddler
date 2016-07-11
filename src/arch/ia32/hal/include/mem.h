@@ -112,16 +112,23 @@ extern void init_gdt();
  */
 extern void init_user_hi4();
 extern void init_user_page_dir(ulong page_dir_pfn);
+extern ulong get_paddr(ulong page_dir_pfn, ulong vaddr);
 extern int user_indirect_map_array(
     ulong page_dir_pfn, ulong vaddr, ulong paddr, size_t length,
     int exec, int write, int cacheable, int override
 );
-extern ulong get_paddr(ulong page_dir_pfn, ulong vaddr);
+extern int user_indirect_unmap_array(ulong page_dir_pfn, ulong vaddr, ulong paddr, size_t length);
 
 extern void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int override);
 extern void kernel_indirect_map_array(ulong vaddr, ulong paddr, size_t size, int disable_cache, int override);
 extern void kernel_direct_map(ulong addr, int disable_cache);
 extern void kernel_direct_map_array(ulong addr, size_t size, int disable_cache);
+
+
+/*
+ * TLB
+ */
+extern void invalidate_tlb_array(ulong vaddr, size_t size);
 
 
 /*

@@ -141,74 +141,70 @@ struct thread *create_thread(
     t->proc = p;
     t->state = thread_enter;
     
-    // Thread memory
+    // Round up stack size and tls size
+    if (!stack_size) {
+        stack_size = PAGE_SIZE;
+    }
+    
+    if (stack_size % PAGE_SIZE) {
+        stack_size /= PAGE_SIZE;
+        stack_size++;
+        stack_size *= PAGE_SIZE;
+    }
+    
+    if (!tls_size) {
+        tls_size = PAGE_SIZE;
+    }
+    
+    if (tls_size % PAGE_SIZE) {
+        tls_size /= PAGE_SIZE;
+        tls_size++;
+        tls_size *= PAGE_SIZE;
+    }
+    
+    // Setup sizes
+    t->memory.msg_send_size = PAGE_SIZE;
+    t->memory.msg_recv_size = PAGE_SIZE;
+    t->memory.tls_size = tls_size;
+    t->memory.stack_size = stack_size;
+    t->memory.block_size = t->memory.msg_send_size + t->memory.msg_recv_size + t->memory.tls_size + t->memory.stack_size;
+    
+    // Setup offsets
+    t->memory.msg_send_offset = 0;
+    t->memory.msg_recv_offset = t->memory.msg_send_offset + t->memory.msg_send_size;
+    t->memory.tls_start_offset = t->memory.msg_recv_offset + t->memory.msg_recv_size;
+    t->memory.stack_limit_offset = t->memory.tls_start_offset + t->memory.tls_size;
+    t->memory.stack_top_offset = t->memory.stack_limit_offset + stack_size;
+    
+    // Allocate memory
     if (p->type == process_kernel) {
-        t->memory.thread_block_base = PFN_TO_ADDR(palloc(4));
+        t->memory.block_base = PFN_TO_ADDR(palloc(t->memory.block_size / PAGE_SIZE));
         
-        t->memory.msg_send_offset = 0;
-        t->memory.msg_recv_offset = PAGE_SIZE;
-        
-        t->memory.tls_start_offset = PAGE_SIZE * 2;
-        
-        t->memory.stack_limit_offset = PAGE_SIZE * 3;
-        t->memory.stack_top_offset = PAGE_SIZE * 4;
-        
-        t->memory.msg_send_paddr = t->memory.thread_block_base + t->memory.msg_send_offset;
-        t->memory.msg_recv_paddr = t->memory.thread_block_base + t->memory.msg_recv_offset;
-        t->memory.tls_start_paddr = t->memory.thread_block_base + t->memory.tls_start_offset;
-        t->memory.stack_top_paddr = t->memory.thread_block_base + t->memory.stack_top_offset;
+        t->memory.msg_send_paddr = t->memory.block_base + t->memory.msg_send_offset;
+        t->memory.msg_recv_paddr = t->memory.block_base + t->memory.msg_recv_offset;
+        t->memory.tls_start_paddr = t->memory.block_base + t->memory.tls_start_offset;
+        t->memory.stack_top_paddr = t->memory.block_base + t->memory.stack_top_offset;
     } else {
-        // Round up stack size and tls size
-        if (!stack_size) {
-            stack_size = PAGE_SIZE;
-        }
-        
-        if (stack_size % PAGE_SIZE) {
-            stack_size /= PAGE_SIZE;
-            stack_size++;
-            stack_size *= PAGE_SIZE;
-        }
-        
-        if (!tls_size) {
-            tls_size = PAGE_SIZE;
-        }
-        
-        if (tls_size % PAGE_SIZE) {
-            tls_size /= PAGE_SIZE;
-            tls_size++;
-            tls_size *= PAGE_SIZE;
-        }
-        
         // Allocate a dynamic block
-        ulong block_size = stack_size + tls_size + PAGE_SIZE * 2;
-        t->memory.thread_block_base = dalloc(p, block_size);
-        
-        // Set up memory layout
-        t->memory.msg_send_offset = 0;
-        t->memory.msg_recv_offset = PAGE_SIZE;
-        
-        t->memory.tls_start_offset = PAGE_SIZE * 2;
-        
-        t->memory.stack_top_offset = block_size;
-        t->memory.stack_limit_offset = block_size - stack_size;
+        t->memory.block_base = dalloc(p, t->memory.block_size);
         
         // Allocate memory and map it
-        ulong paddr = PFN_TO_ADDR(palloc(1));
+        ulong paddr = PFN_TO_ADDR(palloc(t->memory.msg_send_size / PAGE_SIZE));
         assert(paddr);
         int succeed = hal->map_user(
             p->page_dir_pfn,
-            t->memory.thread_block_base + t->memory.msg_send_offset,
-            paddr, PAGE_SIZE, 0, 1, 1, 0
+            t->memory.block_base + t->memory.msg_send_offset,
+            paddr, t->memory.msg_send_size, 0, 1, 1, 0
         );
         assert(succeed);
         t->memory.msg_send_paddr = paddr;
         
-        paddr = PFN_TO_ADDR(palloc(1));
+        paddr = PFN_TO_ADDR(palloc(t->memory.msg_recv_size / PAGE_SIZE));
         assert(paddr);
         succeed = hal->map_user(
             p->page_dir_pfn,
-            t->memory.thread_block_base + t->memory.msg_recv_offset,
-            paddr, PAGE_SIZE, 0, 1, 1, 0
+            t->memory.block_base + t->memory.msg_recv_offset,
+            paddr, t->memory.msg_recv_size, 0, 1, 1, 0
         );
         assert(succeed);
         t->memory.msg_recv_paddr = paddr;
@@ -217,7 +213,7 @@ struct thread *create_thread(
         assert(paddr);
         succeed = hal->map_user(
             p->page_dir_pfn,
-            t->memory.thread_block_base + t->memory.tls_start_offset,
+            t->memory.block_base + t->memory.tls_start_offset,
             paddr, tls_size, 0, 1, 1, 0
         );
         assert(succeed);
@@ -227,7 +223,7 @@ struct thread *create_thread(
         assert(paddr);
         succeed = hal->map_user(
             p->page_dir_pfn,
-            t->memory.thread_block_base + t->memory.stack_limit_offset,
+            t->memory.block_base + t->memory.stack_limit_offset,
             paddr, stack_size, 0, 1, 1, 0
         );
         assert(succeed);
@@ -240,11 +236,14 @@ struct thread *create_thread(
     
     // Context
     hal->init_context(&t->context, entry_point,
-                      t->memory.thread_block_base + t->memory.stack_top_offset - sizeof(ulong) * 2,
+                      t->memory.block_base + t->memory.stack_top_offset - sizeof(ulong) * 2,
                       p->user_mode);
     
     // Scheduling
     t->sched = enter_sched(t);
+    
+    // Init lock
+    spin_init(&t->lock);
     
     // Insert the thread into the thread list
     push_back(&p->threads.present, t);
@@ -259,40 +258,53 @@ struct thread *create_thread(
  */
 static void destroy_thread(struct process *p, struct thread *t)
 {
+    //kprintf("[Thread] To destory absent thread, process: %s\n", p->name);
+    
+    spin_lock_int(&t->lock);
+    
     // Scheduling
     clean_sched(t->sched);
     
     // Dynamic area
     if (p->type == process_kernel) {
-        pfree(ADDR_TO_PFN(t->memory.thread_block_base));
+        pfree(ADDR_TO_PFN(t->memory.block_base));
     } else {
         ulong vaddr = 0;
         ulong paddr = 0;
         
-        // Msg send
-        vaddr = t->memory.thread_block_base + t->memory.msg_send_offset;
-        paddr = hal->get_paddr(p->page_dir_pfn, vaddr);
-        pfree(paddr);
+        // TLB shootdown first
+        trigger_tlb_shootdown(t->memory.block_base, t->memory.block_size);
         
         // Msg send
-        vaddr = t->memory.thread_block_base + t->memory.msg_recv_offset;
-        paddr = hal->get_paddr(p->page_dir_pfn, vaddr);
-        pfree(paddr);
+        vaddr = t->memory.block_base + t->memory.msg_send_offset;
+        paddr = t->memory.msg_send_paddr;
+        hal->unmap_user(p->page_dir_pfn, vaddr, paddr, t->memory.msg_send_size);
+        pfree(ADDR_TO_PFN(paddr));
+        
+        // Msg send
+        vaddr = t->memory.block_base + t->memory.msg_recv_offset;
+        paddr = t->memory.msg_recv_paddr;
+        hal->unmap_user(p->page_dir_pfn, vaddr, paddr, t->memory.msg_recv_size);
+        pfree(ADDR_TO_PFN(paddr));
         
         // TLS
-        vaddr = t->memory.thread_block_base + t->memory.tls_start_offset;
-        paddr = hal->get_paddr(p->page_dir_pfn, vaddr);
-        pfree(paddr);
+        vaddr = t->memory.block_base + t->memory.tls_start_offset;
+        paddr = t->memory.tls_start_paddr;
+        hal->unmap_user(p->page_dir_pfn, vaddr, paddr, t->memory.tls_size);
+        pfree(ADDR_TO_PFN(paddr));
         
         // Stack
-        vaddr = t->memory.thread_block_base + t->memory.stack_limit_offset;
+        vaddr = t->memory.block_base + t->memory.stack_limit_offset;
         paddr = hal->get_paddr(p->page_dir_pfn, vaddr);
-        pfree(paddr);
+        hal->unmap_user(p->page_dir_pfn, vaddr, paddr, t->memory.stack_size);
+        pfree(ADDR_TO_PFN(paddr));
         
-        // FIXME: also need to remove mapping
+        // Free dynamic area
+        dfree(p, t->memory.block_base);
     }
     
-    // Free thread struct
+    spin_unlock_int(&t->lock);
+    
     sfree(t);
 }
 
@@ -311,55 +323,69 @@ void destroy_absent_threads(struct process *p)
  */
 void run_thread(struct thread *t)
 {
+    spin_lock_int(&t->lock);
+    
     t->state = thread_normal;
     ready_sched(t->sched);
+    
+    spin_unlock_int(&t->lock);
 }
 
 void idle_thread(struct thread *t)
 {
+    spin_lock_int(&t->lock);
+    
     t->state = thread_normal;
     idle_sched(t->sched);
+    
+    spin_unlock_int(&t->lock);
 }
 
 int wait_thread(struct thread *t)
 {
-    enum thread_state cur_state = t->state;
-    enum thread_state new_state = thread_wait;
-    assert(cur_state == thread_normal || cur_state == thread_exit);
+    spin_lock_int(&t->lock);
     
-    if (cur_state == thread_exit) {
-        return 0;
+    assert(t->state == thread_sched);
+    
+    t->state = thread_wait;
+    wait_sched(t->sched);
+    
+    spin_unlock_int(&t->lock);
+    
+    return 1;
+}
+
+void terminate_thread_self(struct thread *t)
+{
+    enum thread_state state;
+    kprintf("To terminate thread, process: %s\n", t->proc->name);
+    
+    spin_lock_int(&t->lock);
+    
+    state = t->state;
+    assert(state == thread_sched || state == thread_normal || state == thread_wait || state == thread_stall);
+    
+    //kprintf("thread state: %d\n", t->state);
+    
+    t->state = thread_exit;
+    if (state == thread_wait || state == thread_stall) {
+        exit_sched(t->sched);
+        clean_thread(t);
     }
     
-    uint old_val = (uint)cur_state;
-    uint new_val = (uint)new_state;
-    
-    int succeed = atomic_cas_uint(&t->state, old_val, new_val);
-    
-    return succeed;
+    spin_unlock_int(&t->lock);
 }
 
 void terminate_thread(struct thread *t)
 {
-    int succeed = 0;
-    
-    do {
-        enum thread_state cur_state = t->state;
-        enum thread_state new_state = thread_exit;
-        assert(cur_state == thread_normal || cur_state == thread_wait);
-        
-        uint old_val = (uint)cur_state;
-        uint new_val = (uint)new_state;
-        
-        succeed = atomic_cas_uint(&t->state, old_val, new_val);
-    } while (!succeed);
+    terminate_thread_self(t);
 }
 
 void clean_thread(struct thread *t)
 {
     assert(t->state == thread_exit);
-    
     t->state = thread_clean;
+    
     remove(&t->proc->threads.present, t);
     push_back(&t->proc->threads.absent, t);
 }
@@ -383,7 +409,7 @@ void init_thread()
         struct thread *t = create_thread(kernel_proc, (ulong)&kernel_idle_thread, param, i, 0, 0);
         idle_thread(t);
         
-        kprintf("\tKernel idle thread for CPU #%d created, thread ID: %p, thraed block base: %p\n", i, t->thread_id, t->memory.thread_block_base);
+        kprintf("\tKernel idle thread for CPU #%d created, thread ID: %p, thraed block base: %p\n", i, t->thread_id, t->memory.block_base);
     }
     
     // Create kernel demo threads
@@ -392,11 +418,11 @@ void init_thread()
         struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, param, -1, 0, 0);
         run_thread(t);
         
-        kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.thread_block_base);
+        kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.block_base);
     }
     
     // Create kernel thread cleaner
-    struct thread *t = create_thread(kernel_proc, (ulong)&kernel_tclean_thread, 0, -1, 0, 0);
+    struct thread *t = create_thread(kernel_proc, (ulong)&kernel_tclean_thread, (ulong)kernel_proc, -1, 0, 0);
     run_thread(t);
-    kprintf("\tKernel cleaner thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.thread_block_base);
+    kprintf("\tKernel cleaner thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.block_base);
 }

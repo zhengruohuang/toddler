@@ -34,9 +34,11 @@ void kernel_demo_thread(ulong param)
 
 void kernel_tclean_thread(ulong param)
 {
+    struct process *p = (struct process *)param;
+    
     do {
         //kprintf("Cleaning thrads\n");
-        destroy_absent_threads(kernel_proc);
+        destroy_absent_threads(p);
         //buddy_print();
         hal->yield();
     } while (1);

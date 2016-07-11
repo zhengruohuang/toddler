@@ -169,11 +169,11 @@ static void copy_msg_to_recv(msg_t *src, struct thread *t)
 
 static void transfer_msg(msg_t *s, int sender_blocked, struct process *src_p, struct thread *src_t)
 {
-    kprintf("msg info, size: %d, param: %d, msg start paddr: %p, block start vaddr: %p, kernel: %d\n",
-            s->msg_size, s->param_count,
-            src_t->memory.msg_send_paddr, src_t->memory.thread_block_base,
-            (src_p->type == process_kernel) ? 1 : 0
-           );
+//     kprintf("msg info, size: %d, param: %d, msg start paddr: %p, block start vaddr: %p, kernel: %d\n",
+//             s->msg_size, s->param_count,
+//             src_t->memory.msg_send_paddr, src_t->memory.block_base,
+//             (src_p->type == process_kernel) ? 1 : 0
+//            );
     
     // Get dest info
     struct process *dest_p = get_process_by_mailbox_id(src_p, s->mailbox_id, s->opcode, s->func_num);
@@ -181,7 +181,7 @@ static void transfer_msg(msg_t *s, int sender_blocked, struct process *src_p, st
         return;
     }
     
-    kprintf("Transferring msg!\n");
+//     kprintf("Transferring msg!\n");
 //     __asm__ __volatile__
 //     (
 //         "xchgw %%bx, %%bx;"
@@ -189,31 +189,31 @@ static void transfer_msg(msg_t *s, int sender_blocked, struct process *src_p, st
 //         :
 //     );
     
-    kprintf("Msg duplicated!\n");
+//     kprintf("Msg duplicated!\n");
     
     // Transfer the msg
     if (hashtable_contains(&dest_p->msg_handlers, s->func_num)) {
-        kprintf("To create thread!\n");
+//         kprintf("To create thread!\n");
         
         // Create a new thread to handle the msg
         void *entry_point = hashtable_obtain(&dest_p->msg_handlers, s->func_num);
         struct thread *t = create_thread(dest_p, (ulong)entry_point, 0, -1, PAGE_SIZE, PAGE_SIZE);
         hashtable_release(&dest_p->msg_handlers, s->func_num, entry_point);
         
-        kprintf("To create thread!\n");
+//         kprintf("To create thread!\n");
         
         // Prepare the arguments
         if (dest_p->type == process_kernel) {
             struct kernel_msg_handler_arg *arg = (struct kernel_msg_handler_arg *)salloc(kernel_msg_handler_arg_salloc_id);
             arg->handler_thread = t;
             arg->sender_thread = src_t;
-            arg->msg = (msg_t *)(void *)(t->memory.thread_block_base + t->memory.msg_recv_offset);
+            arg->msg = (msg_t *)(void *)(t->memory.block_base + t->memory.msg_recv_offset);
             set_thread_arg(t, (ulong)arg);
         } else {
-            set_thread_arg(t, t->memory.thread_block_base + t->memory.msg_recv_offset);
+            set_thread_arg(t, t->memory.block_base + t->memory.msg_recv_offset);
         }
         
-        kprintf("Thread created!\n");
+//         kprintf("Thread created!\n");
         
         // Attach the msg to the thread
         //t->cur_msg = n;
@@ -316,7 +316,7 @@ void recv_worker_thread(ulong param)
     
     // Cleanup
     sfree(disp_info);
-    terminate_thread(worker);
+    terminate_thread_self(worker);
     
     // Wait for this thread to be terminated
     kernel_unreachable();
@@ -341,7 +341,7 @@ void request_worker_thread(ulong param)
     
     // Cleanup
     sfree(disp_info);
-    terminate_thread(worker);
+    terminate_thread_self(worker);
     
     // Wait for this thread to be terminated
     kernel_unreachable();
@@ -366,7 +366,7 @@ void respond_worker_thread(ulong param)
     
     // Cleanup
     sfree(disp_info);
-    terminate_thread(worker);
+    terminate_thread_self(worker);
     
     kprintf("Worker thread terminated!\n");
     

@@ -19,7 +19,7 @@ asmlinkage void reg_interrupt_handler(struct kernel_msg_handler_arg *arg)
     reg_interrupt(p, irq, thread_entry);
     
     run_thread(arg->sender_thread);
-    terminate_thread(arg->handler_thread);
+    terminate_thread_self(arg->handler_thread);
     sfree(arg);
     
     // Wait for this thread to be terminated
@@ -35,7 +35,7 @@ asmlinkage void unreg_interrupt_handler(struct kernel_msg_handler_arg *arg)
     unreg_interrupt(p, irq);
     
     run_thread(arg->sender_thread);
-    terminate_thread(arg->handler_thread);
+    terminate_thread_self(arg->handler_thread);
     sfree(arg);
     
     // Wait for this thread to be terminated

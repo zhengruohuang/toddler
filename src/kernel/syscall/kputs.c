@@ -56,7 +56,7 @@ void kputs_worker_thread(ulong param)
     
     // Cleanup
     sfree(disp_info);
-    terminate_thread(worker);
+    terminate_thread_self(worker);
     
     // Wait for this thread to be terminated
     kernel_unreachable();

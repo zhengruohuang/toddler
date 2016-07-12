@@ -106,5 +106,10 @@ typedef asmlinkage void (*msg_handler_t)(msg_t *msg);
 #define KAPI_INTERRUPT_REG      0x50
 #define KAPI_INTERRUPT_UNREG    0x51
 
+#define KAPI_HEAP_END_GET       0x60
+#define KAPI_HEAP_END_SET       0x61
+#define KAPI_HEAP_END_GROW      0x62
+#define KAPI_HEAP_END_SHRINK    0x63
+
 
 #endif

@@ -72,12 +72,22 @@ extern int kapi_file_close(unsigned long fd);
 extern int kapi_file_read(unsigned long fd, char *buf, size_t count);
 extern int kapi_file_write(unsigned long fd, void *buf, size_t count);
 
-
 /*
  * Interrupt
  */
 extern int kapi_interrupt_reg(unsigned long irq, void *handler_entry);
 extern int kapi_interrupt_unreg(unsigned long irq);
+
+/*
+ * Heap
+ */
+extern unsigned long kapi_get_heap_end();
+extern unsigned long kapi_set_heap_end(unsigned long heap_end);
+extern unsigned long kapi_grow_heap(unsigned long amount);
+extern unsigned long kapi_shrink_heap(unsigned long amount);
+
+extern int kapi_brk(unsigned long heap_end);
+extern unsigned long kapi_sbrk(long amount);
 
 
 #endif

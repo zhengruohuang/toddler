@@ -32,11 +32,11 @@ void create_dalloc(struct process *p)
         
         p->dynamic.free.count = 0;
         p->dynamic.free.head = NULL;
-        spin_init(&p->dynamic.free.lock);
+        spin_init(&p->lock);
         
         p->dynamic.in_use.count = 0;
         p->dynamic.in_use.head = NULL;
-        spin_init(&p->dynamic.in_use.lock);
+        spin_init(&p->lock);
     }
 }
 
@@ -49,14 +49,14 @@ static void record_block(struct process *p, ulong base, ulong size)
     block->base = base;
     block->size = size;
     
-    spin_lock_int(&p->dynamic.in_use.lock);
+    spin_lock_int(&p->lock);
     
     block->next = p->dynamic.in_use.head;
     p->dynamic.in_use.head = block;
     
     p->dynamic.in_use.count ++;
     
-    spin_unlock_int(&p->dynamic.in_use.lock);
+    spin_unlock_int(&p->lock);
 }
 
 static ulong alloc_new(struct process *p, ulong size)
@@ -78,7 +78,7 @@ static ulong alloc_exist(struct process *p, ulong size)
         return 0;
     }
     
-    spin_lock_int(&p->dynamic.free.lock);
+    spin_lock_int(&p->lock);
     
     prev = NULL;
     cur = p->dynamic.free.head;
@@ -112,13 +112,13 @@ static ulong alloc_exist(struct process *p, ulong size)
         break;
     }
     
-    spin_unlock_int(&p->dynamic.free.lock);
+    spin_unlock_int(&p->lock);
     
     if (result) {
         record_block(p, result, size);
     }
     
-    kprintf("[DALLOC] Alloc from exist: %x\n", result);
+    //kprintf("[DALLOC] Alloc from exist: %x\n", result);
     return result;
 }
 
@@ -141,9 +141,74 @@ ulong dalloc(struct process *p, ulong size)
     return result;
 }
 
-static int combine_free_blocks(struct process *p)
+
+static int do_merge_free_blocks(struct process *p)
 {
+    struct dynamic_block *prev, *cur;
+    
+    prev = NULL;
+    cur = p->dynamic.free.head;
+    
+    while (cur) {
+        if (prev && prev->base == cur->base + cur->size) {
+            prev->next = cur->next;
+            
+            prev->base = cur->base;
+            prev->size += cur->size;
+            
+            return 1;
+        }
+        
+        prev = cur;
+        cur = cur->next;
+    }
+    
     return 0;
+}
+
+static void reclaim_last_block(struct process *p)
+{
+    struct dynamic_block *prev, *cur;
+    
+    prev = NULL;
+    cur = p->dynamic.free.head;
+    
+    while (cur) {
+        if (!cur->next) {
+            break;
+        }
+        
+        prev = cur;
+        cur = cur->next;
+    }
+    
+    if (!cur) {
+        return;
+    }
+    
+    if (cur->base != p->dynamic.cur_top) {
+        return;
+    }
+    
+    if (prev) {
+        prev->next = cur->next;
+    } else {
+        p->dynamic.free.head = cur->next;
+    }
+    p->dynamic.free.count--;
+    
+    p->dynamic.cur_top += cur->size;
+    sfree(cur);
+}
+
+static void merge_free_blocks(struct process *p)
+{
+    spin_lock_int(&p->lock);
+    
+    while (do_merge_free_blocks(p));
+    reclaim_last_block(p);
+    
+    spin_unlock_int(&p->lock);
 }
 
 void dfree(struct process *p, ulong base)
@@ -152,7 +217,7 @@ void dfree(struct process *p, ulong base)
     struct dynamic_block *prev, *cur, *block;
     
     // Remove from in use
-    spin_lock_int(&p->dynamic.in_use.lock);
+    spin_lock_int(&p->lock);
     
     prev = NULL;
     cur = p->dynamic.in_use.head;
@@ -170,7 +235,7 @@ void dfree(struct process *p, ulong base)
     assert(found);
     block = cur;
     
-    kprintf("[DALLOC] Found!\n");
+    //kprintf("[DALLOC] Found!\n");
     
     if (prev) {
         prev->next = cur->next;
@@ -180,10 +245,10 @@ void dfree(struct process *p, ulong base)
     
     p->dynamic.in_use.count--;
     
-    spin_unlock_int(&p->dynamic.in_use.lock);
+    spin_unlock_int(&p->lock);
     
     // Insert the block into free list
-    spin_lock_int(&p->dynamic.free.lock);
+    spin_lock_int(&p->lock);
     
     prev = NULL;
     cur = p->dynamic.free.head;
@@ -202,13 +267,13 @@ void dfree(struct process *p, ulong base)
         prev->next = block;
     } else {
         p->dynamic.free.head = block;
-        kprintf("[DALLOC] Free head set!\n");
+        //kprintf("[DALLOC] Free head set!\n");
     }
     
     p->dynamic.free.count++;
     
-    spin_unlock_int(&p->dynamic.free.lock);
+    spin_unlock_int(&p->lock);
     
     // Combine combine blocks
-    while (combine_free_blocks(p));
+    merge_free_blocks(p);
 }

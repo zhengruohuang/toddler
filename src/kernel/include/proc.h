@@ -217,8 +217,6 @@ struct dynamic_block {
 struct dynamic_block_list {
     struct dynamic_block *head;
     int count;
-    
-    spinlock_t lock;
 };
 
 struct dynamic_area {
@@ -349,11 +347,20 @@ extern void sched();
 
 
 /*
- * TLB Management
+ * TLB management
  */
 extern void init_tlb_mgmt();
 extern void trigger_tlb_shootdown(ulong addr, size_t size);
 extern void service_tlb_shootdown();
+
+
+/*
+ * Heap management
+ */
+extern ulong set_heap_end(struct process *p, ulong heap_end);
+extern ulong get_heap_end(struct process *p);
+extern ulong grow_heap(struct process *p, ulong amount);
+extern ulong shrink_heap(struct process *p, ulong amount);
 
 
 #endif

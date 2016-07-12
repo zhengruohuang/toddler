@@ -59,6 +59,10 @@ void trigger_tlb_shootdown(ulong addr, size_t size)
     membar();
     records[cur_cpu_id].valid = 1;
     
+    if (cpu_count > 1) {
+        // Send IPI to other CPUs
+    }
+    
     kprintf("[TLB] TLB shootdown triggered, addr: %u, size: %u\n", addr, size);
     
     while (records[cur_cpu_id].response_count < cpu_count) {
@@ -93,6 +97,6 @@ void service_tlb_shootdown()
         membar();
         atomic_inc(&records[i].response_count);
         
-        kprintf("[TLB] TLB shootdown serviced!\n");
+        //kprintf("[TLB] TLB shootdown serviced!\n");
     }
 }

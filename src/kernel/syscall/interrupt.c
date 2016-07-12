@@ -7,6 +7,8 @@
 #include "kernel/include/mem.h"
 #include "kernel/include/lib.h"
 #include "kernel/include/ds.h"
+#include "kernel/include/kapi.h"
+#include "kernel/include/syscall.h"
 
 
 struct int_hdlr_record {
@@ -66,16 +68,6 @@ void unreg_interrupt(struct process *p, unsigned long irq)
 /*
  * Interrupt forward
  */
-static void msg_param_value(msg_t *m, unsigned long value)
-{
-    int index = m->param_count;
-    
-    m->params[index].type = MSG_PARAM_VALUE;
-    m->params[index].value = value;
-    
-    m->param_count++;
-}
-
 void interrupt_worker(struct kernel_dispatch_info *disp_info)
 {
     // Get the handler
@@ -97,18 +89,18 @@ void interrupt_worker(struct kernel_dispatch_info *disp_info)
         set_thread_arg(t, t->memory.block_base + t->memory.msg_recv_offset);
         
         // Setup a message
-        m = (msg_t *)t->memory.msg_recv_paddr;
-        m->func_num = 0;
-        m->mailbox_id = 0;
-        m->msg_size = sizeof(msg_t);
-        m->opcode = 0;
-        m->param_count = 0;
+        m = create_response_msg(t); //(msg_t *)t->memory.msg_recv_paddr;
+//         m->func_num = 0;
+//         m->mailbox_id = 0;
+//         m->msg_size = sizeof(msg_t);
+//         m->opcode = 0;
+//         m->param_count = 0;
         
-        msg_param_value(m, disp_info->interrupt.irq);
-        msg_param_value(m, disp_info->interrupt.vector);
-        msg_param_value(m, disp_info->interrupt.param0);
-        msg_param_value(m, disp_info->interrupt.param1);
-        msg_param_value(m, disp_info->interrupt.param2);
+        set_msg_param_value(m, disp_info->interrupt.irq);
+        set_msg_param_value(m, disp_info->interrupt.vector);
+        set_msg_param_value(m, disp_info->interrupt.param0);
+        set_msg_param_value(m, disp_info->interrupt.param1);
+        set_msg_param_value(m, disp_info->interrupt.param2);
         
         // Run the thread
         run_thread(t);

@@ -231,7 +231,7 @@ def build_disk():
     record_update(target_name)
 
 def qemu8():
-    print_info('emulator', 'Starting CMP QEMU')
+    print_info('emulator', 'Starting SMP QEMU')
     
     img_name = img_dir + 'floppy.img'
     

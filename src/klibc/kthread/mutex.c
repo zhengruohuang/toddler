@@ -18,15 +18,29 @@ void kthread_mutex_destroy(kthread_mutex_t *mutex)
 
 void kthread_mutex_lock(kthread_mutex_t *mutex)
 {
-    return 0;
+    do {
+        while (*mutex) {
+            // kapi_futex_wait(mutex);
+        }
+    } while (!atomic_cas(mutex, 0, 0x1));
 }
 
 int kthread_mutex_trylock(kthread_mutex_t *mutex)
 {
-    return 0;
+    if (*mutex) {
+        return 0;
+    }
+    
+    return atomic_cas(mutex, 0, 0x1);
 }
 
 int kthread_mutex_unlock(kthread_mutex_t *mutex)
 {
-    return 0;
+    if (!(*mutex)) {
+        return 0;
+    }
+    
+    atomic_write(mutex, 0);
+    // kapi_futex_release(mutex);
+    return 1;
 }

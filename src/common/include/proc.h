@@ -6,6 +6,16 @@
 
 
 /*
+ * Process Control Block
+ */
+struct process_control_block {
+    struct process_control_block *self;
+    
+    ulong proc_id;
+} packedstruct;
+
+
+/*
  * Thread Control Block
  */
 struct thread_control_block {

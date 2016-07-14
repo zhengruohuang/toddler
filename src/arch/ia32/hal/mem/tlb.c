@@ -3,8 +3,15 @@
 #include "hal/include/mem.h"
 
 
-static void invalidate_tlb(ulong vaddr)
+static no_opt void invalidate_tlb(ulong vaddr)
 {
+    __asm__ __volatile__
+    (
+        "invlpg (%%eax);"
+        :
+        : "a" (vaddr)
+        : "memory"
+    );
 }
 
 void invalidate_tlb_array(ulong vaddr, size_t size)

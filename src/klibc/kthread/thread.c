@@ -4,7 +4,7 @@
 #include "klibc/include/kthread.h"
 
 
-static int kthread_tls_id = -1;
+static unsigned long kthread_tls_offset = -1;
 
 
 /*
@@ -19,7 +19,7 @@ static asmlinkage void kthread_start_wrapper(msg_t *msg)
     unsigned long ret = 0;
     
     // Save the addr of kthread obj
-    *((kthread_t **)ktls_access(kthread_tls_id)) = thread;
+    *((kthread_t **)ktls_access(kthread_tls_offset)) = thread;
     
     // Set state
     thread->started = 1;
@@ -37,7 +37,7 @@ static asmlinkage void kthread_start_wrapper(msg_t *msg)
     kapi_thread_exit(NULL);
 }
 
-int kthread_create(kthread_t *thread, const kthread_attr_t *attr, start_routine_t start, unsigned long arg)
+int kthread_create(kthread_t *thread, start_routine_t start, unsigned long arg)
 {
     thread->return_value = 0;
     thread->started = 0;
@@ -52,7 +52,7 @@ int kthread_create(kthread_t *thread, const kthread_attr_t *attr, start_routine_
  */
 static asmlinkage void kthread_kill_wrapper(unsigned long retval)
 {
-    kthread_t *thread = *((kthread_t **)ktls_access(kthread_tls_id));
+    kthread_t *thread = *((kthread_t **)ktls_access(kthread_tls_offset));
     thread->return_value = retval;
     thread->terminated = 1;
     
@@ -74,6 +74,6 @@ void kthread_kill(kthread_t *thread, unsigned long retval)
  */
 void init_kthread()
 {
-    kthread_tls_id = ktls_alloc(sizeof(unsigned long *));
+    kthread_tls_offset = ktls_alloc(sizeof(unsigned long *));
     //assert(thread_return_value_tls_id > 0);
 }

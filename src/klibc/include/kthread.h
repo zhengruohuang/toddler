@@ -9,8 +9,8 @@
 /*
  * TLS
  */
-extern int ktls_alloc(size_t size);
-extern void *ktls_access(int tls_id);
+extern unsigned long ktls_alloc(size_t size);
+extern void *ktls_access(unsigned long tls_offset);
 extern void init_tls();
 
 
@@ -23,7 +23,7 @@ struct kthread {
     
     volatile int started;
     volatile int terminated;
-} kthread_t;
+};
 
 typedef volatile struct kthread kthread_t;
 

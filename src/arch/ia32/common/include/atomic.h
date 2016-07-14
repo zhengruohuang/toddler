@@ -38,6 +38,15 @@ static inline int atomic_cas_uint(volatile void *target, unsigned int old_value,
 
 
 /*
+ * Read and write
+ */
+static inline void atomic_write(volatile void *target, unsigned long value)
+{
+    *(unsigned long *)target = value;
+}
+
+
+/*
  * Fetch and add
  */
 static inline void atomic_inc(volatile unsigned long *target)

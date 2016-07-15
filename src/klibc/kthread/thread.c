@@ -1,10 +1,11 @@
 #include "common/include/data.h"
+#include "common/include/atomic.h"
 #include "klibc/include/stdio.h"
 #include "klibc/include/sys.h"
 #include "klibc/include/kthread.h"
 
 
-static unsigned long kthread_tls_offset = -1;
+static unsigned long kthread_tls_offset = 0;
 
 
 /*
@@ -42,8 +43,15 @@ int kthread_create(kthread_t *thread, start_routine_t start, unsigned long arg)
     thread->return_value = 0;
     thread->started = 0;
     thread->terminated = 0;
+    atomic_membar();
     
-    return 0;
+    thread->thread_id = kapi_thread_create(
+        kthread_start_wrapper, 0, 0,
+        3, (unsigned long)start, (unsigned long)arg, (unsigned long)thread
+    );
+    atomic_membar();
+    
+    return thread->thread_id ? 1 : 0;
 }
 
 
@@ -53,8 +61,10 @@ int kthread_create(kthread_t *thread, start_routine_t start, unsigned long arg)
 static asmlinkage void kthread_kill_wrapper(unsigned long retval)
 {
     kthread_t *thread = *((kthread_t **)ktls_access(kthread_tls_offset));
+    
     thread->return_value = retval;
     thread->terminated = 1;
+    atomic_membar();
     
     kapi_thread_exit(NULL);
 }
@@ -75,5 +85,5 @@ void kthread_kill(kthread_t *thread, unsigned long retval)
 void init_kthread()
 {
     kthread_tls_offset = ktls_alloc(sizeof(unsigned long *));
-    //assert(thread_return_value_tls_id > 0);
+    //assert(kthread_tls_offset);
 }

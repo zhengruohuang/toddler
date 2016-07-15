@@ -22,6 +22,11 @@ static ulong gen_thread_id(struct thread *t)
     return id;
 }
 
+struct thread *gen_thread_by_thread_id(ulong thread_id)
+{
+    return (struct thread *)thread_id;
+}
+
 
 /*
  * List
@@ -118,12 +123,6 @@ void create_thread_lists(struct process *p)
     init_list(&p->threads.absent);
 }
 
-void set_thread_arg(struct thread *t, ulong arg)
-{
-    ulong *param_ptr = (ulong *)(t->memory.stack_top_paddr - sizeof(ulong));
-    *param_ptr = arg;
-}
-
 struct thread *create_thread(
     struct process *p, ulong entry_point, ulong param,
     int pin_cpu_id,
@@ -140,6 +139,7 @@ struct thread *create_thread(
     t->proc_id = p->proc_id;
     t->proc = p;
     t->state = thread_enter;
+    t->kill_routine = 0;
     
     // Round up stack size and tls size
     if (!stack_size) {
@@ -254,6 +254,52 @@ struct thread *create_thread(
 
 
 /*
+ * Thread control
+ */
+void set_thread_arg(struct thread *t, ulong arg)
+{
+    ulong *param_ptr = NULL;
+    
+    spin_lock_int(&t->lock);
+    
+    param_ptr = (ulong *)(t->memory.stack_top_paddr - sizeof(ulong));
+    *param_ptr = arg;
+    
+    spin_unlock_int(&t->lock);
+}
+
+void set_thread_kill_routine(struct thread *t, ulong kill_routine)
+{
+    spin_lock_int(&t->lock);
+    
+    t->kill_routine = kill_routine;
+    
+    spin_unlock_int(&t->lock);
+}
+
+void change_thread_control(struct thread *t, ulong entry_point, ulong param)
+{
+    ulong *param_ptr = NULL;
+    struct process *p;
+    
+    spin_lock_int(&t->lock);
+    
+    // Prepare the param
+    param_ptr = (ulong *)(t->memory.stack_top_paddr - sizeof(ulong));
+    *param_ptr = param;
+    
+    // Context
+    p = t->proc;
+    assert(entry_point);
+    hal->init_context(&t->context, entry_point,
+                      t->memory.block_base + t->memory.stack_top_offset - sizeof(ulong) * 2,
+                      p->user_mode);
+    
+    spin_unlock_int(&t->lock);
+}
+
+
+/*
  * Thread destruction
  */
 static void destroy_thread(struct process *p, struct thread *t)
@@ -358,7 +404,7 @@ int wait_thread(struct thread *t)
 void terminate_thread_self(struct thread *t)
 {
     enum thread_state state;
-    kprintf("To terminate thread, process: %s\n", t->proc->name);
+    //kprintf("To terminate thread, process: %s\n", t->proc->name);
     
     spin_lock_int(&t->lock);
     

@@ -50,6 +50,7 @@ void init_kapi()
     register_kapi(KAPI_INTERRUPT_UNREG, unreg_interrupt_handler);
     
     // Thread
+    register_kapi(KAPI_THREAD_CREATE, thread_create_handler);
     register_kapi(KAPI_THREAD_EXIT, thread_exit_handler);
     
     // Process

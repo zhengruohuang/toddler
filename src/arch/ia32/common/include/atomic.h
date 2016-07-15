@@ -63,7 +63,7 @@ static inline void atomic_inc(volatile unsigned long *target)
 /*
  * Memory barriers
  */
-static inline void membar()
+static inline void atomic_membar()
 {
     __asm__ __volatile__
     (
@@ -73,7 +73,7 @@ static inline void membar()
     );
 }
 
-static inline void readbar()
+static inline void atomic_readbar()
 {
     __asm__ __volatile__
     (
@@ -83,7 +83,7 @@ static inline void readbar()
     );
 }
 
-static inline void writebar()
+static inline void atomic_writebar()
 {
     __asm__ __volatile__
     (

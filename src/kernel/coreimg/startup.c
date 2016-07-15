@@ -26,8 +26,9 @@ void start_user()
 {
     kprintf("Starting user processes\n");
     
-    create_system_process("tdlrdrv.bin", "coreimg://tdlrdrv.bin");
     create_system_process("tdlrsys.bin", "coreimg://tdlrsys.bin");
+    create_system_process("tdlrdrv.bin", "coreimg://tdlrdrv.bin");
+    
     
 //     // Create a process
 //     struct process *p = create_process(0, "tdlrsys.bin", "coreimg://tdlrsys.bin", process_system, 0);

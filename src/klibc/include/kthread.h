@@ -38,9 +38,11 @@ void init_kthread();
 /*
  * Mutex
  */
-#define KTHREAD_MUTEX_INIT 0
+#define KTHREAD_MUTEX_INIT { 0 }
 
-typedef volatile unsigned long kthread_mutex_t;
+typedef struct kthread_mutex {
+    volatile unsigned long value;
+} kthread_mutex_t;
 
 extern void kthread_mutex_init(kthread_mutex_t *mutex);
 extern void kthread_mutex_destroy(kthread_mutex_t *mutex);

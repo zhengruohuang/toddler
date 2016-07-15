@@ -17,6 +17,7 @@ int asmlinkage ksnprintf(char *buf, size_t size, char *fmt, ...)
     // Print
     ret = vsnprintf(buf, size, fmt, ap);
     
+    va_end(ap);
     return ret;
 }
 
@@ -36,5 +37,6 @@ int asmlinkage kprintf(char *fmt, ...)
     ret = vsnprintf(buf, size, fmt, ap);
     syscall_kputs(buf);
     
+    va_end(ap);
     return ret;
 }

@@ -140,6 +140,7 @@ struct thread {
     ulong thread_id;
     enum thread_state state;
     struct thread_memory memory;
+    ulong kill_routine;
     
     // Containing process
     ulong proc_id;
@@ -304,15 +305,20 @@ extern int load_image(struct process *p, char *url);
 /*
  * Thread
  */
+extern struct thread *gen_thread_by_thread_id(ulong thread_id);
 extern void init_thread();
 
 extern void create_thread_lists(struct process *p);
-extern void set_thread_arg(struct thread *t, ulong arg);
 extern struct thread *create_thread(
     struct process *p, ulong entry_point, ulong param,
     int pin_cpu_id,
     ulong stack_size, ulong tls_size
 );
+
+extern void set_thread_arg(struct thread *t, ulong arg);
+extern void set_thread_kill_routine(struct thread *t, ulong kill_routine);
+extern void change_thread_control(struct thread *t, ulong entry_point, ulong param);
+
 extern void destroy_absent_threads(struct process *p);
 
 extern void run_thread(struct thread *t);

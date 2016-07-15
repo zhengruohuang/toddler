@@ -25,6 +25,7 @@ extern void set_msg_param_value(msg_t *m, unsigned long value);
 /*
  * Thread
  */
+extern asmlinkage void thread_create_handler(struct kernel_msg_handler_arg *arg);
 extern asmlinkage void thread_exit_handler(struct kernel_msg_handler_arg *arg);
 
 

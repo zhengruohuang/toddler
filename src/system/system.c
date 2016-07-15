@@ -1,20 +1,40 @@
 #include "common/include/data.h"
 #include "klibc/include/stdio.h"
 #include "klibc/include/sys.h"
+#include "klibc/include/kthread.h"
 #include "system/include/kapi.h"
 
 
+static unsigned long thread_test(unsigned long arg)
+{
+    __asm__ __volatile__
+    (
+        "xchgw %%bx, %%bx;"
+        :
+        :
+    );
+    
+    kprintf("From thread test, arg: %lu\n", arg);
+}
+
 int main(int argc, char *argv[])
 {
+    int i = 0;
+    char buf[64];
+    
     kprintf("Toddler system process started!\n");
     
     // Initialize
     init_kapi();
     kprintf("KAPI handlers initialized!\n");
     
+    // Thread test
+    kthread_t thread;
+    for (i = 0; i < 10; i++) {
+        kthread_create(&thread, thread_test, (unsigned long)i);
+    }
+    
     // Do some tests
-    int i = 0;
-    char buf[64];
     do {
         syscall_yield();
         //kprintf("still alive %d\n", i++);

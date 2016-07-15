@@ -57,9 +57,7 @@ extern unsigned long kapi_process_id();
 /*
  * Thread
  */
-typedef void *(*kapi_thread_start_routine)(void *arg);
-
-extern unsigned long kapi_thread_create(kapi_thread_start_routine start_routine, void *arg);
+extern unsigned long kapi_thread_create(msg_handler_t wrapper, unsigned long stack_size, unsigned long tls_size, int arg_count, ...);
 extern void kapi_thread_exit(void *retval);
 extern int kpai_thread_kill(unsigned long thread_id);
 extern unsigned long kapi_thread_id();

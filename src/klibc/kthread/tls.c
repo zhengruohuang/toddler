@@ -1,6 +1,7 @@
 #include "common/include/data.h"
 #include "common/include/memory.h"
 #include "common/include/proc.h"
+#include "common/include/atomic.h"
 #include "klibc/include/stdio.h"
 #include "klibc/include/sys.h"
 #include "klibc/include/kthread.h"
@@ -8,7 +9,7 @@
 
 static kthread_mutex_t tls_mutex = KTHREAD_MUTEX_INIT;
 static unsigned long tls_size = PAGE_SIZE;
-static unsigned long cur_tls_offset = 8;
+static unsigned long cur_tls_offset = 0;
 
 
 unsigned long ktls_alloc(size_t size)
@@ -21,6 +22,7 @@ unsigned long ktls_alloc(size_t size)
         result = cur_tls_offset;
         cur_tls_offset += size;
     }
+    atomic_membar();
     
     kthread_mutex_unlock(&tls_mutex);
     
@@ -35,4 +37,6 @@ void *ktls_access(unsigned long tls_offset)
 
 void init_tls()
 {
+    cur_tls_offset = sizeof(struct thread_control_block);
+    atomic_membar();
 }

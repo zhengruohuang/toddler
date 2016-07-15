@@ -61,6 +61,9 @@ int load_elf_exe(
                 );
                 
                 assert(mapped);
+                
+                // Zero the memory
+                memzero((void *)paddr, PAGE_SIZE);
             }
             
             kprintf("%d bytes\n", prog_header->program_memsz);

@@ -1,6 +1,7 @@
 #include "common/include/data.h"
 #include "common/include/atomic.h"
 #include "kernel/include/hal.h"
+#include "kernel/include/sync.h"
 #include "kernel/include/mem.h"
 #include "kernel/include/proc.h"
 
@@ -16,6 +17,7 @@ struct tlb_shootdown_record {
 };
 
 
+static spinlock_t tlb_record_lock;
 static volatile struct tlb_shootdown_record *records;
 
 
@@ -32,22 +34,29 @@ void init_tlb_mgmt()
         for (j = 0; j < hal->num_cpus; j++) {
             records[i].response_records[j] = 0;
         }
+        
+        spin_init(&tlb_record_lock);
     }
     
-    membar();
+    atomic_membar();
 }
 
 void trigger_tlb_shootdown(ulong addr, size_t size)
 {
     int i;
     int cpu_count = hal->num_cpus;
-    int cur_cpu_id = hal->get_cur_cpu_id();
+    int cur_cpu_id = -1;
     
     kprintf("[TLB] cpu count: %d\n", cpu_count);
     
-    assert(!records[cur_cpu_id].valid);
+    spin_lock_int(&tlb_record_lock);
+    
+    cur_cpu_id = hal->get_cur_cpu_id();
+    
+    // Invalidate myself
     hal->invalidate_tlb(0, addr, size);
     
+    // Prepare to invalidate others
     records[cur_cpu_id].addr = addr;
     records[cur_cpu_id].size = size;
     records[cur_cpu_id].response_count = 1;
@@ -56,23 +65,25 @@ void trigger_tlb_shootdown(ulong addr, size_t size)
     }
     records[cur_cpu_id].response_records[cur_cpu_id] = 1;
     
-    membar();
+    atomic_membar();
     records[cur_cpu_id].valid = 1;
     
+    spin_unlock_int(&tlb_record_lock);
+    
     if (cpu_count > 1) {
-        // Send IPI to other CPUs
+        // Send IPI to all CPUs including myself
     }
     
-    kprintf("[TLB] TLB shootdown triggered, addr: %u, size: %u\n", addr, size);
+    //kprintf("[TLB] TLB shootdown triggered, addr: %u, size: %u\n", addr, size);
     
     while (records[cur_cpu_id].response_count < cpu_count) {
         hal->yield();
     }
     
-    membar();
+    atomic_membar();
     
     records[cur_cpu_id].valid = 0;
-    membar();
+    atomic_membar();
     
     kprintf("[TLB] TLB shootdown done, addr: %u, size: %u\n", addr, size);
 }
@@ -94,7 +105,7 @@ void service_tlb_shootdown()
         
         hal->invalidate_tlb(0, records[i].addr, records[i].size);
         records[i].response_records[cur_cpu_id] = 1;
-        membar();
+        atomic_membar();
         atomic_inc(&records[i].response_count);
         
         //kprintf("[TLB] TLB shootdown serviced!\n");

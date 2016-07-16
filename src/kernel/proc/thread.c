@@ -139,7 +139,6 @@ struct thread *create_thread(
     t->proc_id = p->proc_id;
     t->proc = p;
     t->state = thread_enter;
-    t->kill_routine = 0;
     
     // Round up stack size and tls size
     if (!stack_size) {
@@ -268,15 +267,6 @@ void set_thread_arg(struct thread *t, ulong arg)
     spin_unlock_int(&t->lock);
 }
 
-void set_thread_kill_routine(struct thread *t, ulong kill_routine)
-{
-    spin_lock_int(&t->lock);
-    
-    t->kill_routine = kill_routine;
-    
-    spin_unlock_int(&t->lock);
-}
-
 void change_thread_control(struct thread *t, ulong entry_point, ulong param)
 {
     ulong *param_ptr = NULL;
@@ -371,6 +361,8 @@ void run_thread(struct thread *t)
 {
     spin_lock_int(&t->lock);
     
+    assert(t->state == thread_enter || t->state == thread_wait || t->state == thread_stall || t->state == thread_sched);
+    
     t->state = thread_normal;
     ready_sched(t->sched);
     
@@ -380,6 +372,8 @@ void run_thread(struct thread *t)
 void idle_thread(struct thread *t)
 {
     spin_lock_int(&t->lock);
+    
+    assert(t->state == thread_enter || t->state == thread_sched);
     
     t->state = thread_normal;
     idle_sched(t->sched);

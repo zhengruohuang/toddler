@@ -10,13 +10,21 @@
 
 static void do_grow_heap(struct process *p, ulong amount)
 {
-    int i;
-    int page_count = amount / PAGE_SIZE;
+    ulong old_vpfn = ADDR_TO_PFN(p->memory.heap_end);
+    ulong new_vpfn = ADDR_TO_PFN(p->memory.heap_end + amount);
     
-    ulong cur_vaddr = p->memory.heap_end;
-    ulong cur_paddr = 0;
+    ulong cur_vpfn;
+    ulong cur_vaddr;
+    ulong cur_paddr;
     
-    for (i = 0; i < page_count; i++, cur_vaddr += PAGE_SIZE) {
+    if (new_vpfn <= old_vpfn) {
+        return;
+    }
+    
+    kprintf("old_vpfn: %p, new_vpfn: %p\n", old_vpfn, new_vpfn);
+    
+    for (cur_vpfn = old_vpfn + 1; cur_vpfn <= new_vpfn; cur_vpfn++) {
+        cur_vaddr = PFN_TO_ADDR(cur_vpfn);
         cur_paddr = PFN_TO_ADDR(palloc(1));
         assert(cur_paddr);
         
@@ -33,13 +41,19 @@ static void do_grow_heap(struct process *p, ulong amount)
 
 static void do_shrink_heap(struct process *p, ulong amount)
 {
-    int i;
-    int page_count = amount / PAGE_SIZE;
+    ulong old_vpfn = ADDR_TO_PFN(p->memory.heap_end);
+    ulong new_vpfn = ADDR_TO_PFN(p->memory.heap_end - amount);
     
-    ulong cur_vaddr = p->memory.heap_end - PAGE_SIZE;
-    ulong cur_paddr = 0;
+    ulong cur_vpfn;
+    ulong cur_vaddr;
+    ulong cur_paddr;
     
-    for (i = 0; i < page_count; i++, cur_vaddr -= PAGE_SIZE) {
+    if (new_vpfn >= old_vpfn) {
+        return;
+    }
+    
+    for (cur_vpfn = old_vpfn; cur_vpfn > new_vpfn; cur_vpfn--) {
+        cur_vaddr = PFN_TO_ADDR(cur_vpfn);
         cur_paddr = hal->get_paddr(p->page_dir_pfn, cur_vaddr);
         assert(cur_paddr);
         
@@ -50,20 +64,15 @@ static void do_shrink_heap(struct process *p, ulong amount)
         assert(succeed);
     }
     
+    // TLB shootdown
+    trigger_tlb_shootdown(PFN_TO_ADDR((new_vpfn + 1)), PAGE_SIZE * (int)(old_vpfn - new_vpfn));
+    
     p->memory.heap_end -= amount;
 }
 
 ulong set_heap_end(struct process *p, ulong heap_end)
 {
-    if (heap_end % PAGE_SIZE) {
-        heap_end /= PAGE_SIZE;
-        heap_end++;
-        heap_end *= PAGE_SIZE;
-    }
-    
     spin_lock_int(&p->lock);
-    
-    assert(p->memory.heap_end % PAGE_SIZE == 0);
     
     if (heap_end < p->memory.heap_start || heap_end > p->memory.dynamic_bottom) {
         spin_unlock_int(&p->lock);
@@ -93,7 +102,6 @@ ulong get_heap_end(struct process *p)
     
     spin_lock_int(&p->lock);
     
-    assert(p->memory.heap_end % PAGE_SIZE == 0);
     result = p->memory.heap_end;
     
     spin_unlock_int(&p->lock);
@@ -103,15 +111,7 @@ ulong get_heap_end(struct process *p)
 
 ulong grow_heap(struct process *p, ulong amount)
 {
-    if (amount % PAGE_SIZE) {
-        amount /= PAGE_SIZE;
-        amount++;
-        amount *= PAGE_SIZE;
-    }
-    
     spin_lock_int(&p->lock);
-    
-    assert(p->memory.heap_end % PAGE_SIZE == 0);
     
     if (p->memory.dynamic_bottom - p->memory.heap_end < amount) {
         spin_unlock_int(&p->lock);
@@ -127,19 +127,11 @@ ulong grow_heap(struct process *p, ulong amount)
 
 ulong shrink_heap(struct process *p, ulong amount)
 {
-    if (amount % PAGE_SIZE) {
-        amount /= PAGE_SIZE;
-        amount--;
-        amount *= PAGE_SIZE;
-    }
-    
     if (!amount) {
         return 0;
     }
     
     spin_lock_int(&p->lock);
-    
-    assert(p->memory.heap_end % PAGE_SIZE == 0);
     
     if (p->memory.heap_end - p->memory.heap_start < amount) {
         spin_unlock_int(&p->lock);

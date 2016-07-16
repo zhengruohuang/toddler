@@ -341,6 +341,7 @@ void resched(ulong sched_id)
             s->state = sched_ready;
             push_back(&ready_queue, s);
         }
+        t->state == thread_normal;
     } else if (t->state == thread_exit) {
         exit_sched(t->sched);
         clean_thread(t);

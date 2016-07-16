@@ -70,14 +70,11 @@ asmlinkage void thread_kill_handler(struct kernel_msg_handler_arg *arg)
     kprintf("To terminate 3rd user thread: %p, process: %s\n", arg->sender_thread, arg->sender_thread->proc->name);
     
     ulong thread_id = arg->msg->params[0].value;
-    ulong ret_val = arg->msg->params[1].value;
     
     struct thread *t = gen_thread_by_thread_id(thread_id);
     assert(t);
     
-    while (t->state != thread_wait);
-    change_thread_control(t, t->kill_routine, ret_val);
-    run_thread(t);
+    terminate_thread(t);
     
     // Clean up
     terminate_thread_self(arg->handler_thread);

@@ -140,7 +140,6 @@ struct thread {
     ulong thread_id;
     enum thread_state state;
     struct thread_memory memory;
-    ulong kill_routine;
     
     // Containing process
     ulong proc_id;
@@ -316,7 +315,6 @@ extern struct thread *create_thread(
 );
 
 extern void set_thread_arg(struct thread *t, ulong arg);
-extern void set_thread_kill_routine(struct thread *t, ulong kill_routine);
 extern void change_thread_control(struct thread *t, ulong entry_point, ulong param);
 
 extern void destroy_absent_threads(struct process *p);

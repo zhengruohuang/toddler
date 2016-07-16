@@ -29,10 +29,11 @@ typedef volatile struct kthread kthread_t;
 
 typedef unsigned long (*start_routine_t)(unsigned long);
 
+extern void init_kthread();
 extern int kthread_create(kthread_t *thread, start_routine_t start, unsigned long arg);
+extern kthread_t *kthread_self();
 extern void kthread_exit(unsigned long retval);
-void kthread_kill(kthread_t *thread, unsigned long retval);
-void init_kthread();
+extern void kthread_kill(kthread_t *thread, unsigned long retval);
 
 
 /*

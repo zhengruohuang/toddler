@@ -38,5 +38,4 @@ void *ktls_access(unsigned long tls_offset)
 void init_tls()
 {
     cur_tls_offset = sizeof(struct thread_control_block);
-    atomic_membar();
 }

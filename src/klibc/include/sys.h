@@ -8,6 +8,12 @@
 
 
 /*
+ * Klib
+ */
+extern void klib_init_thread();
+
+
+/*
  * System
  */
 extern void sys_unreahable();

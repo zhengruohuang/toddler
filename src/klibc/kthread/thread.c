@@ -56,9 +56,19 @@ int kthread_create(kthread_t *thread, start_routine_t start, unsigned long arg)
 
 
 /*
+ * Thread info
+ */
+kthread_t *kthread_self()
+{
+    kthread_t *thread = *((kthread_t **)ktls_access(kthread_tls_offset));
+    return thread;
+}
+
+
+/*
  * Thread termination
  */
-static asmlinkage void kthread_kill_wrapper(unsigned long retval)
+void kthread_exit(unsigned long retval)
 {
     kthread_t *thread = *((kthread_t **)ktls_access(kthread_tls_offset));
     
@@ -69,13 +79,17 @@ static asmlinkage void kthread_kill_wrapper(unsigned long retval)
     kapi_thread_exit(NULL);
 }
 
-void kthread_exit(unsigned long retval)
-{
-    kthread_kill_wrapper(retval);
-}
-
 void kthread_kill(kthread_t *thread, unsigned long retval)
 {
+    if (!thread || thread->terminated) {
+        return;
+    }
+    
+    kpai_thread_kill(thread->thread_id);
+    
+    thread->return_value = retval;
+    thread->terminated = 1;
+    atomic_membar();
 }
 
 

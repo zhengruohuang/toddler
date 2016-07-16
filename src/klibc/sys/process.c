@@ -35,14 +35,8 @@ int kpai_process_kill(unsigned long process_id)
  */
 unsigned long kapi_process_id()
 {
-    msg_t *s = kapi_msg(KAPI_PROCESS_ID);
-    msg_t *r;
-    unsigned long result = 0;
-    
-    r = syscall_request();
-    result = kapi_return_value(r);
-    
-    return result;
+    struct thread_control_block *tcb = get_tcb();
+    return tcb->proc_id;
 }
 
 

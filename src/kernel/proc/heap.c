@@ -28,6 +28,8 @@ static void do_grow_heap(struct process *p, ulong amount)
         cur_paddr = PFN_TO_ADDR(palloc(1));
         assert(cur_paddr);
         
+        //kprintf("Mapping %p -> %p\n", cur_vaddr, cur_paddr);
+        
         int succeed = hal->map_user(
             p->page_dir_pfn,
             cur_vaddr, cur_paddr, PAGE_SIZE,
@@ -35,6 +37,8 @@ static void do_grow_heap(struct process *p, ulong amount)
         );
         assert(succeed);
     }
+    
+    //kprintf("grow done!\n");
     
     p->memory.heap_end += amount;
 }

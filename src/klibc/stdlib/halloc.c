@@ -105,7 +105,7 @@ static int resize_heap()
 {
     int e = cur_last_bitmap_entry;
     int b = find_last(e, 1);
-    unsigned long addr = heap_start + HALLOC_CHUNK_SIZE * (BITS_PER_ENTRY * e + b);
+    unsigned long addr = heap_start + HALLOC_CHUNK_SIZE * (BITS_PER_ENTRY * e + b + 1);
     
     if (addr == heap_end) {
         return 1;
@@ -119,7 +119,7 @@ static int resize_heap()
     return 0;
 }
 
-void *halloc(size_t size)
+void *halloc()
 {
     int e;
     int b;

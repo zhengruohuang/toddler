@@ -15,6 +15,9 @@ static void klib_init()
     init_kthread();
     
     init_halloc();
+    init_salloc();
+    init_malloc();
+    //test_malloc();
 }
 
 asmlinkage void _start()

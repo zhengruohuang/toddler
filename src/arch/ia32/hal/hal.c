@@ -88,10 +88,9 @@ static void hal_entry()
     bringup_mp();
     
     // Start to work
+    kprintf("Initialization is done! Will start working!\n");
     release_mp_lock();
     start_working();
-    
-    kprintf("Initialization is done!\n");
 }
 
 static void ap_entry()

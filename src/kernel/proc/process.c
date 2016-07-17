@@ -114,8 +114,22 @@ int load_image(struct process *p, char *url)
         return 0;
     }
     
-    // Calculae rounded addresses
+    // Calculae rounded heap start
     ulong heap_start = vaddr_end;
+    if (heap_start % PAGE_SIZE) {
+        heap_start /= PAGE_SIZE;
+        heap_start++;
+        heap_start *= PAGE_SIZE;
+    }
+    
+    // Map the initial page for heap
+    ulong heap_paddr = PFN_TO_ADDR(palloc(1));
+    succeed = hal->map_user(
+        p->page_dir_pfn,
+        heap_start, heap_paddr, PAGE_SIZE,
+        0, 1, 1, 0
+    );
+    assert(succeed);
     
     // Set memory layout
     p->memory.entry_point = entry;

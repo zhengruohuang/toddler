@@ -20,7 +20,13 @@ Toddler has its own building system written in Python: tmake. tmake takes care o
 
 Python is required for all targets; GCC and Binutils are required for each different target; NASM is required for x86 (ia32 and amd64) targets. Note that your toolchain may also require the corresponding libc6-dev. QEMU is also required if you want to test Toddler.
 
-Once all the packages are installed, go into toddler's directory, then type the following to start the building process. Once done, it generates disk images in /target directory.
+Once all the packages are installed, fetch the source code then go into the /toddler directory.
+```bash
+git clone https://github.com/zhengruohuang/toddler.git
+cd toddler
+```
+
+Type the following to start the building process. Once done, it generates disk images in /target directory.
 ```bash
 ./tmake build
 ```

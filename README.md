@@ -6,7 +6,7 @@ Toddler was originally a half-hobby and half-research project developed during s
 The original Toddler was designed for small-scale multi-processor IA32 systems.
 The most outstanding feature was the practical lock-free techniques used for syncronization.
 However, it was overly designed for both hardware-related and regular OS components.
-Then it finally became unpractical to continue the development.
+Then it finally became impractical to continue the development.
 The final Toddler was able to create and run user processes and threads, as well as accepting keyboard inputs,
 though a shell was not implemented or ported.
 

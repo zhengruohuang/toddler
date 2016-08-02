@@ -18,14 +18,14 @@ The lock-free idea has been abandoned since it created too much unnecessary comp
 
 Toddler has its own building system written in Python: tmake. tmake takes care of file dependancies and provides a series of primitives such as _compile_, _link_, _build_, and etc. tmake scripts (also in Python) then use the primitives to construct the building procedure.
 
-Toddler does not have many external dependancies. GCC, Binutils, and Python are required for all targets, NASM is required for x86 (ia32 and amd64) targets. Note that your toolchain may also require libc6-dev for the corresponding target. To test Toddler, QEMU is also required.
+Toddler does not have many external dependancies. Python is required for all targets; GCC and Binutils are required for each different target; NASM is required for x86 (ia32 and amd64) targets. Note that your toolchain may also require the corresponding libc6-dev. QEMU is also required if you want to test Toddler.
 
 Once all the packages are installed, go into toddler's directory, then type the following to start the building process. Once done, it generates disk images in /target directory.
 ```bash
 ./tmake build
 ```
 
-Once QEMU is installed, simply type the following to start QEMU with default parameters.
+If QEMU is installed for the target architecture, simply type the following to start QEMU with default parameters.
 ```bash
 ./tmake qemu
 ```

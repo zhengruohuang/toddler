@@ -26,7 +26,7 @@ git clone https://github.com/zhengruohuang/toddler.git
 cd toddler
 ```
 
-Type the following to start the building process. Once done, it generates disk images in /target directory.
+Type the following to build Toddler. Once done, it generates disk images in /target directory.
 ```bash
 ./tmake build
 ```

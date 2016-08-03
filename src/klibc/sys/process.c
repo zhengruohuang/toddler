@@ -33,6 +33,13 @@ int kpai_process_kill(unsigned long process_id)
 /*
  * Process info
  */
+void kapi_process_started(unsigned long code)
+{
+    msg_t *s = kapi_msg(KAPI_PROCESS_STARTED);
+    msg_param_value(s, code);
+    syscall_request();
+}
+
 unsigned long kapi_process_id()
 {
     struct thread_control_block *tcb = get_tcb();

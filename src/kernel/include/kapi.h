@@ -39,8 +39,13 @@ extern asmlinkage void unreg_interrupt_handler(struct kernel_msg_handler_arg *ar
 /*
  * Process
  */
+extern asmlinkage void process_started_handler(struct kernel_msg_handler_arg *arg);
 extern asmlinkage void process_exit_handler(struct kernel_msg_handler_arg *arg);
 
+
+/*
+ * Heap
+ */
 extern asmlinkage void set_heap_end_handler(struct kernel_msg_handler_arg *arg);
 extern asmlinkage void get_heap_end_handler(struct kernel_msg_handler_arg *arg);
 extern asmlinkage void grow_heap_handler(struct kernel_msg_handler_arg *arg);

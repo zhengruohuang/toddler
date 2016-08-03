@@ -58,6 +58,7 @@ extern void msg_param_buffer(msg_t *m, void *buf, size_t size);
  */
 extern void kapi_process_exit(int err_code);
 extern int kpai_process_kill(unsigned long process_id);
+extern void kapi_process_started(unsigned long code);
 extern unsigned long kapi_process_id();
 
 /*

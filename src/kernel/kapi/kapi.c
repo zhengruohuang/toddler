@@ -54,6 +54,7 @@ void init_kapi()
     register_kapi(KAPI_THREAD_EXIT, thread_exit_handler);
     
     // Process
+    register_kapi(KAPI_PROCESS_STARTED, process_started_handler);
     register_kapi(KAPI_PROCESS_EXIT, process_exit_handler);
     
     // Heap

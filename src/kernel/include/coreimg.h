@@ -11,7 +11,7 @@ extern int get_next_core_file_name(int index, char *buf, size_t buf_size);
 extern int has_core_file(char *name);
 extern void *load_core_file(char *name);
 
-
+extern void startup_process_started(ulong proc_id);
 extern void start_user();
 
 

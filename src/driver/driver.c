@@ -15,6 +15,9 @@ int main(int argc, char *argv[])
     //kapi_init();
     //kprintf("Driver KAPI handlers initialized!\n");
     
+    // Init done
+    kapi_process_started(0);
+    
     // Done
     do {
         syscall_yield();

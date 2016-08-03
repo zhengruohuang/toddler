@@ -15,6 +15,7 @@ static unsigned long thread_test(unsigned long arg)
     );
     
     kprintf("From thread test, arg: %lu\n", arg);
+    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -28,11 +29,17 @@ int main(int argc, char *argv[])
     init_kapi();
     kprintf("KAPI handlers initialized!\n");
     
+    // Init done
+    kapi_process_started(0);
+    
     // Thread test
     kthread_t thread;
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < 2; i++) {
         kthread_create(&thread, thread_test, (unsigned long)i);
     }
+    
+    // Init done
+//     kapi_process_started(0);
     
     // Do some tests
     do {

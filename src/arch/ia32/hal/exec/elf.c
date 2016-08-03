@@ -23,18 +23,18 @@ int load_elf_exe(
     struct elf32_elf_header *elf_header = (struct elf32_elf_header *)image_start;
     struct elf32_program_header *prog_header;
     
-    kprintf("\tLoad ELF image at %p, page dir PFN %d\n", image_start, dest_page_dir_pfn);
+    //kprintf("\tLoad ELF image at %p, page dir PFN %d\n", image_start, dest_page_dir_pfn);
     
     // For every segment, map and load
     for (i = 0; i < elf_header->elf_phnum; i++) {
-        kprintf("\t\tSegment #%d\n", i);
+        //kprintf("\t\tSegment #%d\n", i);
         
         // Get program header
         prog_header = (struct elf32_program_header *)(image_start + elf_header->elf_phoff + elf_header->elf_phentsize * i);
         
         // Map the segment to destination's vaddr space
         if (prog_header->program_memsz) {
-            kprintf("\t\t\tMapping ... ");
+            //kprintf("\t\t\tMapping ... ");
             
             ulong s = (ulong)prog_header->program_vaddr;
             s /= PAGE_SIZE;
@@ -66,14 +66,14 @@ int load_elf_exe(
                 memzero((void *)paddr, PAGE_SIZE);
             }
             
-            kprintf("%d bytes\n", prog_header->program_memsz);
+            //kprintf("%d bytes\n", prog_header->program_memsz);
         }
         
         // Copy the program data
         if (prog_header->program_filesz) {
             assert(prog_header->program_memsz >= prog_header->program_filesz);
             
-            kprintf("\t\t\tCopy ... ");
+            //kprintf("\t\t\tCopy ... ");
             
             copy_to_user(
                 (ulong)image_start + (ulong)prog_header->program_offset,
@@ -81,7 +81,7 @@ int load_elf_exe(
                 dest_page_dir_pfn, (ulong)prog_header->program_vaddr
             );
             
-            kprintf("%d bytes\n", prog_header->program_filesz);
+            //kprintf("%d bytes\n", prog_header->program_filesz);
         }
         
         // Get the start and end of vaddr
@@ -96,8 +96,8 @@ int load_elf_exe(
     
     entry = elf_header->elf_entry;
     
-    kprintf("\t\t\tEntry at %p\n", entry);
-    kprintf("\t\t\tVaddr start: %p, end: %p\n", vaddr_start, vaddr_end);
+    //kprintf("\t\t\tEntry at %p\n", entry);
+    //kprintf("\t\t\tVaddr start: %p, end: %p\n", vaddr_start, vaddr_end);
     
     *entry_out = entry;
     *vaddr_start_out = vaddr_start;

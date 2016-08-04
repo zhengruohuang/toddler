@@ -2,13 +2,17 @@
 #include "klibc/include/stdio.h"
 #include "klibc/include/sys.h"
 #include "driver/include/keyboard.h"
+#include "driver/include/console.h"
 
 
 int main(int argc, char *argv[])
 {
     kprintf("Toddler driver process started!\n");
     
-    // Initialize drivers
+    // Initialize logical drivers
+    init_console();
+    
+    // Initialize devices
     init_keyboard();
     
     // Register KAPI handlers

@@ -2,6 +2,7 @@
 #include "klibc/include/stdio.h"
 #include "klibc/include/sys.h"
 #include "driver/include/keyboard.h"
+#include "driver/include/console.h"
 
 
 #define FLAG_BREAK      0x0080          /* Break Code                   */
@@ -325,6 +326,7 @@ static asmlinkage void keyboard_interrupt_handler(msg_t *msg)
     char printable = process_key(scan_code);
     if (printable != '\0') {
         kprintf("Got a keyboard interrupt, scan code: %u, printable: %c\n", scan_code, printable);
+        stdin_write(get_activated_console_id(), &printable, 1);
     } else {
         kprintf("Got a keyboard interrupt, scan code: %u, non-printable\n", scan_code);
     }

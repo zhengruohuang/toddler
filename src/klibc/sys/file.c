@@ -47,7 +47,7 @@ int kapi_file_read(unsigned long fd, char *buf, size_t count)
     r = syscall_request();
     
     // Setup the result
-    //result = (int)kapi_return_value(r);
+    result = (int)kapi_return_value(r);
     
     return result;
 }

@@ -1,4 +1,5 @@
 #include "common/include/data.h"
+#include "klibc/include/stdlib.h"
 #include "klibc/include/string.h"
 
 
@@ -38,4 +39,14 @@ void strcpy(char *dest, char *src)
     do {
         *dest++ = *src;
     } while (*src++);
+    
+    *dest = '\0';
+}
+
+char *strdup(char *str)
+{
+    size_t len = strlen(str);
+    char *buf = malloc(sizeof(char) * (len + 1));
+    strcpy(buf, str);
+    return buf;
 }

@@ -8,6 +8,7 @@
 extern size_t strlen(char *s);
 extern int strcmp(char *s1, char *s2);
 extern void strcpy(char *dest, char *src);
+extern char *strdup(char *str);
 
 
 /*

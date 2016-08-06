@@ -19,6 +19,18 @@ enum urs_node_type {
     unode_link,
 };
 
+enum urs_op_type {
+    uop_none,
+    uop_open,
+    uop_close,
+    uop_read,
+    uop_write,
+    uop_list,
+    uop_obtain,
+    uop_ioctl,
+    uop_count,
+};
+
 struct urs_dispatch {
     enum urs_dispatch_type type;
     
@@ -28,23 +40,16 @@ struct urs_dispatch {
         struct {
             unsigned long mbox_id;
             unsigned long msg_opcode;
-            unsigned long msg_num;
+            unsigned long msg_func_num;
         };
     };
-};
-
-struct urs_operations {
-    struct urs_dispatch open, close;
-    struct urs_dispatch read, write;
-    struct urs_dispatch list, obtain;
-    struct urs_dispatch ioctl;
 };
 
 struct urs_node {
     unsigned long id;
     char *name;
     enum urs_node_type type;
-    struct urs_operations op;
+    struct urs_dispatch ops[uop_count];
     
     hash_t *entries;
 };
@@ -52,8 +57,11 @@ struct urs_node {
 struct urs_namespace {
     unsigned long id;
     char *name;
-    struct urs_node root;
+    struct urs_node *root;
 };
 
+
+extern int parse_url_namespace(char *path, char **out);
+extern int parse_url_node(char *path, int start, char **out);
 
 #endif

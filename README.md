@@ -28,7 +28,29 @@ cd toddler
 
 Type ```./tmake build``` to build Toddler. Once done, it generates disk images in /target directory.
 If QEMU is installed for the target architecture, simply type ```./tmake qemu``` to start QEMU with default parameters.
-The two steps can be combined by typing ```./tmake all```, or simply ```./tmake```
+The two steps can be combined by typing ```./tmake all```, or simply ```./tmake```.
+
+## Development Plan
+
+### October 2016
+A working *modern* kernel
+A simple working shell
+
+### November 2016
+A working 32-bit single CPU PowerPC port, target machine: Mac Mini G4
+
+### December 2016
+SMP support to 32-bit PowerPC, target machine: PowerMac G4 Dual
+
+### January 2017
+A working 32-bit single CPU ARMv7 port, target machine: Raspberry Pi 2
+
+### Febuary 2017
+SMP support to 32-bit ARMv7, target machine: Raspberry Pi 2
+
+### Later
+Toddler64: 64-bit Toddler
+
 
 ## Architecture
 

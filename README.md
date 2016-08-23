@@ -33,8 +33,7 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 ## Development Plan
 
 ### October 2016
-A working *modern* kernel
-A simple working shell
+A working *modern* kernel and a simple working shell
 
 ### November 2016
 A working 32-bit single CPU PowerPC port, target machine: Mac Mini G4

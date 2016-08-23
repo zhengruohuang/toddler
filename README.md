@@ -26,24 +26,9 @@ git clone https://github.com/zhengruohuang/toddler.git
 cd toddler
 ```
 
-Type the following to build Toddler. Once done, it generates disk images in /target directory.
-```bash
-./tmake build
-```
-
-If QEMU is installed for the target architecture, simply type the following to start QEMU with default parameters.
-```bash
-./tmake qemu
-```
-
-These two steps can be combined by typing
-```bash
-./tmake all
-```
-or simply
-```bash
-./tmake
-```
+Type ```./tmake build``` to build Toddler. Once done, it generates disk images in /target directory.
+If QEMU is installed for the target architecture, simply type ```./tmake qemu``` to start QEMU with default parameters.
+The two steps can be combined by typing ```./tmake all```, or simply ```./tmake```
 
 ## Architecture
 

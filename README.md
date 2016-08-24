@@ -41,16 +41,16 @@ A working *modern* kernel and a simple working shell
 A working 32-bit single CPU PowerPC port, target machine: Mac Mini G4
 
 ### December 2016
-SMP support to 32-bit PowerPC, target machine: PowerMac G4 Dual
+SMP support for 32-bit PowerPC, target machine: PowerMac G4 Dual
 
 ### January 2017
 A working 32-bit single CPU ARMv7 port, target machine: Raspberry Pi 2
 
 ### Febuary 2017
-SMP support to 32-bit ARMv7, target machine: Raspberry Pi 2
+SMP support for 32-bit ARMv7, target machine: Raspberry Pi 2
 
 ### Later
-Toddler64: 64-bit Toddler
+Toddler64: 64-bit Toddler. First-tier ports: AMD64, PowerPC64, ARMv8.
 
 
 ## Architecture

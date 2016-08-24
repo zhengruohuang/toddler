@@ -50,7 +50,7 @@ A working 32-bit single CPU ARMv7 port, target machine: Raspberry Pi 2
 SMP support for 32-bit ARMv7, target machine: Raspberry Pi 2
 
 ### Later
-Toddler64: 64-bit Toddler. First-tier ports: AMD64, PowerPC64, ARMv8.
+Toddler64: 64-bit Toddler. First-tier ports: AMD64 (Skylake PC), PowerPC64 (PowerMac G5 Dual), ARMv8 (Raspberry Pi 3).
 
 
 ## Architecture

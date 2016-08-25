@@ -32,26 +32,6 @@ If QEMU is installed for the target architecture, simply type ```./tmake qemu```
 
 The two steps can be combined by typing ```./tmake all```, or simply ```./tmake```.
 
-## Development Plan
-
-### October 2016
-A working *modern* kernel and a simple working shell
-
-### November 2016
-A working 32-bit single CPU PowerPC port, target machine: Mac Mini G4
-
-### December 2016
-SMP support for 32-bit PowerPC, target machine: PowerMac G4 Dual
-
-### January 2017
-A working 32-bit single CPU ARMv7 port, target machine: Raspberry Pi 2
-
-### Febuary 2017
-SMP support for 32-bit ARMv7, target machine: Raspberry Pi 2
-
-### Later
-Toddler64: 64-bit Toddler. First-tier ports: AMD64 (Skylake PC), PowerPC64 (PowerMac G5 Dual), ARMv8 (Raspberry Pi 3).
-
 
 ## Architecture
 
@@ -66,7 +46,7 @@ Toddler64: 64-bit Toddler. First-tier ports: AMD64 (Skylake PC), PowerPC64 (Powe
 
 ## Ports
 
-|Architecture|Bits|Platform|Status|
+|Architecture|Width|Platform|Status|
 |---|---|---|---|---|
 |ia32|32|NetBurst-based PC|Active|
 |ppc32|32|Mac Mini G4, PowerMac G4|Initial|
@@ -84,3 +64,17 @@ Toddler64: 64-bit Toddler. First-tier ports: AMD64 (Skylake PC), PowerPC64 (Powe
 |alpha|64|ES40|No Plan|
 |hppa|64|HP RA-RISC|No Plan|
 |s390|64|S390|No Plan|
+
+
+## Development Plan
+
+### The Kernel
+
+|Time|Event|Architecture|Target|Status|
+|---|---|---|
+|Oct. 2016|A working *modern* kernel and a simple working shell|ia32|Netbust PC|Active|
+|Nov. 2016|A working 32-bit PowerPC port|ppc32|Mac Mini G4|Planned|
+|Dec. 2016|SMP support for 32-bit PowerPC|ppc32|PowerMac G4 Dual|Planned|
+|Jan. 2017|A working 32-bit ARMv7 port|armv7|Raspberry Pi 2|Planned|
+|Feb. 2017|SMP support for 32-bit ARMv7|armv7|Raspberry Pi 2|Planned|
+|Later|64-bit Toddler|amd64, ppc64, armv8|Skylake PC, PowerMac G5 Dual, Raspberry Pi 3|Planned|

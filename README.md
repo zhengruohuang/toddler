@@ -71,7 +71,7 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 ### The Kernel
 
 |Time|Event|Architecture|Target|Status|
-|---|---|---|
+|---|---|---|---|---|
 |Oct. 2016|A working *modern* kernel and a simple working shell|ia32|Netbust PC|Active|
 |Nov. 2016|A working 32-bit PowerPC port|ppc32|Mac Mini G4|Planned|
 |Dec. 2016|SMP support for 32-bit PowerPC|ppc32|PowerMac G4 Dual|Planned|

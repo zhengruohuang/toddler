@@ -1,6 +1,6 @@
 # Toddler
 
-## Brief History of Toddler
+## Brief History
 
 Toddler was originally a half-hobby and half-research project developed during summer and winter breaks when I was in college.
 The original Toddler was designed for small-scale multi-processor IA32 systems.

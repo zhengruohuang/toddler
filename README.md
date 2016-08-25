@@ -77,4 +77,4 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 |Dec. 2016|SMP support for 32-bit PowerPC|ppc32|PowerMac G4 Dual|Planned|
 |Jan. 2017|A working 32-bit ARMv7 port|armv7|Raspberry Pi 2|Planned|
 |Feb. 2017|SMP support for 32-bit ARMv7|armv7|Raspberry Pi 2|Planned|
-|Later|64-bit Toddler|amd64, ppc64, armv8|Skylake PC, PowerMac G5 Dual, Raspberry Pi 3|Planned|
+|Later|64-bit Toddler|||Planned|

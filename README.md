@@ -68,7 +68,7 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 
 ## Development Plan
 
-### The Kernel
+### Ports
 
 |Time|Event|Arch|Target|Status|
 |---|---|---|---|---|
@@ -78,3 +78,18 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 |Jan. 2017|A working 32-bit ARMv7 port|armv7|Raspberry Pi 2|Planned|
 |Feb. 2017|SMP support for 32-bit ARMv7|armv7|Raspberry Pi 2|Planned|
 |Later|64-bit Toddler|||Planned|
+
+### Kernel
+
+|Time|Event|Status|
+|----|-----|------|
+|Oct. 2016|Efficient memory management|Planned|
+|Nov. 2016|Sophisticated scheduling|Planned|
+|Feb. 2017|Better SMP support|Planned|
+
+### Building system
+
+|Time|Event|Status|
+|----|-----|------|
+|Oct. 2016|Clean up the code, HD image builder|Planned|
+|Dec. 2016|Parallel building|Planned|

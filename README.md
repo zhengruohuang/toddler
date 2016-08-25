@@ -46,7 +46,7 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 
 ## Ports
 
-|Architecture|Width|Platform|Status|
+|Architecture|Width|Target Machine|Status|
 |---|---|---|---|---|
 |ia32|32|NetBurst-based PC|Active|
 |ppc32|32|Mac Mini G4, PowerMac G4|Initial|
@@ -72,7 +72,7 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 
 |Time|Event|Architecture|Target|Status|
 |---|---|---|---|---|
-|Oct. 2016|A working *modern* kernel and a simple working shell|ia32|Netbust PC|Active|
+|Oct. 2016|A working *modern* kernel\ A simple working shell|ia32|Netbust PC|Active|
 |Nov. 2016|A working 32-bit PowerPC port|ppc32|Mac Mini G4|Planned|
 |Dec. 2016|SMP support for 32-bit PowerPC|ppc32|PowerMac G4 Dual|Planned|
 |Jan. 2017|A working 32-bit ARMv7 port|armv7|Raspberry Pi 2|Planned|

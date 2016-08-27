@@ -1,5 +1,7 @@
 #include "common/include/data.h"
 #include "common/include/syscall.h"
+#include "klibc/include/stdlib.h"
+#include "klibc/include/string.h"
 #include "klibc/include/sys.h"
 
 
@@ -19,7 +21,39 @@ msg_t *kapi_msg(int kapi_num)
 
 unsigned long kapi_return_value(msg_t *m)
 {
-    return m->params[0].value;
+    return msg_return_value(m);
+}
+
+unsigned long msg_return_value(msg_t *m)
+{
+    int index = m->param_count - 1;
+    m->param_count--;
+    if (index < 0) {
+        return -1;
+    }
+    
+    return m->params[index].value;
+}
+
+void *msg_return_buffer(msg_t *m, size_t *size)
+{
+    unsigned char *dest = NULL, *src = NULL;
+    
+    int index = m->param_count - 1;
+    m->param_count--;
+    if (index < 0) {
+        return NULL;
+    }
+    
+    src = (unsigned char *)m + m->params[index].offset;
+    dest = (unsigned char *)malloc(sizeof(m->params[index].size));
+    memcpy(dest, src, m->params[index].size);
+    
+    if (size) {
+        *size = m->params[index].size;
+    }
+    
+    return (void *)dest;
 }
 
 void msg_param_value(msg_t *m, unsigned long value)

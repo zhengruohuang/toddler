@@ -50,6 +50,8 @@ extern int syscall_unreg_kapi_server(unsigned long kapi_num);
  */
 extern msg_t *kapi_msg(int kapi_num);
 extern unsigned long kapi_return_value(msg_t *m);
+extern unsigned long msg_return_value(msg_t *m);
+extern void *msg_return_buffer(msg_t *m, size_t *size);
 extern void msg_param_value(msg_t *m, unsigned long value);
 extern void msg_param_buffer(msg_t *m, void *buf, size_t size);
 

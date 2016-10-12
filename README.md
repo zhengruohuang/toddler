@@ -51,19 +51,19 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 |ia32|32|NetBurst-based PC|Active|
 |ppc32|32|Mac Mini G4, PowerMac G4|Initial|
 |armv7|32|Raspberry Pi 2|Initial|
-|mips32|32|MIPS 32|Planned|
+|mips32|32|Creator CI20|Planned|
 |sparcv8|32|SuperSPARC II|Planned|
 |m68k|32|M68K|No Plan|
 |amd64|64|Skylake-based PC|Planned|
 |ppc64|64|PowerMac G5|Planned|
 |armv8|64|Raspberry Pi 3|Planned|
-|mips64|64|MIPS 64|Planned|
+|mips64|64|Loongson 3 Desktop|Planned|
 |sparcv9|64|Sun UltraSPARC II Workstation|Planned|
-|riscv|64|RISC V|Planned|
+|riscv|64|RISC V QEMU Emulator|Planned|
 |ia64|64|Itaium 2|No Plan|
 |alpha|64|ES40|No Plan|
 |hppa|64|HP RA-RISC|No Plan|
-|s390|64|S390|No Plan|
+|s390|64|S390 Emulator|No Plan|
 
 
 ## Development Plan

@@ -16,6 +16,7 @@ import platform
 host_arch_alias = { \
     'i386' : 'ia32',
     'x86_64' : 'amd64',
+    'arm32' : 'armv7',
 }
 
 host_arch = platform.machine().strip()
@@ -189,7 +190,7 @@ def warn(s):
     #underline = '\033[4m',
 
 print_action_enabled = True
-print_cmd_enabled = False
+print_cmd_enabled = True
 
 def str_red(s):
     return '\033[91m' + s + '\033[00m'

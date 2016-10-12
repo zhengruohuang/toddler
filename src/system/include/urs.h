@@ -39,7 +39,7 @@ struct urs_disp {
     
     union {
         char *link;
-        int (*func)(unsigned long dispatch_id, ...);
+        int (*func)(unsigned long super_id, unsigned long dispatch_id, ...);
         struct {
             unsigned long mbox_id;
             unsigned long msg_opcode;
@@ -89,7 +89,7 @@ int close_node(unsigned long id, unsigned long process_id);
 unsigned long read_node(unsigned long id, void *buf, unsigned long count);
 unsigned long write_node(unsigned long id, void *buf, unsigned long count);
 int list_node(unsigned long id, void *buf, unsigned long count);
-int create_node(unsigned long id, char *name);
+int urs_create_node(unsigned long id, char *name);
 int remove_node(unsigned long id);
 int rename_node(unsigned long id, char *name);
 

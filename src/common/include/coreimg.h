@@ -1,5 +1,5 @@
-#ifndef __ARCH_IA32_COMMON_INCLUDE_COREIMG__
-#define __ARCH_IA32_COMMON_INCLUDE_COREIMG__
+#ifndef __COMMON_INCLUDE_COREIMG__
+#define __COMMON_INCLUDE_COREIMG__
 
 
 #include "common/include/data.h"

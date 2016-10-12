@@ -230,12 +230,13 @@ static msg_t *create_dispatch_msg(struct urs_super *super, enum urs_op_type op, 
     msg->func_num = super->ops[op].msg_func_num;
     
     msg_param_value(msg, (unsigned long)op);
+    msg_param_value(msg, super->id);
     msg_param_value(msg, dispatch_id);
     
     return msg;
 }
 
-static unsigned long dispatch_lookup(struct urs_super *super, unsigned long node_id, char *next)
+static int dispatch_lookup(struct urs_super *super, unsigned long node_id, char *next, unsigned long *next_id)
 {
     int result = 0;
     enum urs_op_type op = uop_lookup;
@@ -246,7 +247,7 @@ static unsigned long dispatch_lookup(struct urs_super *super, unsigned long node
     }
     
     else if (super->ops[op].type == udisp_func) {
-        result = super->ops[op].func(node_id, next);
+        result = super->ops[op].func(super->id, node_id, next, next_id);
     }
     
     else if (super->ops[op].type == udisp_msg) {
@@ -275,7 +276,7 @@ static int dispatch_release(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_func) {
-        result = super->ops[op].func(node_id);
+        result = super->ops[op].func(super->id, node_id);
     }
     
     else if (super->ops[op].type == udisp_msg) {
@@ -303,7 +304,7 @@ static int dispatch_read(struct urs_super *super, unsigned long node_id, void *b
     }
     
     else if (super->ops[op].type == udisp_func) {
-        result = super->ops[op].func(node_id, buf, count, actual);
+        result = super->ops[op].func(super->id, node_id, buf, count, actual);
     }
     
     else if (super->ops[op].type == udisp_msg) {
@@ -332,7 +333,7 @@ static int dispatch_write(struct urs_super *super, unsigned long node_id, void *
     }
     
     else if (super->ops[op].type == udisp_func) {
-        result = super->ops[op].func(node_id, count, buf, actual);
+        result = super->ops[op].func(super->id, node_id, count, buf, actual);
     }
     
     else if (super->ops[op].type == udisp_msg) {
@@ -366,7 +367,7 @@ static int dispatch_list(struct urs_super *super, unsigned long node_id, void *b
     }
     
     else if (super->ops[op].type == udisp_func) {
-        result = super->ops[op].func(node_id, count, buf, actual);
+        result = super->ops[op].func(super->id, node_id, count, buf, actual);
     }
     
     else if (super->ops[op].type == udisp_msg) {
@@ -398,7 +399,7 @@ static int dispatch_create(struct urs_super *super, unsigned long node_id, char 
     }
     
     else if (super->ops[op].type == udisp_func) {
-        result = super->ops[op].func(node_id, name);
+        result = super->ops[op].func(super->id, node_id, name);
     }
     
     else if (super->ops[op].type == udisp_msg) {
@@ -427,7 +428,7 @@ static int dispatch_remove(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_func) {
-        result = super->ops[op].func(node_id);
+        result = super->ops[op].func(super->id, node_id);
     }
     
     else if (super->ops[op].type == udisp_msg) {
@@ -455,7 +456,7 @@ static int dispatch_rename(struct urs_super *super, unsigned long node_id, char 
     }
     
     else if (super->ops[op].type == udisp_func) {
-        result = super->ops[op].func(node_id, name);
+        result = super->ops[op].func(super->id, node_id, name);
     }
     
     else if (super->ops[op].type == udisp_msg) {
@@ -528,13 +529,13 @@ static struct urs_node *get_next_node(struct urs_super *super, struct urs_node *
     
     if (!cur) {
         if (!name) {
-            next_id = dispatch_lookup(super, 0, "/");
+            error = dispatch_lookup(super, 0, "/", &next_id);
         } else {
             return NULL;
         }
     } else {
-        next_id = dispatch_lookup(super, cur->dispatch_id, name);
-        error = dispatch_release(super, cur->dispatch_id);
+        error = dispatch_lookup(super, cur->dispatch_id, name, &next_id);
+        error |= dispatch_release(super, cur->dispatch_id);
         sfree(cur);
     }
     
@@ -637,7 +638,7 @@ int list_node(unsigned long id, void *buf, unsigned long count)
     return error;
 }
 
-int create_node(unsigned long id, char *name)
+int urs_create_node(unsigned long id, char *name)
 {
     struct urs_open *o = get_open_by_id(id);
     int error = dispatch_create(o->node->super, o->node->id, name);

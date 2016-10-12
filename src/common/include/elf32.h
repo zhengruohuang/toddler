@@ -1,5 +1,5 @@
-#ifndef __ARCH_IA32_COMMON_INCLUDE_ELF32__
-#define __ARCH_IA32_COMMON_INCLUDE_ELF32__
+#ifndef __COMMON_INCLUDE_ELF32__
+#define __COMMON_INCLUDE_ELF32__
 
 
 #include "common/include/data.h"

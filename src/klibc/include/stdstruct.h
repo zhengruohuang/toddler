@@ -63,6 +63,7 @@ extern void hash_create(hash_t *l, unsigned int bucket_count, hash_func_t hash_f
 extern hash_t *hash_new(unsigned int bucket_count, hash_func_t hash_func, hash_cmp_t hash_cmp);
 extern int hash_contains(hash_t *l, void *key);
 extern void *hash_obtain(hash_t *l, void *key);
+extern void *hash_obtain_at(hash_t *l, unsigned long index);
 extern void hash_release(hash_t *l, void *key, void *value);
 extern int hash_insert(hash_t *l, void *key, void *value);
 extern int hash_remove(hash_t *l, void *key);

@@ -1,6 +1,7 @@
 #include "common/include/data.h"
 #include "klibc/include/stdlib.h"
 #include "klibc/include/kthread.h"
+#include "klibc/include/assert.h"
 #include "klibc/include/stdstruct.h"
 
 
@@ -139,6 +140,36 @@ void *hash_obtain(hash_t *l, void *key)
         // Unlock
         kthread_mutex_unlock(&l->lock);
         return NULL;
+    }
+    
+    return s->node;
+}
+
+void *hash_obtain_at(hash_t *l, unsigned long index)
+{
+    unsigned long count = 0;
+    unsigned int i;
+    hash_node_t *s = NULL;
+    hash_bucket_t *bucket = NULL;
+    
+    // Lock the table
+    kthread_mutex_lock(&l->lock);
+    
+    for (i = 0; i < l->bucket_count; i++) {
+        bucket = &l->buckets[i];
+        count += bucket->node_count;
+        if (count > index) {
+            count -= bucket->node_count;
+            count = index - count - 1;
+            break;
+        }
+    }
+    
+    s = bucket->head;
+    assert(s);
+    for (i = 0; i < count; i++) {
+        s = s->next;
+        assert(s);
     }
     
     return s->node;

@@ -10,78 +10,6 @@ import platform
 
 
 #-------------------------------------------------------------------------------
-# Host
-#-------------------------------------------------------------------------------
-
-host_arch_alias = { \
-    'i386' : 'ia32',
-    'x86_64' : 'amd64',
-    'arm32' : 'armv7',
-}
-
-host_arch = platform.machine().strip()
-if host_arch in host_arch_alias:
-    host_arch = host_arch_alias[host_arch]
-
-host_info = platform.architecture()
-host_os = platform.platform()
-
-#-------------------------------------------------------------------------------
-
-
-#-------------------------------------------------------------------------------
-# Target
-#-------------------------------------------------------------------------------
-
-target_arch = 'ia32'
-target_platform = 'generic'
-target_suffix = ''
-
-target_name = target_arch + '_' + target_platform
-if target_suffix != '':
-    target_name += '_' + target_suffix
-
-#-------------------------------------------------------------------------------
-
-
-#-------------------------------------------------------------------------------
-# Path
-#-------------------------------------------------------------------------------
-
-# Top level
-cur_dir         = os.path.dirname(os.path.realpath(__file__))
-project_dir     = cur_dir + '/'
-
-# Source
-src_dir         = project_dir + 'src/'
-arch_dir        = src_dir + 'arch/' + target_arch + '/'
-platform_dir    = arch_dir + target_platform + '/'
-
-# Target
-target_all_dir  = project_dir + 'target/'
-target_dir      = target_all_dir + target_name + '/'
-obj_dir         = target_dir + 'obj/'
-bin_dir         = target_dir + 'bin/'
-img_dir         = target_dir + 'img/'
-
-# Tools
-tools_src_dir   = project_dir + 'tools/'
-tools_obj_dir   = obj_dir + 'tools/'
-tools_bin_dir   = bin_dir + 'tools/'
-
-# Doc
-doc_dir         = project_dir + 'doc/'
-
-# VM
-vm_dir          = project_dir + 'vm/'
-
-# Include
-inc_dir         = [ src_dir, arch_dir, platform_dir ]
-
-#-------------------------------------------------------------------------------
-
-
-#-------------------------------------------------------------------------------
 # Helpaer functions
 #-------------------------------------------------------------------------------
 
@@ -176,6 +104,88 @@ def warn(s):
 
 
 #-------------------------------------------------------------------------------
+# Host
+#-------------------------------------------------------------------------------
+
+host_arch_alias = { \
+    'i386' : 'ia32',
+    'x86_64' : 'amd64',
+    'arm32' : 'armv7',
+}
+
+host_arch = platform.machine().strip()
+if host_arch in host_arch_alias:
+    host_arch = host_arch_alias[host_arch]
+
+host_info = platform.architecture()
+host_os = platform.platform()
+
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Target
+#-------------------------------------------------------------------------------
+
+target_arch = 'ia32'
+target_platform = 'generic'
+target_suffix = ''
+
+# Parse the target cmd
+for argv in sys.argv:
+    if argv.startswith('target') and '=' in argv and '-' in argv:
+        parts = split(argv, '=')
+        parts = split(parts[1], '-')
+        target_arch = parts[0]
+        target_platform = parts[1]
+        if len(parts) >= 3:
+            target_suffix = parts[2]
+
+target_name = target_arch + '_' + target_platform
+if target_suffix != '':
+    target_name += '_' + target_suffix
+
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Path
+#-------------------------------------------------------------------------------
+
+# Top level
+cur_dir         = os.path.dirname(os.path.realpath(__file__))
+project_dir     = cur_dir + '/'
+
+# Source
+src_dir         = project_dir + 'src/'
+arch_dir        = src_dir + 'arch/' + target_arch + '/'
+platform_dir    = arch_dir + target_platform + '/'
+
+# Target
+target_all_dir  = project_dir + 'target/'
+target_dir      = target_all_dir + target_name + '/'
+obj_dir         = target_dir + 'obj/'
+bin_dir         = target_dir + 'bin/'
+img_dir         = target_dir + 'img/'
+
+# Tools
+tools_src_dir   = project_dir + 'tools/'
+tools_obj_dir   = obj_dir + 'tools/'
+tools_bin_dir   = bin_dir + 'tools/'
+
+# Doc
+doc_dir         = project_dir + 'doc/'
+
+# VM
+vm_dir          = project_dir + 'vm/'
+
+# Include
+inc_dir         = [ src_dir, arch_dir, platform_dir ]
+
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
 # Printing functions
 #-------------------------------------------------------------------------------
 
@@ -190,7 +200,7 @@ def warn(s):
     #underline = '\033[4m',
 
 print_action_enabled = True
-print_cmd_enabled = True
+print_cmd_enabled = False
 
 def str_red(s):
     return '\033[91m' + s + '\033[00m'

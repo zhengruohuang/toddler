@@ -3,7 +3,7 @@
 #include "klibc/include/string.h"
 
 
-size_t strlen(char *s)
+size_t strlen(const char *s)
 {
     size_t len = 0;
     
@@ -14,7 +14,7 @@ size_t strlen(char *s)
     return len;
 }
 
-int strcmp(char *s1, char *s2)
+int strcmp(const char *s1, const char *s2)
 {
     int result = 0;
     
@@ -34,7 +34,7 @@ int strcmp(char *s1, char *s2)
     return result;
 }
 
-void strcpy(char *dest, char *src)
+void strcpy(char *dest, const char *src)
 {
     do {
         *dest++ = *src;
@@ -43,7 +43,7 @@ void strcpy(char *dest, char *src)
     *dest = '\0';
 }
 
-char *strdup(char *str)
+char *strdup(const char *str)
 {
     size_t len = strlen(str);
     char *buf = malloc(sizeof(char) * (len + 1));

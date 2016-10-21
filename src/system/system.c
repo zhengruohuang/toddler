@@ -4,6 +4,7 @@
 #include "klibc/include/kthread.h"
 #include "system/include/kapi.h"
 #include "system/include/urs.h"
+#include "system/include/fs.h"
 
 
 static unsigned long thread_test(unsigned long arg)
@@ -29,16 +30,25 @@ int main(int argc, char *argv[])
     // Initialize
     init_kapi();
     init_urs();
+    init_ramfs();
+    
+    // FS tests
+    test_ramfs();
+    
+    // Block here
+    do {
+        syscall_yield();
+    } while (1);
     
     // Init done
     kprintf("System process initialized!\n");
     kapi_process_started(0);
     
-    // Thread test
-    kthread_t thread;
-    for (i = 0; i < 2; i++) {
-        kthread_create(&thread, thread_test, (unsigned long)i);
-    }
+//     // Thread test
+//     kthread_t thread;
+//     for (i = 0; i < 2; i++) {
+//         kthread_create(&thread, thread_test, (unsigned long)i);
+//     }
     
     // Block here
     do {

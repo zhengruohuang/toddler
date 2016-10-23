@@ -44,6 +44,7 @@ struct ramfs_node {
     struct ramfs_node *parent;
     struct ramfs_data data;
     struct ramfs_sub sub;
+    char *link;
 };
 
 
@@ -155,6 +156,31 @@ static unsigned long write_data_block(struct ramfs_data *data, u8 *buf, unsigned
     return index;
 }
 
+static int truncate_data_block(struct ramfs_data *data)
+{
+    struct ramfs_block *block = data->cur->next;
+    
+    // Free following blocks
+    while (block) {
+        struct ramfs_block *next = block->next;
+        sfree(block);
+        block = next;
+    }
+    data->tail = block;
+    data->cur->next = NULL;
+    
+    // Recalculate file size
+    data->size = 0;
+    block = data->head;
+    while (block != data->cur) {
+        data->size += RAMFS_BLOCK_SIZE;
+        block = block->next;
+    }
+    data->size += data->cur_offset;
+    
+    return 0;
+}
+
 static void seek_data_block_begin(struct ramfs_data *data, unsigned long offset)
 {
     if (offset > data->size) {
@@ -178,28 +204,6 @@ static void seek_data_block_begin(struct ramfs_data *data, unsigned long offset)
             offset = 0;
         }
     }
-}
-
-static unsigned long seek_data_block(struct ramfs_data *data, unsigned long offset, enum urs_seek_from from)
-{
-    switch (from) {
-    case seek_from_begin:
-        seek_data_block_begin(data, offset);
-        break;
-    case seek_from_cur_fwd:
-        seek_data_block_begin(data, data->pos + offset);
-        break;
-    case seek_from_cur_bwd:
-        seek_data_block_begin(data, data->pos > offset ? data->pos - offset : 0);
-        break;
-    case seek_from_end:
-        seek_data_block_begin(data, data->size > offset ? data->size - offset : 0);
-        break;
-    default:
-        break;
-    }
-    
-    return data->pos;
 }
 
 
@@ -239,28 +243,32 @@ static struct ramfs_node *create_node(const char *name, struct ramfs_node *paren
     node->sub.pos = 0;
     node->sub.entries = NULL;
     
+    node->link = NULL;
+    
     return node;
 }
 
-static int lookup(unsigned long super_id, unsigned long node_id, const char *name, unsigned long *next_id)
+static int lookup(unsigned long super_id, unsigned long node_id, const char *name, int *is_link,
+                  unsigned long *next_id, void *buf, unsigned long count, unsigned long *actual)
 {
     struct urs_super *super = get_super_by_id(super_id);
     struct ramfs_node *node = NULL, *next = NULL;
     
     kprintf("Lookup received, super_id: %p, node_id: %lu, name: %s\n", super_id, node_id, name);
     
-    if (next_id) {
-        *next_id = 0;
-    }
-    
+    // Find out the next node
     if (node_id) {
         node = get_node_by_id(node_id);
+        assert(node);
+        
+        node->ref_count--;
         if (!node->sub.count) {
             return 0;
         }
         
         next = (struct ramfs_node *)hash_obtain(node->sub.entries, (void *)name);
         if (!next) {
+            hash_release(node->sub.entries, (void *)name, next);
             return 0;
         }
     } else {
@@ -270,9 +278,39 @@ static int lookup(unsigned long super_id, unsigned long node_id, const char *nam
         assert(next);
     }
     
-    next->ref_count++;
-    if (next_id) {
-        *next_id = next->id;
+    // Sym link
+    if (next->link) {
+        unsigned long cpy_index = 0;
+        unsigned long link_len = strlen(next->link) + 1;
+        u8 *cpy = (u8 *)buf;
+        
+        if (is_link) {
+            *is_link = 1;
+        }
+        
+        if (buf) {
+            while (cpy_index < count && cpy_index < link_len) {
+                cpy[cpy_index] = (u8)next->link[cpy_index];
+                cpy_index++;
+            }
+        }
+        
+        if (actual) {
+            *actual = cpy_index;
+        }
+    }
+    
+    // Regular node
+    else {
+        next->ref_count++;
+        
+        if (is_link) {
+            *is_link = 0;
+        }
+        
+        if (next_id) {
+            *next_id = next->id;
+        }
     }
     
     if (node_id) {
@@ -282,14 +320,22 @@ static int lookup(unsigned long super_id, unsigned long node_id, const char *nam
     return 0;
 }
 
+static int open(unsigned long super_id, unsigned long node_id)
+{
+    return 0;
+}
+
 static int release(unsigned long super_id, unsigned long node_id)
 {
+    unsigned long result = 0;
+    
     struct ramfs_node *node = get_node_by_id(node_id);
     if (!node) {
         return -1;
     }
     
     node->ref_count--;
+    
     return 0;
 }
 
@@ -327,18 +373,49 @@ static int write(unsigned long super_id, unsigned long node_id, void *buf, unsig
     return 0;
 }
 
-static int seek_data(unsigned long super_id, unsigned long node_id, unsigned long offset, enum urs_seek_from from, unsigned long *newpos)
+static int truncate(unsigned long super_id, unsigned long node_id)
 {
-    unsigned long result = 0;
+    int result = 0;
     
     struct ramfs_node *node = get_node_by_id(node_id);
     if (!node) {
         return -1;
     }
     
-    result = seek_data_block(&node->data, offset, from);
+    result = truncate_data_block(&node->data);
+    return result;
+}
+
+static int seek_data(unsigned long super_id, unsigned long node_id, unsigned long offset, enum urs_seek_from from, unsigned long *newpos)
+{
+    unsigned long result = 0;
+    struct ramfs_data *data = NULL;
+    
+    struct ramfs_node *node = get_node_by_id(node_id);
+    if (!node) {
+        return -1;
+    }
+    
+    data = &node->data;
+    switch (from) {
+    case seek_from_begin:
+        seek_data_block_begin(data, offset);
+        break;
+    case seek_from_cur_fwd:
+        seek_data_block_begin(data, data->pos + offset);
+        break;
+    case seek_from_cur_bwd:
+        seek_data_block_begin(data, data->pos > offset ? data->pos - offset : 0);
+        break;
+    case seek_from_end:
+        seek_data_block_begin(data, data->size > offset ? data->size - offset : 0);
+        break;
+    default:
+        break;
+    }
+    
     if (newpos) {
-        *newpos = result;
+        *newpos = data->pos;
     }
     
     return 0;
@@ -466,7 +543,7 @@ static int rename(unsigned long super_id, unsigned long node_id, char *name)
 /*
  * Super
  */
-#define REGISTER_OP(type, func) urs_register_op(super_id, type, func, NULL, 0, 0, 0)
+#define REG_OP_FUNC(type, func) urs_register_op(super_id, type, func, 0, 0, 0)
 
 int register_ramfs(char *path)
 {
@@ -485,19 +562,21 @@ int register_ramfs(char *path)
     hash_insert(ramfs_table, (void *)super_id, root);
     
     // Register operations
-    REGISTER_OP(uop_lookup, lookup);
-    REGISTER_OP(uop_release, release);
+    REG_OP_FUNC(uop_lookup, lookup);
+    REG_OP_FUNC(uop_open, open);
+    REG_OP_FUNC(uop_release, release);
     
-    REGISTER_OP(uop_read, read);
-    REGISTER_OP(uop_write, write);
-    REGISTER_OP(uop_seek_data, seek_data);
+    REG_OP_FUNC(uop_read, read);
+    REG_OP_FUNC(uop_write, write);
+    REG_OP_FUNC(uop_truncate, truncate);
+    REG_OP_FUNC(uop_seek_data, seek_data);
     
-    REGISTER_OP(uop_list, list);
-    REGISTER_OP(uop_seek_list, seek_list);
+    REG_OP_FUNC(uop_list, list);
+    REG_OP_FUNC(uop_seek_list, seek_list);
     
-    REGISTER_OP(uop_create, create);
-    REGISTER_OP(uop_remove, remove);
-    REGISTER_OP(uop_rename, rename);
+    REG_OP_FUNC(uop_create, create);
+    REG_OP_FUNC(uop_remove, remove);
+    REG_OP_FUNC(uop_rename, rename);
     
     return 0;
 }

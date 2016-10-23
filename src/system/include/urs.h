@@ -14,9 +14,14 @@ enum urs_seek_from {
     seek_from_end,
 };
 
+enum urs_link_type {
+    ulink_none,
+    ulink_absolute,
+    ulink_relative,
+};
+
 enum urs_disp_type {
     udisp_none,
-    udisp_link,
     udisp_func,
     udisp_msg,
 };
@@ -25,10 +30,12 @@ enum urs_op_type {
     uop_none,
     
     uop_lookup,
+    uop_open,
     uop_release,
     
     uop_read,
     uop_write,
+    uop_truncate,
     uop_seek_data,
     
     uop_list,
@@ -94,7 +101,7 @@ extern void init_urs();
 extern unsigned long urs_register(char *path);
 extern int urs_unregister(char *path);
 extern int urs_register_op(
-    unsigned long id, enum urs_op_type op, void *func, char *link,
+    unsigned long id, enum urs_op_type op, void *func,
     unsigned long mbox_id, unsigned long msg_opcode, unsigned long msg_func_num
 );
 
@@ -103,14 +110,15 @@ extern int urs_close_node(unsigned long id, unsigned long process_id);
 
 extern int urs_read_node(unsigned long id, void *buf, unsigned long count, unsigned long *actual);
 extern int urs_write_node(unsigned long id, void *buf, unsigned long count, unsigned long *actual);
+extern int urs_truncate_node(unsigned long id);
 extern int urs_seek_data(unsigned long id, unsigned long offset, enum urs_seek_from from, unsigned long *newpos);
 
 extern int urs_list_node(unsigned long id, void *buf, unsigned long count);
-extern int urs_seek_list(unsigned long id, unsigned long long offset, enum urs_seek_from from);
+extern int urs_seek_list(unsigned long id, unsigned long long offset, enum urs_seek_from from, unsigned long *newpos);
 
 extern int urs_create_node(unsigned long id, char *name);
-extern int remove_node(unsigned long id);
-extern int rename_node(unsigned long id, char *name);
+extern int urs_remove_node(unsigned long id);
+extern int urs_rename_node(unsigned long id, char *name);
 
 
 #endif

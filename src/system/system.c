@@ -33,12 +33,7 @@ int main(int argc, char *argv[])
     init_ramfs();
     
     // FS tests
-    test_ramfs();
-    
-    // Block here
-    do {
-        syscall_yield();
-    } while (1);
+    //test_ramfs();
     
     // Init done
     kprintf("System process initialized!\n");

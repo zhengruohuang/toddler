@@ -5,6 +5,7 @@
 #include "klibc/include/kthread.h"
 
 
+// Offset where kthread_t is stored
 static unsigned long kthread_tls_offset = 0;
 
 

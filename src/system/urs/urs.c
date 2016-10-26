@@ -62,6 +62,9 @@ void init_urs()
 /*
  * Super
  */
+#define DEFAULT_NAMESPACE           "vfs://"
+#define DEFAULT_NAMESPACE_LENGTH    (sizeof(DEFAULT_NAMESPACE) - 1)
+
 static struct urs_super *get_super_by_id(unsigned long id)
 {
     return (struct urs_super *)id;
@@ -77,7 +80,7 @@ static char *normalize_path(char *path)
     }
     
     if (path[0] == '/') {
-        len += 6;   // vfs://
+        len += DEFAULT_NAMESPACE_LENGTH;   // vfs://
     }
     
     if (path[len - 1] == '/') {
@@ -86,8 +89,8 @@ static char *normalize_path(char *path)
     
     copy = (char *)calloc(len + 1, sizeof(char));
     if (path[0] == '/') {
-        memcpy(copy, "vfs://", 6);
-        memcpy(copy + 6, path, len - 6);
+        memcpy(copy, DEFAULT_NAMESPACE, 6);
+        memcpy(copy + DEFAULT_NAMESPACE_LENGTH, path, len - DEFAULT_NAMESPACE_LENGTH);
     } else {
         memcpy(copy, path, len);
     }

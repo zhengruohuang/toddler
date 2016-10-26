@@ -63,7 +63,7 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
     
     // IPC
     case SYSCALL_REG_MSG_HANDLER:
-        kprintf("syscall reg msg handler\n");
+        //kprintf("syscall reg msg handler\n");
         reg_msg_handler_worker(disp_info);
         break;
     case SYSCALL_UNREG_MSG_HANDLER:
@@ -81,13 +81,13 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
         assert(t);
         break;
     case SYSCALL_REQUEST:
-        kprintf("syscall request\n");
+        //kprintf("syscall request\n");
         dup_disp_info = prepare_thread(disp_info);
         t = create_thread(kernel_proc, (ulong)&request_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
         assert(t);
         break;
     case SYSCALL_RESPOND:
-        kprintf("syscall respond\n");
+        //kprintf("syscall respond\n");
         dup_disp_info = prepare_thread(disp_info);
         t = create_thread(kernel_proc, (ulong)&respond_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
         assert(t);

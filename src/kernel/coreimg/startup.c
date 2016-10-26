@@ -20,7 +20,8 @@ struct startup_record {
 
 static struct startup_record records[] = {
     { "tdlrsys.bin", "coreimg://tdlrsys.bin", process_system, 0, 0 },
-    { "tdlrdrv.bin", "coreimg://tdlrdrv.bin", process_driver, 0, 0 }
+    { "tdlrdrv.bin", "coreimg://tdlrdrv.bin", process_driver, 0, 0 },
+    { "tdlrshell.bin", "coreimg://tdlrshell.bin", process_user, 0, 0 },
 };
 
 static struct thread *worker = NULL;

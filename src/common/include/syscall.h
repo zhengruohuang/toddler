@@ -112,5 +112,10 @@ typedef asmlinkage void (*msg_handler_t)(msg_t *msg);
 #define KAPI_HEAP_END_GROW      0x62
 #define KAPI_HEAP_END_SHRINK    0x63
 
+// Temporary KAPIs, stdio eventually should be implemented through URS
+#define KAPI_STDIN_READ         0x1000
+#define KAPI_STDOUT_WRITE       0x1001
+#define KAPI_STDERR_WRITE       0x1002
+
 
 #endif

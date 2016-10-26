@@ -89,20 +89,20 @@ static struct process *get_process_by_mailbox_id(struct process *src_p,
 {
     struct process *p = NULL;
     
-    kprintf("mailbox_id: %p, opcode: %p, func: %p\n", mailbox_id, opcode, func);
+    //kprintf("mailbox_id: %p, opcode: %p, func: %p\n", mailbox_id, opcode, func);
     
     if (opcode != IPC_OPCODE_NONE) {
         switch (mailbox_id) {
         case IPC_MAILBOX_NONE:
             break;
         case IPC_MAILBOX_KERNEL:
-            kprintf("mbox kernel\n");
+            //kprintf("mbox kernel\n");
             if (opcode == IPC_OPCODE_KAPI) {
                 p = obtain_kapi_server(func);
-                kprintf("user proc obtained\n");
+                //kprintf("user proc obtained\n");
             }
             if (!p) {
-                kprintf("to obtain kernel proc\n");
+                //kprintf("to obtain kernel proc\n");
                 p = kernel_proc;
             }
             break;
@@ -334,7 +334,7 @@ void request_worker_thread(ulong param)
     msg_t *s = (msg_t *)src_t->memory.msg_send_paddr;
     assert(s);
     
-    kprintf("To transfer msg!\n");
+    //kprintf("To transfer msg!\n");
     
     // Transfer msg
     transfer_msg(s, 1, src_p, src_t);

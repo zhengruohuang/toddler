@@ -5,9 +5,6 @@
 #include "klibc/include/sys.h"
 
 
-/*
- * Helper functions
- */
 msg_t *kapi_msg(int kapi_num)
 {
     msg_t *msg = syscall_msg();
@@ -98,4 +95,17 @@ void msg_param_buffer(msg_t *m, void *buf, size_t size)
     // Set size and count
     m->msg_size += extra_msg_size;
     m->param_count++;
+}
+
+
+/*
+ * KAPI registration helper
+ * systme and driver will call this to register KAPIs and handlers
+ */
+int kapi_reg(unsigned long kapi_num, msg_handler_t handler)
+{
+    syscall_reg_kapi_server(kapi_num);
+    syscall_reg_msg_handler(kapi_num, handler);
+    
+    return 0;
 }

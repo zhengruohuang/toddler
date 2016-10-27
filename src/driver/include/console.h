@@ -1,7 +1,9 @@
 #ifndef __DRIVER_INCLUDE_CONSOLE__
 #define __DRIVER_INCLUDE_CONSOLE__
 
+
 #include "common/include/data.h"
+#include "klibc/include/kthread.h"
 
 
 #define STDIO_BUF_SIZE  32
@@ -10,7 +12,7 @@
 struct stdio_buffer {
     char data[STDIO_BUF_SIZE];
     int size;
-    int index;
+    volatile int index;
 };
 
 
@@ -22,6 +24,7 @@ struct console {
     
     // stdio
     struct stdio_buffer stdin_buf;
+    kthread_mutex_t stdin_mutex;
 };
 
 
@@ -41,9 +44,7 @@ void init_console();
  * Stdio
  */
 extern int stdin_write(unsigned long console_id, char *buf, size_t size);
-extern asmlinkage void stdin_read_handler(msg_t *msg);
-extern asmlinkage void stdout_write_handler(msg_t *msg);
-extern asmlinkage void stderr_write_handler(msg_t *msg);
+extern void init_stdio_kapi();
 
 
 #endif

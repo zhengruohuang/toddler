@@ -17,6 +17,7 @@ extern void klib_init_thread();
  * System
  */
 extern void sys_unreahable();
+extern void sys_yield();
 
 
 /*
@@ -54,6 +55,7 @@ extern unsigned long msg_return_value(msg_t *m);
 extern void *msg_return_buffer(msg_t *m, size_t *size);
 extern void msg_param_value(msg_t *m, unsigned long value);
 extern void msg_param_buffer(msg_t *m, void *buf, size_t size);
+extern int kapi_reg(unsigned long kapi_num, msg_handler_t handler);
 
 /*
  * Process
@@ -95,6 +97,13 @@ extern unsigned long kapi_shrink_heap(unsigned long amount);
 
 extern int kapi_brk(unsigned long heap_end);
 extern unsigned long kapi_sbrk(long amount);
+
+/*
+ * Stdio
+ */
+extern unsigned long kapi_stdin_read(unsigned long console_id, void *buf, unsigned long count);
+extern unsigned long kapi_stdout_write(unsigned long console_id, void *buf, unsigned long count);
+extern unsigned long kapi_stderr_write(unsigned long console_id, void *buf, unsigned long count);
 
 
 #endif

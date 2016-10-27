@@ -21,6 +21,8 @@ void kthread_mutex_lock(kthread_mutex_t *mutex)
     do {
         while (mutex->value) {
             // kapi_futex_wait(mutex);
+            sys_yield();
+            atomic_membar();
         }
     } while (!atomic_cas(&mutex->value, 0, 0x1));
 }

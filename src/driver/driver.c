@@ -11,6 +11,7 @@ int main(int argc, char *argv[])
     
     // Initialize logical drivers
     init_console();
+    init_stdio_kapi();
     
     // Initialize devices
     init_keyboard();

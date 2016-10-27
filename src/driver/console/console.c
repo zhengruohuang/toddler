@@ -55,6 +55,10 @@ static struct console *find_console(unsigned long console_id)
 {
     int i;
     
+    if (!console_id) {
+        console_id = activated_id;
+    }
+    
     for (i = 0; i < CONSOLE_COUNT; i++) {
         if (consoles[i].id == console_id && consoles[i].enabled) {
             return &consoles[i];
@@ -82,6 +86,7 @@ int activate_console(unsigned long console_id)
         return -1;
     }
     
+    con->activated = 1;
     activated_id = console_id;
     
     return 0;

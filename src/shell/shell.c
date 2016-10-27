@@ -119,10 +119,22 @@ static int free_cmd(int argc, char **argv)
 
 int main(int argc, char *argv[])
 {
-    int i = 0;
-    char buf[64];
+    char stdout_str[] = "STDOUT!!!!!!\n";
+    char stderr_str[] = "STDERR!!!!!!\n";
+    char stdin_buf[35];
     
     kprintf("Toddler shell started!\n");
+    
+    kapi_stdout_write(0, stdout_str, sizeof(stdout_str));
+    kapi_stderr_write(0, stderr_str, sizeof(stderr_str));
+    
+    do {
+        unsigned long size = kapi_stdin_read(0, stdin_buf, sizeof(stdin_buf));
+        if (size) {
+            stdin_buf[size] = '\0';
+            kprintf("Got from stdin: %s, size: %lu\n", stdin_buf, size);
+        }
+    } while (1);
     
     kapi_process_started(0);
     

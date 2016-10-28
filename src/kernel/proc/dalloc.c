@@ -84,7 +84,7 @@ static ulong alloc_exist(struct process *p, ulong size)
     cur = p->dynamic.free.head;
     
     while (cur) {
-        kprintf("here!\n");
+//         kprintf("here!\n");
         
         if (cur->size < size) {
             prev = cur;

@@ -43,6 +43,7 @@ int exec_cmd(char *cmd, int argc, char **argv)
     
     // External commands
     if (!found) {
+        return -1;
     }
     
     return EOK;
@@ -134,6 +135,8 @@ int parse_cmd(char *in, char **cmd, int *argc, char ***argv)
                 
                 arg_index++;
                 arg_pos += arg_len;
+                
+//                 kprintf("Arg parsed: %s, len: %d\n", arg, arg_len);
             }
         }
     }
@@ -145,9 +148,13 @@ int parse_cmd(char *in, char **cmd, int *argc, char ***argv)
     return EOK;
 }
 
-int free_cmd(int argc, char **argv)
+int free_cmd(char *cmd, int argc, char **argv)
 {
     int i;
+    
+    if (cmd) {
+        free(cmd);
+    }
     
     for (i = 0; i < argc; i++) {
         if (argv[i]) {

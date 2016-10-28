@@ -4,6 +4,7 @@
 #include "klibc/include/stdlib.h"
 #include "klibc/include/string.h"
 #include "klibc/include/sys.h"
+#include "shell/include/shell.h"
 
 
 unsigned long cmd_block_salloc_id = 0;
@@ -25,7 +26,7 @@ static void test_out()
 /*
  * Welcome message
  */
-static void welcome()
+void welcome()
 {
     char *welcome_msg[] = {
         "  _______        _     _ _           \n",
@@ -35,11 +36,10 @@ static void welcome()
         "    | | (_) | (_| | (_| | |  __/ |   \n",
         "    |_|\\___/ \\__,_|\\__,_|_|\\___|_|   \n",
         "                                     \n",
-        "                                     \n",
     };
     
     int i;
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < 7; i++) {
         kprintf(welcome_msg[i]);
     }
 }
@@ -82,8 +82,13 @@ static int input(char **cmd)
     
     // Input
     do {
-        unsigned long size = kapi_stdin_read(0, stdin_buf, sizeof(stdin_buf));
+        unsigned long size = 0;
+        kprintf("_");
+        
+        size = kapi_stdin_read(0, stdin_buf, sizeof(stdin_buf));
         if (size) {
+            kprintf("\b");
+            
             for (i = 0; i < (int)size; i++) {
                 char cur = stdin_buf[i];
                 kprintf("%c", cur);
@@ -127,6 +132,8 @@ static int input(char **cmd)
                 cur_block = cur_block->next;
             }
         }
+        
+        input[build.count] = '\0';
     }
     
     // Clean up
@@ -150,9 +157,23 @@ static void prompt()
     int len;
     char *cmd;
     
+    char *name;
+    int argc;
+    char **argv;
+    
     do {
         kprintf("system > ");
         len = input(&cmd);
+        
+        name = NULL;
+        argc = 0;
+        argv = NULL;
+        
+        parse_cmd(cmd, &name, &argc, &argv);
+        exec_cmd(name, argc, argv);
+        
+        free_cmd(name, argc, argv);
+        free(cmd);
     } while (1);
 }
 

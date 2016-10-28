@@ -250,7 +250,7 @@ void send_worker(struct kernel_dispatch_info *disp_info)
 
 void reply_worker(struct kernel_dispatch_info *disp_info)
 {
-    kprintf("To reply!\n");
+//     kprintf("To reply!\n");
     
     // Get src info
     struct process *src_p = disp_info->proc;
@@ -357,18 +357,18 @@ void respond_worker_thread(ulong param)
     // Do a reply
     reply_worker(disp_info);
     
-    kprintf("To terminate src thread!\n");
+//     kprintf("To terminate src thread!\n");
     
     // Terminate the src thread
     terminate_thread(src_t);
     
-    kprintf("To terminate worker thread!\n");
+//     kprintf("To terminate worker thread!\n");
     
     // Cleanup
     sfree(disp_info);
     terminate_thread_self(worker);
     
-    kprintf("Worker thread terminated!\n");
+//     kprintf("Worker thread terminated!\n");
     
     // Wait for this thread to be terminated
     kernel_unreachable();

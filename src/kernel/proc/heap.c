@@ -21,7 +21,7 @@ static void do_grow_heap(struct process *p, ulong amount)
         return;
     }
     
-    kprintf("old_vpfn: %p, new_vpfn: %p\n", old_vpfn, new_vpfn);
+//     kprintf("old_vpfn: %p, new_vpfn: %p\n", old_vpfn, new_vpfn);
     
     for (cur_vpfn = old_vpfn + 1; cur_vpfn <= new_vpfn; cur_vpfn++) {
         cur_vaddr = PFN_TO_ADDR(cur_vpfn);

@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "klibc/include/stdio.h"
+#include "klibc/include/assert.h"
 #include "klibc/include/sys.h"
 #include "driver/include/keyboard.h"
 #include "driver/include/console.h"
@@ -321,15 +322,54 @@ static char process_key(unsigned int scan_code)
 
 static asmlinkage void keyboard_interrupt_handler(msg_t *msg)
 {
-    unsigned int scan_code = (unsigned int)msg->params[2].value;
+    u8 buf[sizeof(ulong) * 2];
+    int buf_size = (int)msg->params[2].value;
+    ulong buf1 = msg->params[3].value;
+    ulong buf2 = msg->params[4].value;
+    int cur = buf_size;
     
-    char printable = process_key(scan_code);
-    if (printable != '\0') {
-        kprintf("Got a keyboard interrupt, scan code: %u, printable: %c\n", scan_code, printable);
-        stdin_write(get_activated_console_id(), &printable, 1);
-    } else {
-        kprintf("Got a keyboard interrupt, scan code: %u, non-printable\n", scan_code);
+    char print_buf[sizeof(ulong) * 2 + 1];
+    int print_count = 0;
+    int i;
+    
+    assert(buf_size <= sizeof(buf));
+    
+//     kprintf("buf_size: %d, buf1: %lu, buf2: %lu\n", buf_size, buf1, buf2);
+    
+    while (cur >= sizeof(ulong)) {
+        buf[cur - 1] = (u8)(buf2 & 0xff);
+        buf2 >>= 8;
+        cur--;
     }
+    
+    while (cur) {
+        buf[cur - 1] = (u8)(buf1 & 0xff);
+        buf1 >>= 8;
+        cur--;
+    }
+    
+    for (i = 0; i < buf_size; i++) {
+        char printable = process_key(buf[i]);
+        print_buf[print_count] = printable;
+        if (printable != '\0') {
+            print_count++;
+        }
+    }
+    print_buf[print_count] = '\0';
+    
+    if (print_count) {
+        stdin_write(get_activated_console_id(), print_buf, print_count);
+    }
+    
+    
+    
+//     char printable = process_key(scan_code);
+//     if (printable != '\0') {
+//         kprintf("Got a keyboard interrupt, scan code: %u, printable: %c\n", scan_code, printable);
+//         stdin_write(get_activated_console_id(), &printable, 1);
+//     } else {
+//         kprintf("Got a keyboard interrupt, scan code: %u, non-printable\n", scan_code);
+//     }
     
     kapi_thread_exit(NULL);
 }

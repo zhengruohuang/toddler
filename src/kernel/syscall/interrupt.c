@@ -73,7 +73,7 @@ void interrupt_worker(struct kernel_dispatch_info *disp_info)
     // Get the handler
     struct int_hdlr_record *handler = (struct int_hdlr_record *)hashtable_obtain(&interrupt_handlers, disp_info->interrupt.irq);
     
-    kprintf("IRQ: %d, handler: %p\n", disp_info->interrupt.irq, handler);
+//     kprintf("IRQ: %d, handler: %p\n", disp_info->interrupt.irq, handler);
     
     // Create a new handler thread
     if (handler) {

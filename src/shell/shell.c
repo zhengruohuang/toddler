@@ -138,24 +138,22 @@ static int input(char **cmd)
     } while (!done);
     
     // Concatinate
-    if (build.count) {
-        input = calloc(build.count + 1, sizeof(char));
-        i = 0;
+    input = calloc(build.count + 1, sizeof(char));
+    i = 0;
+    
+    offset = 0;
+    cur_block = build.head;
+    while (cur_block && i < build.count) {
+        input[i] = cur_block->buf[offset];
+        i++;
+        offset++;
         
-        offset = 0;
-        cur_block = build.head;
-        while (cur_block && i < build.count) {
-            input[i] = cur_block->buf[offset];
-            i++;
-            offset++;
-            
-            if (offset >= CMD_BLOCK_SIZE) {
-                cur_block = cur_block->next;
-            }
+        if (offset >= CMD_BLOCK_SIZE) {
+            cur_block = cur_block->next;
         }
-        
-        input[build.count] = '\0';
     }
+    
+    input[build.count] = '\0';
     
     // Clean up
     cur_block = build.head;

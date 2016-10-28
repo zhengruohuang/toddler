@@ -18,6 +18,9 @@ struct builtin_cmd {
 
 static struct builtin_cmd builtin_cmd_list[] = {
     { "hello", hello },
+    { "welcome", hello },
+    { "toddler", hello },
+    { "logo", hello },
     { "echo", echo },
 };
 
@@ -72,7 +75,7 @@ int parse_cmd(char *in, char **cmd, int *argc, char ***argv)
     }
     
     if (cmd) {
-        *cmd = (char *)calloc(cmd_pos, sizeof(char));
+        *cmd = (char *)calloc(cmd_pos + 1, sizeof(char));
         memcpy(*cmd, in, cmd_pos);
         (*cmd)[cmd_pos] = '\0';
     }

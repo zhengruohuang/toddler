@@ -54,6 +54,7 @@ struct cmd_block {
     char buf[CMD_BLOCK_SIZE];
     int count;
     
+    struct cmd_block *prev;
     struct cmd_block *next;
 };
 
@@ -78,6 +79,7 @@ static int input(char **cmd)
     build.head = cur_block;
     
     cur_block->count = 0;
+    cur_block->prev = NULL;
     cur_block->next = NULL;
     
     // Input
@@ -91,17 +93,36 @@ static int input(char **cmd)
             
             for (i = 0; i < (int)size; i++) {
                 char cur = stdin_buf[i];
-                kprintf("%c", cur);
+                if (cur != '\b' || build.count) {
+                    kprintf("%c", cur);
+                }
                 
                 if (cur == '\r' || cur == '\n') {
                     done = 1;
                     break;
                 }
                 
+                else if (cur == '\b') {
+                    if (build.head != cur_block && !cur_block->count) {
+                        struct cmd_block *rm = cur_block;
+                        
+                        cur_block = cur_block->prev;
+                        cur_block->next = NULL;
+                        
+                        sfree(rm);
+                    }
+                    
+                    if (cur_block->count) {
+                        cur_block->count--;
+                        build.count--;
+                    }
+                }
+                
                 else {
                     if (cur_block->count >= CMD_BLOCK_SIZE) {
                         struct cmd_block *new_block = (struct cmd_block *)salloc(cmd_block_salloc_id);
                         new_block->count = 0;
+                        new_block->prev = cur_block;
                         new_block->next = NULL;
                         
                         cur_block->next = new_block;

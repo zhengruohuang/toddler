@@ -113,7 +113,7 @@ extern int urs_write_node(unsigned long id, void *buf, unsigned long count, unsi
 extern int urs_truncate_node(unsigned long id);
 extern int urs_seek_data(unsigned long id, unsigned long offset, enum urs_seek_from from, unsigned long *newpos);
 
-extern int urs_list_node(unsigned long id, void *buf, unsigned long count);
+extern int urs_list_node(unsigned long id, void *buf, unsigned long count, unsigned long *actual);
 extern int urs_seek_list(unsigned long id, unsigned long long offset, enum urs_seek_from from, unsigned long *newpos);
 
 extern int urs_create_node(unsigned long id, char *name);

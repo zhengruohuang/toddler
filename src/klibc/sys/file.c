@@ -1,12 +1,13 @@
 #include "common/include/data.h"
 #include "common/include/syscall.h"
+#include "klibc/include/stdio.h"
 #include "klibc/include/string.h"
 #include "klibc/include/sys.h"
 
 
-unsigned long kapi_file_open(char *name, int mode)
+unsigned long kapi_urs_open(char *name, int mode)
 {
-    msg_t *s = kapi_msg(KAPI_FILE_CLOSE);
+    msg_t *s = kapi_msg(KAPI_URS_OPEN);
     msg_t *r;
     unsigned long result = 0;
     
@@ -19,9 +20,9 @@ unsigned long kapi_file_open(char *name, int mode)
     return result;
 }
 
-int kapi_file_close(unsigned long fd)
+int kapi_urs_close(unsigned long fd)
 {
-    msg_t *s = kapi_msg(KAPI_FILE_CLOSE);
+    msg_t *s = kapi_msg(KAPI_URS_CLOSE);
     msg_t *r;
     int result = -1;
     
@@ -32,15 +33,43 @@ int kapi_file_close(unsigned long fd)
     return result;
 }
 
-int kapi_file_read(unsigned long fd, char *buf, size_t count)
+size_t kapi_urs_read(unsigned long fd, void *buf, size_t count)
 {
     // Setup the msg
-    msg_t *s = kapi_msg(KAPI_FILE_READ);
+    msg_t *s = kapi_msg(KAPI_URS_READ);
     msg_t *r = NULL;
     int result = -1;
     
     // Setup the params
     msg_param_value(s, fd);
+    msg_param_value(s, (unsigned long)count);
+    
+    // Issue the KAPI and obtain the result
+    r = syscall_request();
+    void *data = (void *)((unsigned long)s + s->params[0].offset);
+    size_t len = (size_t)s->params[1].value;
+    if (buf && count) {
+        memcpy(buf, data, len);
+    } else {
+        len = 0;
+    }
+    
+    // Setup the result
+    result = (int)kapi_return_value(r);
+    
+    return result;
+}
+
+size_t kapi_urs_write(unsigned long fd, void *buf, size_t count)
+{
+    // Setup the msg
+    msg_t *s = kapi_msg(KAPI_URS_WRITE);
+    msg_t *r = NULL;
+    int result = -1;
+    
+    // Setup the params
+    msg_param_value(s, fd);
+    msg_param_buffer(s, buf, count);
     msg_param_value(s, (unsigned long)count);
     
     // Issue the KAPI and obtain the result
@@ -52,20 +81,26 @@ int kapi_file_read(unsigned long fd, char *buf, size_t count)
     return result;
 }
 
-int kapi_file_write(unsigned long fd, void *buf, size_t count)
+size_t kapi_urs_list(unsigned long fd, void *buf, size_t count)
 {
     // Setup the msg
-    msg_t *s = kapi_msg(KAPI_FILE_WRITE);
+    msg_t *s = kapi_msg(KAPI_URS_LIST);
     msg_t *r = NULL;
     int result = -1;
     
     // Setup the params
     msg_param_value(s, fd);
-    msg_param_buffer(s, buf, count);
     msg_param_value(s, (unsigned long)count);
     
     // Issue the KAPI and obtain the result
     r = syscall_request();
+    void *data = (void *)((unsigned long)r + r->params[0].offset);
+    size_t len = (size_t)r->params[1].value;
+    if (buf && count) {
+        memcpy(buf, data, len);
+    } else {
+        len = 0;
+    }
     
     // Setup the result
     result = (int)kapi_return_value(r);

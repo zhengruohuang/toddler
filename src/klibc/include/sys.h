@@ -74,12 +74,13 @@ extern int kpai_thread_kill(unsigned long thread_id);
 extern unsigned long kapi_thread_id();
 
 /*
- * File
+ * URS
  */
-extern unsigned long kapi_file_open(char *name, int mode);
-extern int kapi_file_close(unsigned long fd);
-extern int kapi_file_read(unsigned long fd, char *buf, size_t count);
-extern int kapi_file_write(unsigned long fd, void *buf, size_t count);
+extern unsigned long kapi_urs_open(char *name, int mode);
+extern int kapi_urs_close(unsigned long fd);
+extern size_t kapi_urs_read(unsigned long fd, void *buf, size_t count);
+extern size_t kapi_urs_write(unsigned long fd, void *buf, size_t count);
+extern size_t kapi_urs_list(unsigned long fd, void *buf, size_t count);
 
 /*
  * Interrupt

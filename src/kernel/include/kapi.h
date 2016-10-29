@@ -20,6 +20,7 @@ extern hashtable_t kapi_servers;
 extern void init_kapi();
 extern msg_t *create_response_msg(struct thread *t);
 extern void set_msg_param_value(msg_t *m, unsigned long value);
+extern void set_msg_param_buf(msg_t *m, void *buf, unsigned long size);
 
 
 /*
@@ -50,6 +51,15 @@ extern asmlinkage void set_heap_end_handler(struct kernel_msg_handler_arg *arg);
 extern asmlinkage void get_heap_end_handler(struct kernel_msg_handler_arg *arg);
 extern asmlinkage void grow_heap_handler(struct kernel_msg_handler_arg *arg);
 extern asmlinkage void shrink_heap_handler(struct kernel_msg_handler_arg *arg);
+
+
+/*
+ * URS
+ */
+extern asmlinkage void urs_open_handler(struct kernel_msg_handler_arg *arg);
+extern asmlinkage void urs_close_handler(struct kernel_msg_handler_arg *arg);
+extern asmlinkage void urs_read_handler(struct kernel_msg_handler_arg *arg);
+extern asmlinkage void urs_list_handler(struct kernel_msg_handler_arg *arg);
 
 
 #endif

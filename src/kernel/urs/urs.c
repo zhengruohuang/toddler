@@ -470,7 +470,7 @@ static int dispatch_seek_data(struct urs_super *super, unsigned long node_id, un
 static int dispatch_list(struct urs_super *super, unsigned long node_id, void *buf, unsigned long count, unsigned long *actual)
 {
     int result = 0;
-    enum urs_op_type op = uop_read;
+    enum urs_op_type op = uop_list;
     msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
@@ -478,7 +478,7 @@ static int dispatch_list(struct urs_super *super, unsigned long node_id, void *b
     }
     
     else if (super->ops[op].type == udisp_func) {
-        result = super->ops[op].func(super->id, node_id, count, buf, actual);
+        result = super->ops[op].func(super->id, node_id, buf, count, actual);
     }
     
     else if (super->ops[op].type == udisp_msg) {
@@ -851,7 +851,7 @@ int urs_close_node(unsigned long id, unsigned long process_id)
             hashtable_remove(open_table, (ulong)o->path);
             release_super(o->node->super);
             sfree(o->node);
-            free(o->path);
+//             free(o->path);
             sfree(o);
         }
     }
@@ -887,11 +887,10 @@ int urs_seek_data(unsigned long id, unsigned long offset, enum urs_seek_from fro
     return error;
 }
 
-int urs_list_node(unsigned long id, void *buf, unsigned long count)
+int urs_list_node(unsigned long id, void *buf, unsigned long count, unsigned long *actual)
 {
     struct urs_open *o = get_open_by_id(id);
-    unsigned long actual = 0;
-    int error = dispatch_list(o->node->super, o->node->dispatch_id, buf, count, &actual);
+    int error = dispatch_list(o->node->super, o->node->dispatch_id, buf, count, actual);
     return error;
 }
 
@@ -926,7 +925,7 @@ int urs_remove_node(unsigned long id)
     hashtable_remove(open_table, (ulong)o->path);
     release_super(o->node->super);
     sfree(o->node);
-    free(o->path);
+//     free(o->path);
     sfree(o);
     
     return 0;

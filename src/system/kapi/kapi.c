@@ -7,7 +7,7 @@
 
 void init_kapi()
 {
-    kapi_reg(KAPI_FILE_WRITE, kapi_write_handler);
+//     kapi_reg(KAPI_FILE_WRITE, kapi_write_handler);
 }
 
 

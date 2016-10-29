@@ -22,6 +22,7 @@ static struct builtin_cmd builtin_cmd_list[] = {
     { "toddler", hello },
     { "logo", hello },
     { "echo", echo },
+    { "ls", ls },
 };
 
 

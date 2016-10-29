@@ -34,6 +34,41 @@ void set_msg_param_value(msg_t *m, unsigned long value)
     m->param_count++;
 }
 
+void set_msg_param_buf(msg_t *m, void *buf, unsigned long size)
+{
+    int index = m->param_count;
+    unsigned char *src = NULL;
+    unsigned char *dest = NULL;
+    unsigned char temp = 0;
+    int i;
+    
+    // Align the size
+    int extra_msg_size = (int)size;
+    if (extra_msg_size % (int)sizeof(unsigned long)) {
+        extra_msg_size /= (int)sizeof(unsigned long);
+        extra_msg_size++;
+        extra_msg_size *= (int)sizeof(unsigned long);
+    }
+    
+    // Set param
+    m->params[index].type = MSG_PARAM_BUFFER;
+    m->params[index].offset = m->msg_size;
+    m->params[index].size = (int)size;
+    
+    // Copy the buffer content
+    src = (unsigned char *)buf;
+    dest = ((unsigned char *)m) + m->msg_size;
+    
+    for (i = 0; i < size; i++) {
+        *dest++ = *src++;
+    }
+    
+    // Set size and count
+    m->msg_size += extra_msg_size;
+    m->param_count++;
+}
+
+
 
 static void register_kapi(ulong kapi_num, kernel_msg_handler_t handler)
 {
@@ -62,6 +97,12 @@ void init_kapi()
     register_kapi(KAPI_HEAP_END_SET, set_heap_end_handler);
     register_kapi(KAPI_HEAP_END_GROW, grow_heap_handler);
     register_kapi(KAPI_HEAP_END_SHRINK, shrink_heap_handler);
+    
+    // URS
+    register_kapi(KAPI_URS_OPEN, urs_open_handler);
+    register_kapi(KAPI_URS_CLOSE, urs_close_handler);
+    register_kapi(KAPI_URS_READ, urs_read_handler);
+    register_kapi(KAPI_URS_LIST, urs_list_handler);
     
     kprintf("KAPI Initialized\n");
 }

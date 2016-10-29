@@ -85,34 +85,48 @@ typedef asmlinkage void (*msg_handler_t)(msg_t *msg);
  */
 #define KAPI_NONE               0x0
 
+// Process
 #define KAPI_PROCESS_CREATE     0x10
 #define KAPI_PROCESS_STARTED    0x11
 #define KAPI_PROCESS_EXIT       0x12
 #define KAPI_PROCESS_KILL       0x13
 #define KAPI_PROCESS_ID         0x14
 
+// Thread
 #define KAPI_THREAD_CREATE      0x20
 #define KAPI_THREAD_EXIT        0x21
 #define KAPI_THREAD_KILL        0x22
 #define KAPI_THREAD_ID          0x23
 
-#define KAPI_FILE_OPEN          0x30
-#define KAPI_FILE_CLOSE         0x31
-#define KAPI_FILE_WRITE         0x32
-#define KAPI_FILE_READ          0x33
+// Time
+#define KAPI_TIME_TIMES         0x30
+#define KAPI_TIME_DAY           0x31
 
-#define KAPI_TIME_TIMES         0x40
-#define KAPI_TIME_DAY           0x41
+// Interrupt
+#define KAPI_INTERRUPT_REG      0x40
+#define KAPI_INTERRUPT_UNREG    0x41
 
-#define KAPI_INTERRUPT_REG      0x50
-#define KAPI_INTERRUPT_UNREG    0x51
+// Heap
+#define KAPI_HEAP_END_GET       0x50
+#define KAPI_HEAP_END_SET       0x51
+#define KAPI_HEAP_END_GROW      0x52
+#define KAPI_HEAP_END_SHRINK    0x53
 
-#define KAPI_HEAP_END_GET       0x60
-#define KAPI_HEAP_END_SET       0x61
-#define KAPI_HEAP_END_GROW      0x62
-#define KAPI_HEAP_END_SHRINK    0x63
+// URS
+#define KAPI_URS_OPEN           0x60
+#define KAPI_URS_CLOSE          0x61
+#define KAPI_URS_READ           0x62
+#define KAPI_URS_WRITE          0x63
+#define KAPI_URS_TRUNCATE       0x64
+#define KAPI_URS_SEEK_DATA      0x65
+#define KAPI_URS_LIST           0x66
+#define KAPI_URS_SEEK_LIST      0x67
+#define KAPI_URS_CREATE         0x68
+#define KAPI_URS_REMOVE         0x69
+#define KAPI_URS_RENAME         0x6a
+#define KAPI_URS_IOCTL          0x6b
 
-// Temporary KAPIs, stdio eventually should be implemented through URS
+// Temporary stdio KAPIs, they eventually should be implemented through URS
 #define KAPI_STDIN_READ         0x1000
 #define KAPI_STDOUT_WRITE       0x1001
 #define KAPI_STDERR_WRITE       0x1002

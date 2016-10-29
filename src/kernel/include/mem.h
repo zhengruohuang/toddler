@@ -58,6 +58,7 @@ extern void sfree(void *ptr);
  */
 extern void init_malloc();
 extern void *malloc(size_t size);
+extern void *calloc(int count, size_t size);
 extern void free(void *ptr);
 extern void test_malloc();
 

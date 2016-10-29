@@ -6,10 +6,18 @@
 #include "klibc/include/assert.h"
 #include "klibc/include/sys.h"
 #include "klibc/include/kthread.h"
-#include "system/include/urs.h"
+// #include "system/include/urs.h"
 
 
 #define RAMFS_BLOCK_SIZE    512
+
+
+enum urs_seek_from {
+    seek_from_begin,
+    seek_from_cur_fwd,
+    seek_from_cur_bwd,
+    seek_from_end,
+};
 
 
 struct ramfs_block {
@@ -547,36 +555,36 @@ static int rename(unsigned long super_id, unsigned long node_id, char *name)
 
 int register_ramfs(char *path)
 {
-    struct ramfs_node *root = NULL;
-    
-    unsigned long super_id = urs_register(path);
-    if (!super_id) {
-        return -2;
-    }
-    
-    root = create_node("/", NULL);
-    if (!root) {
-        return -3;
-    }
-    
-    hash_insert(ramfs_table, (void *)super_id, root);
-    
-    // Register operations
-    REG_OP_FUNC(uop_lookup, lookup);
-    REG_OP_FUNC(uop_open, open);
-    REG_OP_FUNC(uop_release, release);
-    
-    REG_OP_FUNC(uop_read, read);
-    REG_OP_FUNC(uop_write, write);
-    REG_OP_FUNC(uop_truncate, truncate);
-    REG_OP_FUNC(uop_seek_data, seek_data);
-    
-    REG_OP_FUNC(uop_list, list);
-    REG_OP_FUNC(uop_seek_list, seek_list);
-    
-    REG_OP_FUNC(uop_create, create);
-    REG_OP_FUNC(uop_remove, remove);
-    REG_OP_FUNC(uop_rename, rename);
+//     struct ramfs_node *root = NULL;
+//     
+//     unsigned long super_id = urs_register(path);
+//     if (!super_id) {
+//         return -2;
+//     }
+//     
+//     root = create_node("/", NULL);
+//     if (!root) {
+//         return -3;
+//     }
+//     
+//     hash_insert(ramfs_table, (void *)super_id, root);
+//     
+//     // Register operations
+//     REG_OP_FUNC(uop_lookup, lookup);
+//     REG_OP_FUNC(uop_open, open);
+//     REG_OP_FUNC(uop_release, release);
+//     
+//     REG_OP_FUNC(uop_read, read);
+//     REG_OP_FUNC(uop_write, write);
+//     REG_OP_FUNC(uop_truncate, truncate);
+//     REG_OP_FUNC(uop_seek_data, seek_data);
+//     
+//     REG_OP_FUNC(uop_list, list);
+//     REG_OP_FUNC(uop_seek_list, seek_list);
+//     
+//     REG_OP_FUNC(uop_create, create);
+//     REG_OP_FUNC(uop_remove, remove);
+//     REG_OP_FUNC(uop_rename, rename);
     
     return 0;
 }
@@ -587,49 +595,49 @@ int register_ramfs(char *path)
  */
 void test_ramfs()
 {
-    int err = 0;
-    unsigned long size = 0;
-    char *str = "this is a test string!";
-    char buf[128];
-    
-    kprintf("To register RAM FS @ /test/ramfs\n");
-    register_ramfs("/test/ramfs");
-    kprintf("Registered!");
-    
-    kprintf("To open URS node");
-    unsigned long f = urs_open_node("/test/ramfs", 0, 0);
-    if (!f) {
-        kprintf("Unable to open node!\n");
-        return;
-    }
-    kprintf("Node opened, ID: %lu\n", f);
-    
-    kprintf("To create sub node obj1");
-    err = urs_create_node(f, "obj1");
-    kprintf(", err: %d\n", err);
-    
-    kprintf("To open new node");
-    unsigned long nn = urs_open_node("/test/ramfs/obj1", 0, 0);
-    if (!nn) {
-        kprintf("Unable to open node!\n");
-        return;
-    }
-    kprintf("Node opened, ID: %lu\n", nn);
-    
-    kprintf("To read something from our new node, ");
-    memzero(buf, sizeof(buf));
-    err = urs_read_node(nn, buf, sizeof(buf), &size);
-    buf[127] = '\0';
-    kprintf("count: %lu, str: %s\n", size, buf);
-    
-    kprintf("To write something, ");
-    err = urs_write_node(nn, str, strlen(str) + 1, &size);
-    kprintf("count: %lu\n", size);
-    
-    kprintf("To read something after write, ");
-    memzero(buf, sizeof(buf));
-    urs_seek_data(nn, 0, seek_from_begin, &size);
-    err = urs_read_node(nn, buf, sizeof(buf), &size);
-    buf[127] = '\0';
-    kprintf("count: %lu, str: %s\n", size, buf);;
+//     int err = 0;
+//     unsigned long size = 0;
+//     char *str = "this is a test string!";
+//     char buf[128];
+//     
+//     kprintf("To register RAM FS @ /test/ramfs\n");
+//     register_ramfs("/test/ramfs");
+//     kprintf("Registered!");
+//     
+//     kprintf("To open URS node");
+//     unsigned long f = urs_open_node("/test/ramfs", 0, 0);
+//     if (!f) {
+//         kprintf("Unable to open node!\n");
+//         return;
+//     }
+//     kprintf("Node opened, ID: %lu\n", f);
+//     
+//     kprintf("To create sub node obj1");
+//     err = urs_create_node(f, "obj1");
+//     kprintf(", err: %d\n", err);
+//     
+//     kprintf("To open new node");
+//     unsigned long nn = urs_open_node("/test/ramfs/obj1", 0, 0);
+//     if (!nn) {
+//         kprintf("Unable to open node!\n");
+//         return;
+//     }
+//     kprintf("Node opened, ID: %lu\n", nn);
+//     
+//     kprintf("To read something from our new node, ");
+//     memzero(buf, sizeof(buf));
+//     err = urs_read_node(nn, buf, sizeof(buf), &size);
+//     buf[127] = '\0';
+//     kprintf("count: %lu, str: %s\n", size, buf);
+//     
+//     kprintf("To write something, ");
+//     err = urs_write_node(nn, str, strlen(str) + 1, &size);
+//     kprintf("count: %lu\n", size);
+//     
+//     kprintf("To read something after write, ");
+//     memzero(buf, sizeof(buf));
+//     urs_seek_data(nn, 0, seek_from_begin, &size);
+//     err = urs_read_node(nn, buf, sizeof(buf), &size);
+//     buf[127] = '\0';
+//     kprintf("count: %lu, str: %s\n", size, buf);
 }

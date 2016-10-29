@@ -85,7 +85,7 @@ struct process *create_process(
     }
     
     // Msg handlers
-    hashtable_create(&p->msg_handlers, 0, NULL);
+    hashtable_create(&p->msg_handlers, 0, NULL, NULL);
     
     // Insert the process into process list
     p->prev = NULL;
@@ -106,7 +106,7 @@ struct process *create_process(
 int load_image(struct process *p, char *url)
 {
     // Load image
-    ulong img = (ulong)load_core_file(url); // FIXME: should use namespace service
+    ulong img = (ulong)get_core_file_addr_by_name(url); // FIXME: should use namespace service
     ulong entry = 0, vaddr_start = 0, vaddr_end = 0;
     int succeed = hal->load_exe(img, p->page_dir_pfn, &entry, &vaddr_start, &vaddr_end);
     

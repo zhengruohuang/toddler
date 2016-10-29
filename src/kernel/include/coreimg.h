@@ -5,12 +5,27 @@
 #include "common/include/data.h"
 
 
+/*
+ * Core image
+ */
 extern void init_coreimg();
 extern int get_core_file_count();
-extern int get_next_core_file_name(int index, char *buf, size_t buf_size);
-extern int has_core_file(char *name);
-extern void *load_core_file(char *name);
+extern int get_core_file_name(int index, char *buf, size_t buf_size);
+extern int get_core_file_index(const char *name);
+extern ulong get_core_file_size(int index);
+extern void *get_core_file_addr_by_index(int index);
+extern void *get_core_file_addr_by_name(char *name);
 
+
+/*
+ * FS
+ */
+extern void init_coreimgfs();
+
+
+/*
+ * Start up
+ */
 extern void startup_process_started(ulong proc_id);
 extern void start_user();
 

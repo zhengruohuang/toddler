@@ -1,5 +1,6 @@
 #include "kernel/include/hal.h"
 #include "kernel/include/mem.h"
+#include "kernel/include/urs.h"
 #include "kernel/include/proc.h"
 #include "kernel/include/coreimg.h"
 #include "kernel/include/ds.h"
@@ -103,6 +104,9 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     //init_list();
     init_hashtable();
     
+    // Init URS
+    init_urs();
+    
     // Init process mgr
     init_sched();
     init_process();
@@ -122,6 +126,7 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     
     // Init core image
     init_coreimg();
+    init_coreimgfs();
     
     // Kernel exports
     init_kexp();

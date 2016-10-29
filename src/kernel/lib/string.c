@@ -5,7 +5,7 @@
 /*
  * String series
  */
-size_t strlen(char *s)
+size_t strlen(const char *s)
 {
     size_t len = 0;
     
@@ -16,7 +16,7 @@ size_t strlen(char *s)
     return len;
 }
 
-int strcmp(char *s1, char *s2)
+int strcmp(const char *s1, const char *s2)
 {
     int result = 0;
     
@@ -36,14 +36,14 @@ int strcmp(char *s1, char *s2)
     return result;
 }
 
-void strcpy(char *dest, char *src)
+void strcpy(char *dest, const char *src)
 {
     do {
         *dest++ = *src;
     } while (*src++);
 }
 
-char *strdup(char *s)
+char *strdup(const char *s)
 {
     size_t size = strlen(s) + 1;
     char *dest = malloc(size);

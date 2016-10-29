@@ -4,27 +4,25 @@
 
 #include "common/include/data.h"
 #include "common/include/syscall.h"
-#include "klibc/include/sys.h"
-#include "klibc/include/stdio.h"
-#include "klibc/include/stdlib.h"
-#include "klibc/include/string.h"
-#include "klibc/include/stdstruct.h"
-#include "klibc/include/assert.h"
-#include "system/include/urs.h"
+#include "kernel/include/hal.h"
+#include "kernel/include/mem.h"
+#include "kernel/include/lib.h"
+#include "kernel/include/ds.h"
+#include "kernel/include/urs.h"
 
 
 static int super_salloc_id;
 static int node_salloc_id;
 static int open_salloc_id;
 
-static hash_t *super_table;
-static hash_t *open_table;
+static hashtable_t *super_table;
+static hashtable_t *open_table;
 
 
 /*
  * Hash table
  */
-static unsigned int urs_hash_func(void *key, unsigned int size)
+static ulong urs_hash_func(ulong key, ulong size)
 {
     char *str = (char *)key;
     unsigned int k = 0;
@@ -36,7 +34,7 @@ static unsigned int urs_hash_func(void *key, unsigned int size)
     return k % size;
 }
 
-static int urs_hash_cmp(void *cmp_key, void *node_key)
+static int urs_hash_cmp(ulong cmp_key, ulong node_key)
 {
     char *cmp_ch = (char *)cmp_key;
     char *node_ch = (char *)node_key;
@@ -50,12 +48,12 @@ static int urs_hash_cmp(void *cmp_key, void *node_key)
  */
 void init_urs()
 {
-    super_table = hash_new(0, urs_hash_func, urs_hash_cmp);
-    open_table = hash_new(0, urs_hash_func, urs_hash_cmp);
+    super_table = hashtable_new(0, urs_hash_func, urs_hash_cmp);
+    open_table = hashtable_new(0, urs_hash_func, urs_hash_cmp);
     
-    super_salloc_id = salloc_create(sizeof(struct urs_super), 0, NULL, NULL);
-    node_salloc_id = salloc_create(sizeof(struct urs_node), 0, NULL, NULL);
-    open_salloc_id = salloc_create(sizeof(struct urs_open), 0, NULL, NULL);
+    super_salloc_id = salloc_create(sizeof(struct urs_super), 0, 0, NULL, NULL);
+    node_salloc_id = salloc_create(sizeof(struct urs_node), 0, 0, NULL, NULL);
+    open_salloc_id = salloc_create(sizeof(struct urs_open), 0, 0, NULL, NULL);
 }
 
 
@@ -79,24 +77,26 @@ static char *normalize_path(char *path)
         return NULL;
     }
     
+    if (len >= 3 && path[len - 1] == '/' && (path[len - 2] != '/' || path[len - 3] != ':')) {
+        len--;
+    }
+    
     if (path[0] == '/') {
         len += DEFAULT_NAMESPACE_LENGTH;   // vfs://
     }
     
-    if (path[len - 1] == '/') {
-        len--;
-    }
-    
     copy = (char *)calloc(len + 1, sizeof(char));
     if (path[0] == '/') {
-        memcpy(copy, DEFAULT_NAMESPACE, 6);
-        memcpy(copy + DEFAULT_NAMESPACE_LENGTH, path, len - DEFAULT_NAMESPACE_LENGTH);
+        memcpy(DEFAULT_NAMESPACE, copy, 6);
+        memcpy(path, copy + DEFAULT_NAMESPACE_LENGTH, len - DEFAULT_NAMESPACE_LENGTH);
     } else {
-        memcpy(copy, path, len);
+        memcpy(path, copy, len);
     }
     copy[len] = '\0';
     
-    kprintf("Path normalized: %s\n", copy);
+//     kprintf("len: %d\n", len);
+//     kprintf(path);
+    kprintf("Path normalized: %s -> %s @ %p\n", path, copy, copy);
     
     return copy;
 }
@@ -114,7 +114,7 @@ static struct urs_super *match_super(char *path)
     cur_pos = strlen(copy) - 1;
     
     do {
-        if (hash_contains(super_table, copy)) {
+        if (hashtable_contains(super_table, (ulong)copy)) {
             found = 1;
             break;
         }
@@ -134,10 +134,10 @@ static struct urs_super *match_super(char *path)
         return NULL;
     }
     
-    super = (struct urs_super *)hash_obtain(super_table, copy);
+    super = (struct urs_super *)hashtable_obtain(super_table, (ulong)copy);
     assert(super);
     super->ref_count++;
-    hash_release(super_table, copy, super);
+    hashtable_release(super_table, (ulong)copy, super);
     
     kprintf("Super matched: %s ~ %s @ %p\n", copy, super->path, super);
     
@@ -153,14 +153,14 @@ static struct urs_super *obtain_super(char *path)
         return NULL;
     }
     
-    super = (struct urs_super *)hash_obtain(super_table, copy);
+    super = (struct urs_super *)hashtable_obtain(super_table, (ulong)copy);
     if (!super) {
         free(copy);
         return NULL;
     }
     
     super->ref_count++;
-    hash_release(super_table, copy, super);
+    hashtable_release(super_table, (ulong)copy, super);
     free(copy);
     
     return super;
@@ -197,7 +197,7 @@ unsigned long urs_register(char *path)
         super->ops[i].type = udisp_none;
     }
     
-    hash_insert(super_table, copy, super);
+    hashtable_insert(super_table, (ulong)copy, super);
     return super->id;
 }
 
@@ -236,17 +236,18 @@ int urs_register_op(
  */
 static msg_t *create_dispatch_msg(struct urs_super *super, enum urs_op_type op, unsigned long dispatch_id)
 {
-    msg_t *msg = syscall_msg();
-    
-    msg->mailbox_id = super->ops[op].mbox_id;
-    msg->opcode = super->ops[op].msg_opcode;
-    msg->func_num = super->ops[op].msg_func_num;
-    
-    msg_param_value(msg, (unsigned long)op);
-    msg_param_value(msg, super->id);
-    msg_param_value(msg, dispatch_id);
-    
-    return msg;
+//     msg_t *msg = syscall_msg();
+//     
+//     msg->mailbox_id = super->ops[op].mbox_id;
+//     msg->opcode = super->ops[op].msg_opcode;
+//     msg->func_num = super->ops[op].msg_func_num;
+//     
+//     msg_param_value(msg, (unsigned long)op);
+//     msg_param_value(msg, super->id);
+//     msg_param_value(msg, dispatch_id);
+//     
+//     return msg;
+    return NULL;
 }
 
 static int dispatch_lookup(struct urs_super *super, unsigned long node_id, char *next, int *is_link,
@@ -267,11 +268,11 @@ static int dispatch_lookup(struct urs_super *super, unsigned long node_id, char 
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        msg_param_buffer(s, next, (size_t)(strlen(next) + 1));
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
+//         s = create_dispatch_msg(super, op, node_id);
+//         msg_param_buffer(s, next, (size_t)(strlen(next) + 1));
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
     }
     
     else {
@@ -296,10 +297,10 @@ static int dispatch_open(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
+//         s = create_dispatch_msg(super, op, node_id);
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
     }
     
     else {
@@ -324,10 +325,10 @@ static int dispatch_release(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
+//         s = create_dispatch_msg(super, op, node_id);
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
     }
     
     else {
@@ -352,15 +353,15 @@ static int dispatch_read(struct urs_super *super, unsigned long node_id, void *b
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        msg_param_value(s, count);
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
-        
-        if (actual) {
-            *actual = 0;
-        }
+//         s = create_dispatch_msg(super, op, node_id);
+//         msg_param_value(s, count);
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
+//         
+//         if (actual) {
+//             *actual = 0;
+//         }
     }
     
     else {
@@ -385,16 +386,16 @@ static int dispatch_write(struct urs_super *super, unsigned long node_id, void *
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        msg_param_value(s, count);
-        msg_param_buffer(s, buf, count);
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
-        
-        if (actual) {
-            *actual = 0;
-        }
+//         s = create_dispatch_msg(super, op, node_id);
+//         msg_param_value(s, count);
+//         msg_param_buffer(s, buf, count);
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
+//         
+//         if (actual) {
+//             *actual = 0;
+//         }
     }
     
     else {
@@ -419,10 +420,10 @@ static int dispatch_truncate(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
+//         s = create_dispatch_msg(super, op, node_id);
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
     }
     
     else {
@@ -447,16 +448,16 @@ static int dispatch_seek_data(struct urs_super *super, unsigned long node_id, un
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        msg_param_value(s, (unsigned long)from);
-        msg_param_value(s, offset);
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
-        
-        if (newpos) {
-            *newpos = 0;
-        }
+//         s = create_dispatch_msg(super, op, node_id);
+//         msg_param_value(s, (unsigned long)from);
+//         msg_param_value(s, offset);
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
+//         
+//         if (newpos) {
+//             *newpos = 0;
+//         }
     }
     
     else {
@@ -481,14 +482,14 @@ static int dispatch_list(struct urs_super *super, unsigned long node_id, void *b
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
-        
-        if (actual) {
-            *actual = count;
-        }
+//         s = create_dispatch_msg(super, op, node_id);
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
+//         
+//         if (actual) {
+//             *actual = count;
+//         }
     }
     
     else {
@@ -513,16 +514,16 @@ static int dispatch_seek_list(struct urs_super *super, unsigned long node_id, un
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        msg_param_value(s, (unsigned long)from);
-        msg_param_value(s, offset);
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
-        
-        if (newpos) {
-            *newpos = 0;
-        }
+//         s = create_dispatch_msg(super, op, node_id);
+//         msg_param_value(s, (unsigned long)from);
+//         msg_param_value(s, offset);
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
+//         
+//         if (newpos) {
+//             *newpos = 0;
+//         }
     }
     
     else {
@@ -547,11 +548,11 @@ static int dispatch_create(struct urs_super *super, unsigned long node_id, char 
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        msg_param_buffer(s, name, strlen(name));
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
+//         s = create_dispatch_msg(super, op, node_id);
+//         msg_param_buffer(s, name, strlen(name));
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
     }
     
     else {
@@ -576,10 +577,10 @@ static int dispatch_remove(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
+//         s = create_dispatch_msg(super, op, node_id);
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
     }
     
     else {
@@ -604,11 +605,11 @@ static int dispatch_rename(struct urs_super *super, unsigned long node_id, char 
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        s = create_dispatch_msg(super, op, node_id);
-        msg_param_buffer(s, name, strlen(name));
-        
-        r = syscall_request();
-        result = (int)kapi_return_value(r);
+//         s = create_dispatch_msg(super, op, node_id);
+//         msg_param_buffer(s, name, strlen(name));
+//         
+//         r = syscall_request();
+//         result = (int)kapi_return_value(r);
     }
     
     else {
@@ -657,7 +658,7 @@ static int get_next_name(char *path, int start, char **name)
     
     if (name) {
         copy = (char *)calloc(end - start + 1, sizeof(char));
-        memcpy(copy, &path[start], end - start);
+        memcpy(&path[start], copy, end - start);
         copy[end - start] = '\0';
         *name = copy;
     }
@@ -834,7 +835,7 @@ unsigned long urs_open_node(char *path, unsigned int mode, unsigned long process
     o->list_pos = 0;
     o->list_size = 0;
     
-    hash_insert(open_table, path, o);
+    hashtable_insert(open_table, (ulong)path, o);
     return o->id;
 }
 
@@ -847,7 +848,7 @@ int urs_close_node(unsigned long id, unsigned long process_id)
     if (!o->ref_count) {
         error = dispatch_release(o->node->super, o->node->dispatch_id);
         if (!error) {
-            hash_remove(open_table, o->path);
+            hashtable_remove(open_table, (ulong)o->path);
             release_super(o->node->super);
             sfree(o->node);
             free(o->path);
@@ -922,7 +923,7 @@ int urs_remove_node(unsigned long id)
         return error;
     }
     
-    hash_remove(open_table, o->path);
+    hashtable_remove(open_table, (ulong)o->path);
     release_super(o->node->super);
     sfree(o->node);
     free(o->path);

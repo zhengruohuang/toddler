@@ -43,7 +43,7 @@ static void register_kapi(ulong kapi_num, kernel_msg_handler_t handler)
 
 void init_kapi()
 {
-    hashtable_create(&kapi_servers, 0, NULL);
+    hashtable_create(&kapi_servers, 0, NULL, NULL);
     
     // Interrupt
     register_kapi(KAPI_INTERRUPT_REG, reg_interrupt_handler);

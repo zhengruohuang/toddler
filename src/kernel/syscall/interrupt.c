@@ -27,7 +27,7 @@ static hashtable_t interrupt_handlers;
 void init_interrupt()
 {
     interrupt_handler_record_salloc_id = salloc_create(sizeof(struct int_hdlr_record), 0, 0, NULL, NULL);
-    hashtable_create(&interrupt_handlers, 0, NULL);
+    hashtable_create(&interrupt_handlers, 0, NULL, NULL);
     
     kprintf("Kernel interrupt handling initialized, interrupt record salloc ID: %d\n",
             interrupt_handler_record_salloc_id);

@@ -62,6 +62,11 @@ void *malloc(size_t size)
     return NULL;
 }
 
+void *calloc(int count, size_t size)
+{
+    return malloc(count * size);
+}
+
 void free(void *ptr)
 {
     sfree(ptr);

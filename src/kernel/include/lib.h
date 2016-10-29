@@ -8,10 +8,10 @@
 /*
  * Str
  */
-extern size_t strlen(char *s);
-extern int strcmp(char *s1, char *s2);
-extern void strcpy(char *dest, char *src);
-extern char *strdup(char *s);
+extern size_t strlen(const char *s);
+extern int strcmp(const char *s1, const char *s2);
+extern void strcpy(char *dest, const char *src);
+extern char *strdup(const char *s);
 
 
 /*

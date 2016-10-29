@@ -1,10 +1,10 @@
-#ifndef __SYSTEM_INCLUDE_URS__
-#define __SYSTEM_INCLUDE_URS__
+#ifndef __KERNEL_INCLUDE_URS__
+#define __KERNEL_INCLUDE_URS__
 
 
 #include "common/include/data.h"
 #include "common/include/syscall.h"
-#include "klibc/include/stdstruct.h"
+#include "kernel/include/ds.h"
 
 
 enum urs_seek_from {

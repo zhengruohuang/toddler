@@ -28,7 +28,7 @@ void init_coreimg()
     char name_buf[32];
     
     do {
-        has_next = get_next_core_file_name(cur_index, name_buf, sizeof(name_buf));
+        has_next = get_core_file_name(cur_index, name_buf, sizeof(name_buf));
         kprintf("\tFile #%d: %s\n", cur_index, name_buf);
         cur_index++;
     } while (has_next);
@@ -39,7 +39,7 @@ int get_core_file_count()
     return header->file_count;
 }
 
-int get_next_core_file_name(int index, char *buf, size_t buf_size)
+int get_core_file_name(int index, char *buf, size_t buf_size)
 {
     int i;
     
@@ -53,20 +53,38 @@ int get_next_core_file_name(int index, char *buf, size_t buf_size)
     return 0;
 }
 
-int has_core_file(char *name)
+ulong get_core_file_size(int index)
+{
+    if (index >= header->file_count) {
+        return 0;
+    }
+    
+    return files[index].length;
+}
+
+int get_core_file_index(const char *name)
 {
     int i;
     
     for (i = 0; i < header->file_count; i++) {
         if (!strcmp((char *)files[i].file_name, name)) {
-            return 1;
+            return i;
         }
     }
         
-    return 0;
+    return -1;
 }
 
-void *load_core_file(char *name)
+void *get_core_file_addr_by_index(int index)
+{
+    if (index >= header->file_count) {
+        return NULL;
+    }
+    
+    return (void *)(coreimg_addr + files[index].start_offset);
+}
+
+void *get_core_file_addr_by_name(char *name)
 {
     int i;
     

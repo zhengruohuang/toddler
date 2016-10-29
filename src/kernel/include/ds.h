@@ -35,7 +35,8 @@ extern void *list_pop_front(list_t *l);
 /*
  * Hash table
  */
-typedef asmlinkage ulong (*hashtable_func_t)(ulong key, ulong size);
+typedef ulong (*hashtable_func_t)(ulong key, ulong size);
+typedef int (*hashtable_cmp_t)(ulong cmp_key, ulong node_key);
 
 typedef struct hashtable_node {
     struct hashtable_node *next;
@@ -51,14 +52,17 @@ typedef struct hashtable_bucket {
 typedef struct hashtable {
     ulong bucket_count;
     ulong node_count;
-    hashtable_func_t hash_func;
     hashtable_bucket_t *buckets;
+    
+    hashtable_func_t hash_func;
+    hashtable_cmp_t hash_cmp;
     
     spinlock_t lock;
 } hashtable_t;
 
 extern void init_hashtable();
-extern void hashtable_create(hashtable_t *l, ulong bucket_count, hashtable_func_t hash_func);
+extern void hashtable_create(hashtable_t *l, ulong bucket_count, hashtable_func_t hash_func, hashtable_cmp_t hash_cmp);
+extern hashtable_t *hashtable_new(ulong bucket_count, hashtable_func_t hash_func, hashtable_cmp_t hash_cmp);
 extern int hashtable_contains(hashtable_t *l, ulong key);
 extern void *hashtable_obtain(hashtable_t *l, ulong key);
 extern void hashtable_release(hashtable_t *l, ulong key, void *n);

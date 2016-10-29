@@ -91,5 +91,5 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 
 |Time|Event|Status|
 |----|-----|------|
-|Jan. 2016|Clean up the code, HD image builder|Planned|
+|Jan. 2017|Clean up the code, HD image builder|Planned|
 |Feb. 2017|Parallel building|Planned|

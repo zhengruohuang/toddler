@@ -73,24 +73,23 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 
 |Time|Event|Arch|Target|Status|
 |---|---|---|---|---|
-|Oct. 2016|A working *modern* kernel and a simple working shell|ia32|Netbust PC|Active|
-|Nov. 2016|A working 32-bit PowerPC port|ppc32|Mac Mini G4|Planned|
-|Dec. 2016|SMP support for 32-bit PowerPC|ppc32|PowerMac G4 Dual|Planned|
-|Jan. 2017|A working 32-bit ARMv7 port|armv7|Raspberry Pi 2|Planned|
+|Dec. 2016|A working *modern* kernel and a simple working shell|ia32|Netbust PC|Active|
+|Jan. 2017|A working 32-bit ARMv7 port|armv7|Raspberry Pi 2|Active|
 |Feb. 2017|SMP support for 32-bit ARMv7|armv7|Raspberry Pi 2|Planned|
+|Mar. 2017|A working 32-bit PowerPC port|ppc32|Mac Mini G4|Planned|
+|Apr. 2017|SMP support for 32-bit PowerPC|ppc32|PowerMac G4 Dual|Planned|
 |Later|64-bit Toddler|||Planned|
 
 ### Kernel
 
 |Time|Event|Status|
 |----|-----|------|
-|Oct. 2016|Efficient memory management|Planned|
-|Nov. 2016|Sophisticated scheduling|Planned|
+|Dec. 2016|Efficient memory management and sophisticated scheduling|Planned|
 |Feb. 2017|Better SMP support|Planned|
 
 ### Building system
 
 |Time|Event|Status|
 |----|-----|------|
-|Oct. 2016|Clean up the code, HD image builder|Planned|
-|Dec. 2016|Parallel building|Planned|
+|Jan. 2016|Clean up the code, HD image builder|Planned|
+|Feb. 2017|Parallel building|Planned|

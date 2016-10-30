@@ -12,15 +12,6 @@ extern void welcome();
 
 
 /*
- * Built-in commands
- */
-extern int hello(int argc, char **argv);
-extern int echo(int argc, char **argv);
-extern int ls(int argc, char **argv);
-extern int cat(int argc, char **argv);
-
-
-/*
  * Control routines
  */
 extern int exec_cmd(char *cmd, int argc, char **argv);

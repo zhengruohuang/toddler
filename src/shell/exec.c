@@ -4,27 +4,7 @@
 #include "klibc/include/stdlib.h"
 #include "klibc/include/string.h"
 #include "shell/include/shell.h"
-
-
-/*
- * Built-in commands
- */
-#define BUILTIN_CMD_COUNT   (sizeof(builtin_cmd_list) / sizeof(struct builtin_cmd))
-
-struct builtin_cmd {
-    char *name;
-    int (*func)(int argc, char **argv);
-};
-
-static struct builtin_cmd builtin_cmd_list[] = {
-    { "hello", hello },
-    { "welcome", hello },
-    { "toddler", hello },
-    { "logo", hello },
-    { "echo", echo },
-    { "ls", ls },
-    { "cat", cat },
-};
+#include "shell/include/builtin.h"
 
 
 /*
@@ -32,26 +12,16 @@ static struct builtin_cmd builtin_cmd_list[] = {
  */
 int exec_cmd(char *cmd, int argc, char **argv)
 {
-    int i;
-    int found = 0;
     int err = EOK;
+    int builtin_index = find_builtin_cmd(cmd);
     
-    // Built-in commands
-    for (i = 0; i < BUILTIN_CMD_COUNT; i++) {
-        struct builtin_cmd *c = &builtin_cmd_list[i];
-        if (!strcmp(c->name, cmd)) {
-            found = 1;
-            err = c->func(argc, argv);
-            break;
-        }
+    if (builtin_index >= 0) {
+        err = exec_builtin_cmd(builtin_index, argc, argv);
+    } else {
+        err = -1;
     }
     
-    // External commands
-    if (!found) {
-        return -1;
-    }
-    
-    return EOK;
+    return err;
 }
 
 

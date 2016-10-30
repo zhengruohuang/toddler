@@ -79,9 +79,14 @@ static void update_cursor()
 
 static void regular(char ch)
 {
+    if (ch < 32 || ch > 127) {
+        ch = '.';
+    }
+    ch -= 32;
+
     if (pixel) {
         u32 offset = (vga_font_height * row) * bpl + (vga_font_width * col) * (bpp / 8);
-        u8 *font = vga_font[ch < 0x20 ? 0 : ch - 0x20];
+        u8 *font = vga_font[ch];
         
         unsigned char cur_map;
         u32 x;

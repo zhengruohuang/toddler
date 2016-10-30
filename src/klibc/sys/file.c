@@ -38,7 +38,7 @@ size_t kapi_urs_read(unsigned long fd, void *buf, size_t count)
     // Setup the msg
     msg_t *s = kapi_msg(KAPI_URS_READ);
     msg_t *r = NULL;
-    int result = -1;
+//     int result = -1;
     
     // Setup the params
     msg_param_value(s, fd);
@@ -46,18 +46,18 @@ size_t kapi_urs_read(unsigned long fd, void *buf, size_t count)
     
     // Issue the KAPI and obtain the result
     r = syscall_request();
-    void *data = (void *)((unsigned long)s + s->params[0].offset);
-    size_t len = (size_t)s->params[1].value;
-    if (buf && count) {
+    void *data = (void *)((unsigned long)r + r->params[0].offset);
+    size_t len = (size_t)r->params[1].value;
+    if (len && buf && count) {
         memcpy(buf, data, len);
     } else {
         len = 0;
     }
     
     // Setup the result
-    result = (int)kapi_return_value(r);
+//     result = (int)kapi_return_value(r);
     
-    return result;
+    return len;
 }
 
 size_t kapi_urs_write(unsigned long fd, void *buf, size_t count)

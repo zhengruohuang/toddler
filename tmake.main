@@ -11,6 +11,7 @@ def build_coreimg():
         bin_dir + 'tdlrdrv.bin',
         bin_dir + 'tdlrsys.bin',
         bin_dir + 'tdlrshell.bin',
+        src_dir + 'init/init.py',
     ]
     target_name = bin_dir + 'tdlrcore.img'
     

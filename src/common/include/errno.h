@@ -12,6 +12,7 @@
 #define ENOENT      -10     // No such entry
 #define ELIMIT      -11     // Limit exceeded
 #define EBUSY       -12     // Resource busy
+#define EBADF       -13     // Bad file number
 
 // Memory
 #define ENOMEM      -20     // No enough memory

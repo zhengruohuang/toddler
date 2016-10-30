@@ -62,3 +62,51 @@ int ls(int argc, char **argv)
     int err = kapi_urs_close(id);
     kprintf("Closed: %p (%d)\n", id, err);
 }
+
+int cat(int argc, char **argv)
+{
+    char buf[64 + 1];
+    int i;
+    
+    if (argc == 1) {
+        unsigned long id = kapi_urs_open("coreimg://init.py", 0);
+        kprintf("Open: %p\n", id);
+        
+        if (id) {
+            size_t s = 0;
+            do {
+                s = kapi_urs_read(id, buf, sizeof(buf) - 1);
+                buf[s] = '\0';
+                if (s) {
+                    kprintf("%s", buf);
+                }
+            } while (s);
+            kprintf("\n");
+            
+            int err = kapi_urs_close(id);
+            kprintf("Closed: %p (%d)\n", id, err);
+        }
+    }
+    
+    else {
+        for (i = 1; i < argc; i++) {
+            unsigned long id = kapi_urs_open(argv[i], 0);
+            kprintf("Open: %p\n", id);
+            
+            if (id) {
+                size_t s = 0;
+                do {
+                    s = kapi_urs_read(id, buf, sizeof(buf) - 1);
+                    buf[s] = '\0';
+                    if (s) {
+                        kprintf("%s", buf);
+                    }
+                } while (s);
+                kprintf("\n");
+                
+                int err = kapi_urs_close(id);
+                kprintf("Closed: %p (%d)\n", id, err);
+            }
+        }
+    }
+}

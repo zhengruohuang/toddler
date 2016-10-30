@@ -127,13 +127,14 @@ static int release(unsigned long super_id, unsigned long node_id)
 static int read(unsigned long super_id, unsigned long node_id, void *buf, unsigned long count, unsigned long *actual)
 {
     ulong len = 0;
+    int ret = 0;
     
     u8 *src = NULL, *dest = NULL;
     
     struct open_record *node = (struct open_record *)hashtable_obtain(open_table, node_id);
     assert(node);
     
-    if (!node->is_root && buf && count) {
+    if (!node->is_root && buf && count && node->pos < node->size) {
         int index = 0;
         src = (u8 *)node->data;
         dest = (u8 *)buf;
@@ -144,6 +145,8 @@ static int read(unsigned long super_id, unsigned long node_id, void *buf, unsign
             len++;
             node->pos++;
         }
+    } else {
+        ret = -1;
     }
     
     hashtable_release(open_table, node_id, node);
@@ -152,7 +155,7 @@ static int read(unsigned long super_id, unsigned long node_id, void *buf, unsign
         *actual = len;
     }
     
-    return 0;
+    return ret;
 }
 
 static ulong seek_node(struct open_record *node, unsigned long offset, enum urs_seek_from from)

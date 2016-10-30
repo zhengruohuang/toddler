@@ -23,6 +23,7 @@ static struct builtin_cmd builtin_cmd_list[] = {
     { "logo", hello },
     { "echo", echo },
     { "ls", ls },
+    { "cat", cat },
 };
 
 
@@ -65,23 +66,36 @@ static int is_space(char c)
 int parse_cmd(char *in, char **cmd, int *argc, char ***argv)
 {
     char *c = in;
+    char *cmd_name = NULL;
     int cmd_pos = 0;
     int arg_count = 0;
     char **arg_list = NULL;
     
+    // Skip leading space
+    while (*in && is_space(*in)) {
+        in++;
+    }
+    
     // Extract the command
+    c = in;
     while (*c && !is_space(*c)) {
         cmd_pos++;
         c++;
     }
     
+    cmd_name = (char *)calloc(cmd_pos + 1, sizeof(char));
+    memcpy(cmd_name, in, cmd_pos);
+    cmd_name[cmd_pos] = '\0';
+    
     if (cmd) {
-        *cmd = (char *)calloc(cmd_pos + 1, sizeof(char));
-        memcpy(*cmd, in, cmd_pos);
-        (*cmd)[cmd_pos] = '\0';
+        *cmd = cmd_name;
     }
     
+//     kprintf("cmd name: %s, pos: %d\n", cmd_name, cmd_pos);
+    
     // Count arguments
+    arg_count = 1;
+    
     while (*c) {
         int arg_len = 0;
         
@@ -116,6 +130,9 @@ int parse_cmd(char *in, char **cmd, int *argc, char ***argv)
         c = in + cmd_pos;
         arg_list = (char **)calloc(arg_count, sizeof(char *));
         
+        arg_list[0] = strdup(cmd_name);
+        arg_index++;
+        
         while (*c) {
             // Skip space
             while (*c && is_space(*c)) {
@@ -143,6 +160,10 @@ int parse_cmd(char *in, char **cmd, int *argc, char ***argv)
 //                 kprintf("Arg parsed: %s, len: %d\n", arg, arg_len);
             }
         }
+    }
+    
+    if (!cmd) {
+        free(cmd_name);
     }
     
     if (argv) {

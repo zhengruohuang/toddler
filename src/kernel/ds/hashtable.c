@@ -190,5 +190,44 @@ int hashtable_insert(hashtable_t *l, ulong key, void *n)
 
 int hashtable_remove(hashtable_t *l, ulong key)
 {
-    return 0;
+    int cmp = 0;
+    int found = 0;
+    hashtable_node_t *s = NULL, *prev = NULL;
+    
+    // Get the hash and bucket
+    ulong hash = l->hash_func(key, l->bucket_count);
+    hashtable_bucket_t *bucket = &l->buckets[hash];
+    
+    // Lock the table
+    spin_lock_int(&l->lock);
+    
+    // Find the node
+    s = bucket->head;
+    while (s) {
+        cmp = l->hash_cmp(key, s->key);
+        if (0 == cmp) {
+            found = 1;
+            break;
+        } else if (-1 == cmp) {
+            break;
+        }
+        
+        prev = s;
+        s = s->next;
+    }
+    
+    if (found) {
+        if (prev) {
+            prev->next = s->next;
+        } else {
+            bucket->head = s->next;
+        }
+    }
+    
+    // Unlock
+    spin_unlock_int(&l->lock);
+    
+    sfree(s);
+    
+    return found;
 }

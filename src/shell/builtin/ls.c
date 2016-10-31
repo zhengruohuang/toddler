@@ -32,7 +32,10 @@ int ls(int argc, char **argv)
         int i;
         
         for (i = 1; i < argc; i++) {
-            kprintf("%s:\n", argv[i]);
+            if (argc > 2) {
+                kprintf("%s:\n", argv[i]);
+            }
+            
             err = do_ls(argv[i]);
             if (i < argc - 1) {
                 kprintf("\n");

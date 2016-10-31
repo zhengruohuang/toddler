@@ -1,4 +1,5 @@
 #include "common/include/data.h"
+#include "common/include/urs.h"
 #include "klibc/include/stdio.h"
 #include "klibc/include/stdlib.h"
 #include "klibc/include/string.h"
@@ -6,18 +7,9 @@
 #include "klibc/include/assert.h"
 #include "klibc/include/sys.h"
 #include "klibc/include/kthread.h"
-// #include "system/include/urs.h"
 
 
 #define RAMFS_BLOCK_SIZE    512
-
-
-enum urs_seek_from {
-    seek_from_begin,
-    seek_from_cur_fwd,
-    seek_from_cur_bwd,
-    seek_from_end,
-};
 
 
 struct ramfs_block {
@@ -59,17 +51,6 @@ struct ramfs_node {
 static unsigned long block_salloc_id;
 static unsigned long node_salloc_id;
 static hash_t *ramfs_table;
-
-
-/*
- * Init RAM FS
- */
-void init_ramfs()
-{
-    ramfs_table = hash_new(0, NULL, NULL);
-    node_salloc_id = salloc_create(sizeof(struct ramfs_node), 0, NULL, NULL);
-    block_salloc_id = salloc_create(sizeof(struct ramfs_block), 0, NULL, NULL);
-}
 
 
 /*
@@ -555,21 +536,21 @@ static int rename(unsigned long super_id, unsigned long node_id, char *name)
 
 int register_ramfs(char *path)
 {
-//     struct ramfs_node *root = NULL;
-//     
-//     unsigned long super_id = urs_register(path);
-//     if (!super_id) {
-//         return -2;
-//     }
-//     
-//     root = create_node("/", NULL);
-//     if (!root) {
-//         return -3;
-//     }
-//     
-//     hash_insert(ramfs_table, (void *)super_id, root);
-//     
-//     // Register operations
+    struct ramfs_node *root = NULL;
+    
+    unsigned long super_id = kapi_urs_reg_super(path, "ramfs", 0);
+    if (!super_id) {
+        return -2;
+    }
+    
+    root = create_node("/", NULL);
+    if (!root) {
+        return -3;
+    }
+    
+    hash_insert(ramfs_table, (void *)super_id, root);
+    
+    // Register operations
 //     REG_OP_FUNC(uop_lookup, lookup);
 //     REG_OP_FUNC(uop_open, open);
 //     REG_OP_FUNC(uop_release, release);
@@ -587,6 +568,19 @@ int register_ramfs(char *path)
 //     REG_OP_FUNC(uop_rename, rename);
     
     return 0;
+}
+
+
+/*
+ * Init RAM FS
+ */
+void init_ramfs()
+{
+    ramfs_table = hash_new(0, NULL, NULL);
+    node_salloc_id = salloc_create(sizeof(struct ramfs_node), 0, NULL, NULL);
+    block_salloc_id = salloc_create(sizeof(struct ramfs_block), 0, NULL, NULL);
+    
+    register_ramfs("ramfs://");
 }
 
 

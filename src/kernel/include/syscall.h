@@ -35,6 +35,7 @@ extern void io_out_worker(struct kernel_dispatch_info *disp_info);
 extern void reg_msg_handler_worker(struct kernel_dispatch_info *disp_info);
 extern void unreg_msg_handler_worker(struct kernel_dispatch_info *disp_info);
 extern void send_worker(struct kernel_dispatch_info *disp_info);
+extern void send_kernel(msg_t *s, struct process *src_p, struct thread *src_t);
 extern void reply_worker(struct kernel_dispatch_info *disp_info);
 extern void recv_worker_thread(ulong param);
 extern void request_worker_thread(ulong param);

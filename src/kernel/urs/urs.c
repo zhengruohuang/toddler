@@ -9,6 +9,7 @@
 #include "kernel/include/mem.h"
 #include "kernel/include/lib.h"
 #include "kernel/include/ds.h"
+#include "kernel/include/kapi.h"
 #include "kernel/include/urs.h"
 
 
@@ -97,7 +98,7 @@ static char *normalize_path(char *path)
     
 //     kprintf("len: %d\n", len);
 //     kprintf(path);
-    kprintf("Path normalized: %s -> %s @ %p\n", path, copy, copy);
+//     kprintf("Path normalized: %s -> %s @ %p\n", path, copy, copy);
     
     return copy;
 }
@@ -237,20 +238,48 @@ int urs_register_op(
 /*
  * Dispatch
  */
-static msg_t *create_dispatch_msg(struct urs_super *super, enum urs_op_type op, unsigned long dispatch_id)
+static no_opt struct thread_control_block *get_tcb()
 {
-//     msg_t *msg = syscall_msg();
-//     
-//     msg->mailbox_id = super->ops[op].mbox_id;
-//     msg->opcode = super->ops[op].msg_opcode;
-//     msg->func_num = super->ops[op].msg_func_num;
-//     
-//     msg_param_value(msg, (unsigned long)op);
-//     msg_param_value(msg, super->id);
-//     msg_param_value(msg, dispatch_id);
-//     
-//     return msg;
-    return NULL;
+    unsigned long addr = 0;
+    
+    __asm__ __volatile__
+    (
+        "xorl   %%esi, %%esi;"
+        "movl   %%gs:(%%esi), %%edi;"
+        : "=D" (addr)
+        :
+        : "%esi"
+    );
+    
+    return (struct thread_control_block *)addr;
+}
+
+static msg_t *send_request_msg()
+{
+    struct thread_control_block *tcb = get_tcb();
+    
+    msg_t *m = (msg_t *)tcb->msg_send;
+    struct process *p = (struct process *)tcb->proc_id;
+    struct thread *t = (struct thread *)tcb->thread_id;
+    
+    send_kernel(m, p, t);
+    
+    return (msg_t *)tcb->msg_recv;
+}
+
+static msg_t *create_dispatch_msg(struct urs_super *super, enum urs_op_type op, unsigned long node_id)
+{
+    msg_t *msg = create_request_msg();
+    
+    msg->mailbox_id = super->ops[op].mbox_id;
+    msg->opcode = super->ops[op].msg_opcode;
+    msg->func_num = super->ops[op].msg_func_num;
+    
+    set_msg_param_value(msg, (unsigned long)op);
+    set_msg_param_value(msg, super->id);
+    set_msg_param_value(msg, node_id);
+    
+    return msg;
 }
 
 static int dispatch_lookup(struct urs_super *super, unsigned long node_id, char *next, int *is_link,
@@ -258,11 +287,17 @@ static int dispatch_lookup(struct urs_super *super, unsigned long node_id, char 
 {
     int result = 0;
     enum urs_op_type op = uop_lookup;
-    msg_t *s, *r;
     
     kprintf("To dispatch lookup @ %s\n", next);
     
     if (super->ops[op].type == udisp_none) {
+        if (is_link) {
+            *is_link = 0;
+        }
+        if (next_id) {
+            *next_id = 0;
+        }
+        
         return -1;
     }
     
@@ -271,11 +306,37 @@ static int dispatch_lookup(struct urs_super *super, unsigned long node_id, char 
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         msg_param_buffer(s, next, (size_t)(strlen(next) + 1));
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
+        msg_t *s, *r;
+        ulong len = 0;
+        
+        s = create_dispatch_msg(super, op, node_id);
+        set_msg_param_buf(s, next, (size_t)(strlen(next) + 1));
+        set_msg_param_value(s, count);
+        
+        r = send_request_msg();
+        if (is_link) {
+            *is_link = (int)r->params[0].value;
+        }
+        if (next_id) {
+            *next_id = r->params[1].value;
+        }
+        
+        r = send_request_msg();
+        if (buf) {
+            u8 *src = (u8 *)((unsigned long)r + r->params[0].offset);
+            u8 *dest = buf;
+            ulong s = r->params[1].value;
+            
+            while (len < count && len < s) {
+                dest[len] = src[len];
+                len++;
+            }
+        }
+        if (actual) {
+            *actual = len;
+        }
+        
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {
@@ -289,7 +350,6 @@ static int dispatch_open(struct urs_super *super, unsigned long node_id)
 {
     int result = 0;
     enum urs_op_type op = uop_open;
-    msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
         return -1;
@@ -300,10 +360,11 @@ static int dispatch_open(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
+        msg_t *s, *r;
+        s = create_dispatch_msg(super, op, node_id);
+        
+        r = send_request_msg();
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {
@@ -317,7 +378,6 @@ static int dispatch_release(struct urs_super *super, unsigned long node_id)
 {
     int result = 0;
     enum urs_op_type op = uop_release;
-    msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
         return -1;
@@ -328,10 +388,11 @@ static int dispatch_release(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
+        msg_t *s, *r;
+        s = create_dispatch_msg(super, op, node_id);
+        
+        r = send_request_msg();
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {
@@ -345,7 +406,6 @@ static int dispatch_read(struct urs_super *super, unsigned long node_id, void *b
 {
     int result = 0;
     enum urs_op_type op = uop_read;
-    msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
         return -1;
@@ -356,15 +416,28 @@ static int dispatch_read(struct urs_super *super, unsigned long node_id, void *b
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         msg_param_value(s, count);
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
-//         
-//         if (actual) {
-//             *actual = 0;
-//         }
+        msg_t *s, *r;
+        ulong len = 0;
+        
+        s = create_dispatch_msg(super, op, node_id);
+        set_msg_param_value(s, count);
+        
+        r = send_request_msg();
+        if (buf) {
+            u8 *src = (u8 *)((unsigned long)r + r->params[0].offset);
+            u8 *dest = buf;
+            ulong s = r->params[1].value;
+            
+            while (len < count && len < s) {
+                dest[len] = src[len];
+                len++;
+            }
+        }
+        if (actual) {
+            *actual = len;
+        }
+        
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {
@@ -378,7 +451,6 @@ static int dispatch_write(struct urs_super *super, unsigned long node_id, void *
 {
     int result = 0;
     enum urs_op_type op = uop_write;
-    msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
         return -1;
@@ -389,16 +461,18 @@ static int dispatch_write(struct urs_super *super, unsigned long node_id, void *
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         msg_param_value(s, count);
-//         msg_param_buffer(s, buf, count);
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
-//         
-//         if (actual) {
-//             *actual = 0;
-//         }
+        msg_t *s, *r;
+        
+        s = create_dispatch_msg(super, op, node_id);
+        set_msg_param_buf(s, buf, count);
+        set_msg_param_value(s, count);
+        
+        r = send_request_msg();
+        if (actual) {
+            *actual = r->params[0].value;
+        }
+        
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {
@@ -412,7 +486,6 @@ static int dispatch_truncate(struct urs_super *super, unsigned long node_id)
 {
     int result = 0;
     enum urs_op_type op = uop_write;
-    msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
         return -1;
@@ -423,10 +496,11 @@ static int dispatch_truncate(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
+        msg_t *s, *r;
+        s = create_dispatch_msg(super, op, node_id);
+        
+        r = send_request_msg();
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {
@@ -440,7 +514,6 @@ static int dispatch_seek_data(struct urs_super *super, unsigned long node_id, un
 {
     int result = 0;
     enum urs_op_type op = uop_seek_data;
-    msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
         return -1;
@@ -451,16 +524,18 @@ static int dispatch_seek_data(struct urs_super *super, unsigned long node_id, un
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         msg_param_value(s, (unsigned long)from);
-//         msg_param_value(s, offset);
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
-//         
-//         if (newpos) {
-//             *newpos = 0;
-//         }
+        msg_t *s, *r;
+        
+        s = create_dispatch_msg(super, op, node_id);
+        set_msg_param_value(s, offset);
+        set_msg_param_value(s, (unsigned long)from);
+        
+        r = send_request_msg();
+        if (newpos) {
+            *newpos = r->params[0].value;
+        }
+        
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {
@@ -474,7 +549,6 @@ static int dispatch_list(struct urs_super *super, unsigned long node_id, void *b
 {
     int result = 0;
     enum urs_op_type op = uop_list;
-    msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
         return -1;
@@ -485,14 +559,28 @@ static int dispatch_list(struct urs_super *super, unsigned long node_id, void *b
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
-//         
-//         if (actual) {
-//             *actual = count;
-//         }
+        msg_t *s, *r;
+        ulong len = 0;
+        
+        s = create_dispatch_msg(super, op, node_id);
+        set_msg_param_value(s, count);
+        
+        r = send_request_msg();
+        if (buf) {
+            u8 *src = (u8 *)((unsigned long)r + r->params[0].offset);
+            u8 *dest = buf;
+            ulong s = r->params[1].value;
+            
+            while (len < count && len < s) {
+                dest[len] = src[len];
+                len++;
+            }
+        }
+        if (actual) {
+            *actual = len;
+        }
+        
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {
@@ -506,7 +594,6 @@ static int dispatch_seek_list(struct urs_super *super, unsigned long node_id, un
 {
     int result = 0;
     enum urs_op_type op = uop_seek_list;
-    msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
         return -1;
@@ -517,16 +604,18 @@ static int dispatch_seek_list(struct urs_super *super, unsigned long node_id, un
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         msg_param_value(s, (unsigned long)from);
-//         msg_param_value(s, offset);
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
-//         
-//         if (newpos) {
-//             *newpos = 0;
-//         }
+        msg_t *s, *r;
+        
+        s = create_dispatch_msg(super, op, node_id);
+        set_msg_param_value(s, offset);
+        set_msg_param_value(s, (unsigned long)from);
+        
+        r = send_request_msg();
+        if (newpos) {
+            *newpos = r->params[0].value;
+        }
+        
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {
@@ -540,7 +629,6 @@ static int dispatch_create(struct urs_super *super, unsigned long node_id, char 
 {
     int result = 0;
     enum urs_op_type op = uop_create;
-    msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
         return -1;
@@ -551,11 +639,13 @@ static int dispatch_create(struct urs_super *super, unsigned long node_id, char 
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         msg_param_buffer(s, name, strlen(name));
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
+        msg_t *s, *r;
+        
+        s = create_dispatch_msg(super, op, node_id);
+        set_msg_param_buf(s, name, strlen(name) + 1);
+        
+        r = send_request_msg();
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {
@@ -569,7 +659,6 @@ static int dispatch_remove(struct urs_super *super, unsigned long node_id)
 {
     int result = 0;
     enum urs_op_type op = uop_remove;
-    msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
         return -1;
@@ -580,10 +669,11 @@ static int dispatch_remove(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
+        msg_t *s, *r;
+        s = create_dispatch_msg(super, op, node_id);
+        
+        r = send_request_msg();
+        result = (int)r->params[r->param_count - 1].value;;
     }
     
     else {
@@ -597,7 +687,6 @@ static int dispatch_rename(struct urs_super *super, unsigned long node_id, char 
 {
     int result = 0;
     enum urs_op_type op = uop_rename;
-    msg_t *s, *r;
     
     if (super->ops[op].type == udisp_none) {
         return -1;
@@ -608,11 +697,13 @@ static int dispatch_rename(struct urs_super *super, unsigned long node_id, char 
     }
     
     else if (super->ops[op].type == udisp_msg) {
-//         s = create_dispatch_msg(super, op, node_id);
-//         msg_param_buffer(s, name, strlen(name));
-//         
-//         r = syscall_request();
-//         result = (int)kapi_return_value(r);
+        msg_t *s, *r;
+        
+        s = create_dispatch_msg(super, op, node_id);
+        set_msg_param_buf(s, name, strlen(name) + 1);
+        
+        r = send_request_msg();
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {
@@ -676,7 +767,7 @@ static struct urs_node *get_next_node(struct urs_super *super, struct urs_node *
     unsigned long next_id = 0;
     struct urs_node *next;
     
-    kprintf("get next node\n");
+//     kprintf("get next node\n");
     
     if (!cur) {
         if (!name) {
@@ -778,6 +869,8 @@ static struct urs_node *resolve_path(char *path, struct urs_super **real_super)
     char *copy = normalize_path(path);
     int cur_pos = 0;
     struct urs_node *cur_node = NULL;
+    
+//     kprintf("to resolve: %s\n", path);
     
     // Find out super
     struct urs_super *super = match_super(copy);

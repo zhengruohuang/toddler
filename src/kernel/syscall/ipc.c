@@ -248,6 +248,11 @@ void send_worker(struct kernel_dispatch_info *disp_info)
     transfer_msg(s, 0, src_p, src_t);
 }
 
+void send_kernel(msg_t *s, struct process *src_p, struct thread *src_t)
+{
+    transfer_msg(s, 0, src_p, src_t);
+}
+
 void reply_worker(struct kernel_dispatch_info *disp_info)
 {
 //     kprintf("To reply!\n");

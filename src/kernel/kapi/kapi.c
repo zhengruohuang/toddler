@@ -11,6 +11,36 @@
 hashtable_t kapi_servers;
 
 
+static no_opt struct thread_control_block *get_tcb()
+{
+    unsigned long addr = 0;
+    
+    __asm__ __volatile__
+    (
+        "xorl   %%esi, %%esi;"
+        "movl   %%gs:(%%esi), %%edi;"
+        : "=D" (addr)
+        :
+        : "%esi"
+    );
+    
+    return (struct thread_control_block *)addr;
+}
+
+msg_t *create_request_msg()
+{
+    struct thread_control_block *tcb = get_tcb();
+    msg_t *m = (msg_t *)tcb->msg_send;
+    
+    m->func_num = 0;
+    m->mailbox_id = 0;
+    m->msg_size = sizeof(msg_t);
+    m->opcode = 0;
+    m->param_count = 0;
+    
+    return m;
+}
+
 msg_t *create_response_msg(struct thread *t)
 {
     msg_t *m = (msg_t *)t->memory.msg_recv_paddr;
@@ -99,6 +129,9 @@ void init_kapi()
     register_kapi(KAPI_HEAP_END_SHRINK, shrink_heap_handler);
     
     // URS
+    register_kapi(KAPI_URS_REG_SUPER, urs_reg_super_handler);
+    register_kapi(KAPI_URS_REG_OP, urs_reg_op_handler);
+    
     register_kapi(KAPI_URS_OPEN, urs_open_handler);
     register_kapi(KAPI_URS_CLOSE, urs_close_handler);
     register_kapi(KAPI_URS_READ, urs_read_handler);

@@ -5,6 +5,40 @@
 #include "klibc/include/sys.h"
 
 
+unsigned long kapi_urs_reg_super(char *path, char *name, int mode)
+{
+    msg_t *s = kapi_msg(KAPI_URS_REG_SUPER);
+    msg_t *r;
+    unsigned long result = 0;
+    
+    msg_param_buffer(s, path, (size_t)(strlen(path) + 1));
+    msg_param_buffer(s, name, (size_t)(strlen(name) + 1));
+    msg_param_value(s, (unsigned long)mode);
+    
+    r = syscall_request();
+    result = kapi_return_value(r);
+    
+    return result;
+}
+
+int kapi_urs_reg_op(unsigned long super_id, int op, unsigned long mbox_id, unsigned long msg_opcode, unsigned long msg_func_num)
+{
+    msg_t *s = kapi_msg(KAPI_URS_REG_OP);
+    msg_t *r;
+    unsigned long result = 0;
+    
+    msg_param_value(s, super_id);
+    msg_param_value(s, (unsigned long)op);
+    msg_param_value(s, mbox_id);
+    msg_param_value(s, msg_opcode);
+    msg_param_value(s, msg_func_num);
+    
+    r = syscall_request();
+    result = (int)kapi_return_value(r);
+    
+    return result;
+}
+
 unsigned long kapi_urs_open(char *name, int mode)
 {
     msg_t *s = kapi_msg(KAPI_URS_OPEN);

@@ -9,6 +9,61 @@
 #include "kernel/include/kapi.h"
 
 
+/*
+ * Super operations
+ */
+asmlinkage void urs_reg_super_handler(struct kernel_msg_handler_arg *arg)
+{
+    struct thread *t = arg->sender_thread;
+    msg_t *s = arg->msg;
+    msg_t *r = create_response_msg(t);
+    
+    char *path = (char *)((ulong)s + s->params[0].offset);
+//     char *name = (char *)((ulong)s + s->params[1].offset);
+//     int mode = (int)s->params[2].value;
+    
+    int result = (int)urs_register(path);
+    set_msg_param_value(r, (ulong)result);
+    
+    run_thread(t);
+    
+    // Clean up
+    terminate_thread_self(arg->handler_thread);
+    sfree(arg);
+    
+    // Wait for this thread to be terminated
+    kernel_unreachable();
+}
+
+asmlinkage void urs_reg_op_handler(struct kernel_msg_handler_arg *arg)
+{
+    struct thread *t = arg->sender_thread;
+    msg_t *s = arg->msg;
+    msg_t *r = create_response_msg(t);
+    
+    ulong super_id = s->params[0].value;
+    enum urs_op_type op = (enum urs_op_type)s->params[1].value;
+    ulong mbox_id = s->params[2].value;
+    ulong msg_opcode = s->params[3].value;
+    ulong msg_func_num = s->params[4].value;
+    
+    int result = (int)urs_register_op(super_id, op, NULL, mbox_id, msg_opcode, msg_func_num);
+    set_msg_param_value(r, (ulong)result);
+    
+    run_thread(t);
+    
+    // Clean up
+    terminate_thread_self(arg->handler_thread);
+    sfree(arg);
+    
+    // Wait for this thread to be terminated
+    kernel_unreachable();
+}
+
+
+/*
+ * Node operations
+ */
 asmlinkage void urs_open_handler(struct kernel_msg_handler_arg *arg)
 {
     struct thread *t = arg->sender_thread;

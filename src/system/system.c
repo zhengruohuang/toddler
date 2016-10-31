@@ -29,8 +29,7 @@ int main(int argc, char *argv[])
     
     // Initialize
     init_kapi();
-//     init_urs();
-//     init_ramfs();
+    init_ramfs();
     
     // FS tests
     //test_ramfs();

@@ -76,6 +76,9 @@ extern unsigned long kapi_thread_id();
 /*
  * URS
  */
+extern unsigned long kapi_urs_reg_super(char *path, char *name, int mode);
+extern int kapi_urs_reg_op(unsigned long super_id, int op, unsigned long mbox_id, unsigned long msg_opcode, unsigned long msg_func_num);
+
 extern unsigned long kapi_urs_open(char *name, int mode);
 extern int kapi_urs_close(unsigned long fd);
 extern size_t kapi_urs_read(unsigned long fd, void *buf, size_t count);

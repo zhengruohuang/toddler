@@ -126,6 +126,9 @@ typedef asmlinkage void (*msg_handler_t)(msg_t *msg);
 #define KAPI_URS_RENAME         0x6a
 #define KAPI_URS_IOCTL          0x6b
 
+#define KAPI_URS_REG_SUPER      0x70
+#define KAPI_URS_REG_OP         0x71
+
 // Temporary stdio KAPIs, they eventually should be implemented through URS
 #define KAPI_STDIN_READ         0x1000
 #define KAPI_STDOUT_WRITE       0x1001

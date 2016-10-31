@@ -4,51 +4,14 @@
 
 #include "common/include/data.h"
 #include "common/include/syscall.h"
+#include "common/include/urs.h"
 #include "kernel/include/ds.h"
 
-
-enum urs_seek_from {
-    seek_from_begin,
-    seek_from_cur_fwd,
-    seek_from_cur_bwd,
-    seek_from_end,
-};
-
-enum urs_link_type {
-    ulink_none,
-    ulink_absolute,
-    ulink_relative,
-};
 
 enum urs_disp_type {
     udisp_none,
     udisp_func,
     udisp_msg,
-};
-
-enum urs_op_type {
-    uop_none,
-    
-    uop_lookup,
-    uop_open,
-    uop_release,
-    
-    uop_read,
-    uop_write,
-    uop_truncate,
-    uop_seek_data,
-    
-    uop_list,
-    uop_seek_list,
-    
-    uop_create,
-    uop_remove,
-    uop_rename,
-    
-    uop_stat,
-    uop_ioctl,
-    
-    uop_count,
 };
 
 struct urs_disp {

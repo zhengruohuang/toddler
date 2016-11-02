@@ -43,11 +43,11 @@ asmlinkage void urs_reg_op_handler(struct kernel_msg_handler_arg *arg)
     
     ulong super_id = s->params[0].value;
     enum urs_op_type op = (enum urs_op_type)s->params[1].value;
-    ulong mbox_id = s->params[2].value;
-    ulong msg_opcode = s->params[3].value;
-    ulong msg_func_num = s->params[4].value;
+//     ulong mbox_id = s->params[2].value;
+    ulong msg_opcode = s->params[2].value;
+    ulong msg_func_num = s->params[3].value;
     
-    int result = (int)urs_register_op(super_id, op, NULL, mbox_id, msg_opcode, msg_func_num);
+    int result = (int)urs_register_op(super_id, op, NULL, arg->sender_thread->proc_id, msg_opcode, msg_func_num);
     set_msg_param_value(r, (ulong)result);
     
     run_thread(t);

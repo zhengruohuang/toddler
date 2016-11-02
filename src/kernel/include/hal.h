@@ -87,6 +87,7 @@ struct hal_exports {
                                       struct thread_control_block *tcb);
     void (*sleep)();
     void (*yield)();
+    int (*ksyscall)(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2);
     
     // TLB
     void (*invalidate_tlb)(ulong asid, ulong vaddr, size_t size);

@@ -5,6 +5,7 @@
 #include "common/include/data.h"
 #include "common/include/syscall.h"
 #include "common/include/proc.h"
+#include "common/include/urs.h"
 
 
 /*
@@ -45,6 +46,11 @@ extern int syscall_unreg_msg_handler(unsigned long msg_num);
 extern int syscall_reg_kapi_server(unsigned long kapi_num);
 extern int syscall_unreg_kapi_server(unsigned long kapi_num);
 
+/*
+ * User message
+ */
+extern unsigned long alloc_msg_num();
+
 
 /*
  * KAPI
@@ -77,7 +83,7 @@ extern unsigned long kapi_thread_id();
  * URS
  */
 extern unsigned long kapi_urs_reg_super(char *path, char *name, int mode);
-extern int kapi_urs_reg_op(unsigned long super_id, int op, unsigned long mbox_id, unsigned long msg_opcode, unsigned long msg_func_num);
+extern int kapi_urs_reg_op(unsigned long super_id, enum urs_op_type op, unsigned long msg_opcode, unsigned long msg_func_num);
 
 extern unsigned long kapi_urs_open(char *name, int mode);
 extern int kapi_urs_close(unsigned long fd);

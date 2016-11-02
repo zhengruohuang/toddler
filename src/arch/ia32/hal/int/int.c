@@ -124,7 +124,7 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
     // Get context
     struct context *context = get_per_cpu(struct context, cur_context);
     
-//     if (vector_num != 0x22) {
+//     if (vector_num != 0x7f) {
 //         // Switch to kernel AS, temp trick
 //         __asm__ __volatile__
 //         (

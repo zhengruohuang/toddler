@@ -4,6 +4,7 @@
 
 #include "common/include/data.h"
 #include "common/include/task.h"
+#include "common/include/proc.h"
 #include "common/include/syscall.h"
 #include "kernel/include/proc.h"
 
@@ -35,7 +36,6 @@ extern void io_out_worker(struct kernel_dispatch_info *disp_info);
 extern void reg_msg_handler_worker(struct kernel_dispatch_info *disp_info);
 extern void unreg_msg_handler_worker(struct kernel_dispatch_info *disp_info);
 extern void send_worker(struct kernel_dispatch_info *disp_info);
-extern void send_kernel(msg_t *s, struct process *src_p, struct thread *src_t);
 extern void reply_worker(struct kernel_dispatch_info *disp_info);
 extern void recv_worker_thread(ulong param);
 extern void request_worker_thread(ulong param);
@@ -43,6 +43,11 @@ extern void respond_worker_thread(ulong param);
 
 extern void reg_kapi_server_worker(struct kernel_dispatch_info *disp_info);
 extern void unreg_kapi_server_worker(struct kernel_dispatch_info *disp_info);
+
+extern no_opt struct thread_control_block *ksys_get_tcb();
+extern int ksys_syscall(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2);
+extern msg_t *ksys_msg();
+extern msg_t *ksys_request();
 
 
 /*

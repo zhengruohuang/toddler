@@ -5,31 +5,15 @@
 #include "kernel/include/hal.h"
 #include "kernel/include/mem.h"
 #include "kernel/include/proc.h"
+#include "kernel/include/syscall.h"
 #include "kernel/include/kapi.h"
-
 
 hashtable_t kapi_servers;
 
 
-static no_opt struct thread_control_block *get_tcb()
-{
-    unsigned long addr = 0;
-    
-    __asm__ __volatile__
-    (
-        "xorl   %%esi, %%esi;"
-        "movl   %%gs:(%%esi), %%edi;"
-        : "=D" (addr)
-        :
-        : "%esi"
-    );
-    
-    return (struct thread_control_block *)addr;
-}
-
 msg_t *create_request_msg()
 {
-    struct thread_control_block *tcb = get_tcb();
+    struct thread_control_block *tcb = ksys_get_tcb();
     msg_t *m = (msg_t *)tcb->msg_send;
     
     m->func_num = 0;

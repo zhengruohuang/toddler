@@ -85,11 +85,13 @@ void msg_param_buffer(msg_t *m, void *buf, size_t size)
     m->params[index].size = (int)size;
     
     // Copy the buffer content
-    src = (unsigned char *)buf;
-    dest = ((unsigned char *)m) + m->msg_size;
-    
-    for (i = 0; i < size; i++) {
-        *dest++ = *src++;
+    if (buf && size) {
+        src = (unsigned char *)buf;
+        dest = ((unsigned char *)m) + m->msg_size;
+        
+        for (i = 0; i < size; i++) {
+            *dest++ = *src++;
+        }
     }
     
     // Set size and count

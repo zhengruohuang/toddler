@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/urs.h"
+#include "common/include/errno.h"
 #include "klibc/include/stdio.h"
 #include "klibc/include/stdlib.h"
 #include "klibc/include/string.h"
@@ -199,11 +200,6 @@ static void seek_data_block_begin(struct ramfs_data *data, unsigned long offset)
 /*
  * Node
  */
-static struct urs_super *get_super_by_id(unsigned long id)
-{
-    return (struct urs_super *)id;
-}
-
 static struct ramfs_node *get_node_by_id(unsigned long id)
 {
     return (struct ramfs_node *)id;
@@ -240,7 +236,6 @@ static struct ramfs_node *create_node(const char *name, struct ramfs_node *paren
 static int lookup(unsigned long super_id, unsigned long node_id, const char *name, int *is_link,
                   unsigned long *next_id, void *buf, unsigned long count, unsigned long *actual)
 {
-    struct urs_super *super = get_super_by_id(super_id);
     struct ramfs_node *node = NULL, *next = NULL;
     
     kprintf("Lookup received, super_id: %p, node_id: %lu, name: %s\n", super_id, node_id, name);
@@ -421,18 +416,21 @@ static int list(unsigned long super_id, unsigned long node_id, void *buf, unsign
         return -1;
     }
     
-    if (!buf) {
-        if (actual) {
-            *actual = 0;
-        }
-        return 0;
+    // Sub entries have not yet been initialized
+    if (!node->sub.entries) {
+        return -1;
     }
     
+    // Obtain the sub entry
     sub = hash_obtain_at(node->sub.entries, node->sub.pos);
-    len = strlen(sub->name) + 1;
-    len = count > len ? len : count;
-    memcpy(buf, sub->name, len);
-    ((char *)buf)[len] = '\0';
+    
+    // Copy the name
+    if (buf) {
+        len = strlen(sub->name) + 1;
+        len = count > len ? len : count;
+        memcpy(buf, sub->name, len);
+        ((char *)buf)[len] = '\0';
+    }
     
     if (actual) {
         *actual = len;
@@ -449,7 +447,7 @@ static int list(unsigned long super_id, unsigned long node_id, void *buf, unsign
     return result;
 }
 
-static unsigned long seek_list(unsigned long super_id, unsigned long node_id, unsigned long offset, enum urs_seek_from from)
+static int seek_list(unsigned long super_id, unsigned long node_id, unsigned long offset, enum urs_seek_from from, unsigned long *newpos)
 {
     struct ramfs_node *node = get_node_by_id(node_id);
     if (!node) {
@@ -472,6 +470,12 @@ static unsigned long seek_list(unsigned long super_id, unsigned long node_id, un
     default:
         break;
     }
+    
+    if (newpos) {
+        *newpos = node->sub.pos;
+    }
+    
+    return 0;
 }
 
 static int create(unsigned long super_id, unsigned long node_id, char *name)
@@ -530,9 +534,164 @@ static int rename(unsigned long super_id, unsigned long node_id, char *name)
 
 
 /*
+ * Message handler
+ */
+asmlinkage void ramfs_msg_handler(msg_t *msg)
+{
+    int result = EOK;
+    
+    // Get common data fields
+    enum urs_op_type op = (enum urs_op_type)msg->opcode;
+    unsigned long super_id = msg->params[1].value;
+    unsigned long node_id = msg->params[2].value;
+    
+    // Setup the reply msg
+    msg_t *r = syscall_msg();
+    r->mailbox_id = msg->mailbox_id;
+    
+    switch (op) {
+    // Look up
+    case uop_lookup: {
+        char *name = (char *)((unsigned long)msg + msg->params[3].offset);
+        int is_link = 0;
+        unsigned long next_id = 0;
+        
+        result = lookup(super_id, node_id, name, &is_link, &next_id, NULL, 0, NULL);
+        
+        kprintf("name: %s, node: %p, is link: %d, next: %p\n", name, node_id, is_link, next_id);
+        
+        msg_param_value(r, (unsigned long)is_link);
+        msg_param_value(r, next_id);
+        msg_param_buffer(r, NULL, 0);
+        msg_param_value(r, 0);
+        
+        break;
+    }
+    
+    case uop_open: {
+        result = open(super_id, node_id);
+        break;
+    }
+    
+    case uop_release: {
+        result = release(super_id, node_id);
+        break;
+    }
+    
+    // Data
+    case uop_read: {
+        u8 buf[64];
+        unsigned long count = sizeof(buf);
+        unsigned long actual = 0;
+        if (msg->params[3].value < count) {
+            count = msg->params[3].value;
+        }
+        
+        result = read(super_id, node_id, buf, count, &actual);
+        msg_param_buffer(r, buf, actual);
+        msg_param_value(r, actual);
+        
+        break;
+    }
+    
+    case uop_write: {
+        void *buf = (void *)((unsigned long)msg + msg->params[3].offset);
+        unsigned long count = msg->params[4].value;
+        unsigned long actual = 0;
+        
+        result = write(super_id, node_id, buf, count, &actual);
+        msg_param_value(r, actual);
+        
+        break;
+    }
+    
+    case uop_truncate: {
+        result = truncate(super_id, node_id);
+        break;
+    }
+    
+    case uop_seek_data: {
+        unsigned long offset = msg->params[3].value;
+        enum urs_seek_from from = (enum urs_seek_from)msg->params[4].value;
+        unsigned long newpos = 0;
+        
+        result = seek_data(super_id, node_id, offset, from, &newpos);
+        msg_param_value(r, newpos);
+        
+        break;
+    }
+    
+    // List
+    case uop_list: {
+        u8 buf[64];
+        unsigned long count = sizeof(buf);
+        unsigned long actual = 0;
+        
+        if (msg->params[3].value < count) {
+            count = msg->params[3].value;
+        }
+        
+        result = list(super_id, node_id, buf, count, &actual);
+        msg_param_buffer(r, buf, actual);
+        msg_param_value(r, actual);
+        
+        break;
+    }
+    
+    case uop_seek_list: {
+        unsigned long offset = msg->params[3].value;
+        enum urs_seek_from from = (enum urs_seek_from)msg->params[4].value;
+        unsigned long newpos = 0;
+        
+        result = seek_list(super_id, node_id, offset, from, &newpos);
+        msg_param_value(r, newpos);
+        
+        break;
+    }
+    
+    // Create
+    case uop_create: {
+        char *name = (void *)((unsigned long)msg + msg->params[3].offset);
+        result = create(super_id, node_id, name);
+        break;
+    }
+    
+    case uop_remove: {
+        result = remove(super_id, node_id);
+        break;
+    }
+    
+    case uop_rename: {
+        char *name = (void *)((unsigned long)msg + msg->params[3].offset);
+        result = rename(super_id, node_id, name);
+        break;
+    }
+    
+    default:
+        break;
+    }
+    
+    // Return value
+    msg_param_value(r, (unsigned long)result);
+    
+//     kprintf("To call syscall respond!\n");
+    
+    // Issue the KAPI and obtain the result
+    syscall_respond();
+    
+    // Should never reach here
+    sys_unreahable();
+}
+
+
+/*
  * Super
  */
-#define REG_OP_FUNC(type, func) urs_register_op(super_id, type, func, 0, 0, 0)
+#define REG_OP(op, handler) do {                                        \
+    unsigned long func_num = alloc_msg_num();                           \
+    kapi_urs_reg_op(super_id, op, (unsigned long)op, func_num);         \
+    syscall_reg_msg_handler(func_num, ramfs_msg_handler);               \
+} while (0)
 
 int register_ramfs(char *path)
 {
@@ -551,21 +710,21 @@ int register_ramfs(char *path)
     hash_insert(ramfs_table, (void *)super_id, root);
     
     // Register operations
-//     REG_OP_FUNC(uop_lookup, lookup);
-//     REG_OP_FUNC(uop_open, open);
-//     REG_OP_FUNC(uop_release, release);
-//     
-//     REG_OP_FUNC(uop_read, read);
-//     REG_OP_FUNC(uop_write, write);
-//     REG_OP_FUNC(uop_truncate, truncate);
-//     REG_OP_FUNC(uop_seek_data, seek_data);
-//     
-//     REG_OP_FUNC(uop_list, list);
-//     REG_OP_FUNC(uop_seek_list, seek_list);
-//     
-//     REG_OP_FUNC(uop_create, create);
-//     REG_OP_FUNC(uop_remove, remove);
-//     REG_OP_FUNC(uop_rename, rename);
+    REG_OP(uop_lookup, lookup);
+    REG_OP(uop_open, open);
+    REG_OP(uop_release, release);
+    
+    REG_OP(uop_read, read);
+    REG_OP(uop_write, write);
+    REG_OP(uop_truncate, truncate);
+    REG_OP(uop_seek_data, seek_data);
+    
+    REG_OP(uop_list, list);
+    REG_OP(uop_seek_list, seek_list);
+    
+    REG_OP(uop_create, create);
+    REG_OP(uop_remove, remove);
+    REG_OP(uop_rename, rename);
     
     return 0;
 }

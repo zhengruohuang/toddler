@@ -37,7 +37,7 @@ void kputs_worker_thread(ulong param)
             vaddr++;
             
             if (buf_idx == KPUTS_BUF_SIZE) {
-                kprintf(buf);
+                kprintf("%s", buf);
                 memzero(buf, KPUTS_BUF_SIZE + 1);
                 buf_idx = 0;
             }
@@ -48,7 +48,7 @@ void kputs_worker_thread(ulong param)
     
     // Final print
     if (buf_idx) {
-        kprintf(buf);
+        kprintf("%s", buf);
     }
     
     // Reenable the user thread

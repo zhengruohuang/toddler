@@ -164,6 +164,8 @@ static void copy_msg_to_recv(msg_t *src, struct thread *t)
     //msg_t *src = t->cur_msg->msg;
     msg_t *dest = (msg_t *)t->memory.msg_recv_paddr;
     
+//     kprintf("dest: %p, src: %p\n", dest, src);
+    
     memcpy((void *)src, (void *)dest, src->msg_size);
 }
 
@@ -197,6 +199,7 @@ static void transfer_msg(msg_t *s, int sender_blocked, struct process *src_p, st
         
         // Create a new thread to handle the msg
         void *entry_point = hashtable_obtain(&dest_p->msg_handlers, s->func_num);
+//         kprintf("entry point: %p\n", entry_point);
         struct thread *t = create_thread(dest_p, (ulong)entry_point, 0, -1, PAGE_SIZE, PAGE_SIZE);
         hashtable_release(&dest_p->msg_handlers, s->func_num, entry_point);
         
@@ -248,11 +251,6 @@ void send_worker(struct kernel_dispatch_info *disp_info)
     transfer_msg(s, 0, src_p, src_t);
 }
 
-void send_kernel(msg_t *s, struct process *src_p, struct thread *src_t)
-{
-    transfer_msg(s, 0, src_p, src_t);
-}
-
 void reply_worker(struct kernel_dispatch_info *disp_info)
 {
 //     kprintf("To reply!\n");
@@ -266,6 +264,8 @@ void reply_worker(struct kernel_dispatch_info *disp_info)
     // Get dest info
     struct thread *dest_t = get_thread_by_mailbox_id(s->mailbox_id); //n->dest.thread;
     struct process *dest_p = dest_t->proc; //n->dest.proc;
+    
+//     kprintf("dest t: %p, dest p: %p\n", dest_t, dest_p);
     
 //     // Setup msg node
 //     struct msg_node *dest_n = duplicate_msg(s, 0, src_p, src_t, dest_p, dest_t);
@@ -339,7 +339,7 @@ void request_worker_thread(ulong param)
     msg_t *s = (msg_t *)src_t->memory.msg_send_paddr;
     assert(s);
     
-    //kprintf("To transfer msg!\n");
+//     kprintf("To transfer msg!\n");
     
     // Transfer msg
     transfer_msg(s, 1, src_p, src_t);

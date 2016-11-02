@@ -76,6 +76,7 @@ void init_kernel()
     hexp->switch_context = switch_context;
     hexp->sleep = wrap_sleep;
     hexp->yield = wrap_yield;
+    hexp->ksyscall = wrap_ksyscall;
     
     // TLB
     hexp->invalidate_tlb = wrap_invalidate_tlb;

@@ -238,35 +238,6 @@ int urs_register_op(
 /*
  * Dispatch
  */
-static no_opt struct thread_control_block *get_tcb()
-{
-    unsigned long addr = 0;
-    
-    __asm__ __volatile__
-    (
-        "xorl   %%esi, %%esi;"
-        "movl   %%gs:(%%esi), %%edi;"
-        : "=D" (addr)
-        :
-        : "%esi"
-    );
-    
-    return (struct thread_control_block *)addr;
-}
-
-static msg_t *send_request_msg()
-{
-    struct thread_control_block *tcb = get_tcb();
-    
-    msg_t *m = (msg_t *)tcb->msg_send;
-    struct process *p = (struct process *)tcb->proc_id;
-    struct thread *t = (struct thread *)tcb->thread_id;
-    
-    send_kernel(m, p, t);
-    
-    return (msg_t *)tcb->msg_recv;
-}
-
 static msg_t *create_dispatch_msg(struct urs_super *super, enum urs_op_type op, unsigned long node_id)
 {
     msg_t *msg = create_request_msg();
@@ -313,7 +284,7 @@ static int dispatch_lookup(struct urs_super *super, unsigned long node_id, char 
         set_msg_param_buf(s, next, (size_t)(strlen(next) + 1));
         set_msg_param_value(s, count);
         
-        r = send_request_msg();
+        r = ksys_request();
         if (is_link) {
             *is_link = (int)r->params[0].value;
         }
@@ -321,20 +292,22 @@ static int dispatch_lookup(struct urs_super *super, unsigned long node_id, char 
             *next_id = r->params[1].value;
         }
         
-        r = send_request_msg();
-        if (buf) {
-            u8 *src = (u8 *)((unsigned long)r + r->params[0].offset);
-            u8 *dest = buf;
-            ulong s = r->params[1].value;
-            
-            while (len < count && len < s) {
-                dest[len] = src[len];
-                len++;
-            }
-        }
-        if (actual) {
-            *actual = len;
-        }
+        kprintf("send win @ %p, recv win @ %p\n", s, r);
+        kprintf("lookup returned, is link: %d, next: %p\n", (int)r->params[0].value, r->params[1].value);
+        
+//         if (buf) {
+//             u8 *src = (u8 *)((unsigned long)r + r->params[2].offset);
+//             u8 *dest = buf;
+//             ulong s = r->params[3].value;
+//             
+//             while (len < count && len < s) {
+//                 dest[len] = src[len];
+//                 len++;
+//             }
+//         }
+//         if (actual) {
+//             *actual = len;
+//         }
         
         result = (int)r->params[r->param_count - 1].value;
     }
@@ -360,10 +333,12 @@ static int dispatch_open(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_msg) {
+        kprintf("to dispatch open\n");
+        
         msg_t *s, *r;
         s = create_dispatch_msg(super, op, node_id);
         
-        r = send_request_msg();
+        r = ksys_request();
         result = (int)r->params[r->param_count - 1].value;
     }
     
@@ -391,7 +366,7 @@ static int dispatch_release(struct urs_super *super, unsigned long node_id)
         msg_t *s, *r;
         s = create_dispatch_msg(super, op, node_id);
         
-        r = send_request_msg();
+        r = ksys_request();
         result = (int)r->params[r->param_count - 1].value;
     }
     
@@ -422,7 +397,7 @@ static int dispatch_read(struct urs_super *super, unsigned long node_id, void *b
         s = create_dispatch_msg(super, op, node_id);
         set_msg_param_value(s, count);
         
-        r = send_request_msg();
+        r = ksys_request();
         if (buf) {
             u8 *src = (u8 *)((unsigned long)r + r->params[0].offset);
             u8 *dest = buf;
@@ -467,7 +442,7 @@ static int dispatch_write(struct urs_super *super, unsigned long node_id, void *
         set_msg_param_buf(s, buf, count);
         set_msg_param_value(s, count);
         
-        r = send_request_msg();
+        r = ksys_request();
         if (actual) {
             *actual = r->params[0].value;
         }
@@ -499,7 +474,7 @@ static int dispatch_truncate(struct urs_super *super, unsigned long node_id)
         msg_t *s, *r;
         s = create_dispatch_msg(super, op, node_id);
         
-        r = send_request_msg();
+        r = ksys_request();
         result = (int)r->params[r->param_count - 1].value;
     }
     
@@ -530,7 +505,7 @@ static int dispatch_seek_data(struct urs_super *super, unsigned long node_id, un
         set_msg_param_value(s, offset);
         set_msg_param_value(s, (unsigned long)from);
         
-        r = send_request_msg();
+        r = ksys_request();
         if (newpos) {
             *newpos = r->params[0].value;
         }
@@ -565,7 +540,7 @@ static int dispatch_list(struct urs_super *super, unsigned long node_id, void *b
         s = create_dispatch_msg(super, op, node_id);
         set_msg_param_value(s, count);
         
-        r = send_request_msg();
+        r = ksys_request();
         if (buf) {
             u8 *src = (u8 *)((unsigned long)r + r->params[0].offset);
             u8 *dest = buf;
@@ -610,7 +585,7 @@ static int dispatch_seek_list(struct urs_super *super, unsigned long node_id, un
         set_msg_param_value(s, offset);
         set_msg_param_value(s, (unsigned long)from);
         
-        r = send_request_msg();
+        r = ksys_request();
         if (newpos) {
             *newpos = r->params[0].value;
         }
@@ -644,7 +619,7 @@ static int dispatch_create(struct urs_super *super, unsigned long node_id, char 
         s = create_dispatch_msg(super, op, node_id);
         set_msg_param_buf(s, name, strlen(name) + 1);
         
-        r = send_request_msg();
+        r = ksys_request();
         result = (int)r->params[r->param_count - 1].value;
     }
     
@@ -672,7 +647,7 @@ static int dispatch_remove(struct urs_super *super, unsigned long node_id)
         msg_t *s, *r;
         s = create_dispatch_msg(super, op, node_id);
         
-        r = send_request_msg();
+        r = ksys_request();
         result = (int)r->params[r->param_count - 1].value;;
     }
     
@@ -702,7 +677,7 @@ static int dispatch_rename(struct urs_super *super, unsigned long node_id, char 
         s = create_dispatch_msg(super, op, node_id);
         set_msg_param_buf(s, name, strlen(name) + 1);
         
-        r = send_request_msg();
+        r = ksys_request();
         result = (int)r->params[r->param_count - 1].value;
     }
     

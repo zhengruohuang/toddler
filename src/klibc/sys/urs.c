@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/syscall.h"
+#include "common/include/urs.h"
 #include "klibc/include/stdio.h"
 #include "klibc/include/string.h"
 #include "klibc/include/sys.h"
@@ -21,7 +22,7 @@ unsigned long kapi_urs_reg_super(char *path, char *name, int mode)
     return result;
 }
 
-int kapi_urs_reg_op(unsigned long super_id, int op, unsigned long mbox_id, unsigned long msg_opcode, unsigned long msg_func_num)
+int kapi_urs_reg_op(unsigned long super_id, enum urs_op_type op, unsigned long msg_opcode, unsigned long msg_func_num)
 {
     msg_t *s = kapi_msg(KAPI_URS_REG_OP);
     msg_t *r;
@@ -29,7 +30,7 @@ int kapi_urs_reg_op(unsigned long super_id, int op, unsigned long mbox_id, unsig
     
     msg_param_value(s, super_id);
     msg_param_value(s, (unsigned long)op);
-    msg_param_value(s, mbox_id);
+//     msg_param_value(s, mbox_id);
     msg_param_value(s, msg_opcode);
     msg_param_value(s, msg_func_num);
     

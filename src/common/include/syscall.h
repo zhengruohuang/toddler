@@ -48,6 +48,7 @@
 // Default opcode
 #define IPC_OPCODE_NONE         0x0
 #define IPC_OPCODE_KAPI         0x1
+#define IPC_OPCODE_ACTION       0x2
 
 // Message param type
 #define MSG_PARAM_EMPTY         0x0
@@ -134,5 +135,7 @@ typedef asmlinkage void (*msg_handler_t)(msg_t *msg);
 #define KAPI_STDOUT_WRITE       0x1001
 #define KAPI_STDERR_WRITE       0x1002
 
+// User messages
+#define USER_MSG_NUM_BASE       0x8000000
 
 #endif

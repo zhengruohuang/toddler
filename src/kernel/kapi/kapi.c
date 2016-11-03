@@ -119,6 +119,7 @@ void init_kapi()
     register_kapi(KAPI_URS_OPEN, urs_open_handler);
     register_kapi(KAPI_URS_CLOSE, urs_close_handler);
     register_kapi(KAPI_URS_READ, urs_read_handler);
+    register_kapi(KAPI_URS_WRITE, urs_write_handler);
     register_kapi(KAPI_URS_LIST, urs_list_handler);
     
     kprintf("KAPI Initialized\n");

@@ -12,6 +12,7 @@ extern int hello(int argc, char **argv);
 extern int echo(int argc, char **argv);
 extern int ls(int argc, char **argv);
 extern int cat(int argc, char **argv);
+extern int touch(int argc, char **argv);
 
 
 #endif

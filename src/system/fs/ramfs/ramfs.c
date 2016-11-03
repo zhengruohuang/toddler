@@ -10,7 +10,7 @@
 #include "klibc/include/kthread.h"
 
 
-#define RAMFS_BLOCK_SIZE    512
+#define RAMFS_BLOCK_SIZE    128
 
 
 struct ramfs_block {
@@ -99,6 +99,8 @@ static unsigned long read_data_block(struct ramfs_data *data, u8 *buf, unsigned 
         }
     }
     
+//     kprintf("data read: %s, size: %p\n", (char *)buf, index);
+    
     return index;
 }
 
@@ -106,7 +108,7 @@ static unsigned long write_data_block(struct ramfs_data *data, u8 *buf, unsigned
 {
     unsigned long index = 0;
     
-    kprintf("write, count: %lu\n", count);
+//     kprintf("write, buf: %s, count: %p\n", buf, count);
     
     while (index < count) {
         // Allocate a new block if necessary
@@ -306,6 +308,14 @@ static int lookup(unsigned long super_id, unsigned long node_id, const char *nam
 
 static int open(unsigned long super_id, unsigned long node_id)
 {
+    struct ramfs_node *node = get_node_by_id(node_id);
+    if (!node) {
+        return -1;
+    }
+    
+    node->data.pos = 0;
+    node->data.cur_offset = 0;
+    
     return 0;
 }
 
@@ -539,6 +549,7 @@ static int rename(unsigned long super_id, unsigned long node_id, char *name)
 asmlinkage void ramfs_msg_handler(msg_t *msg)
 {
     int result = EOK;
+    unsigned long ret_mbox_id = msg->mailbox_id;
     
     // Get common data fields
     enum urs_op_type op = (enum urs_op_type)msg->opcode;
@@ -547,7 +558,6 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
     
     // Setup the reply msg
     msg_t *r = syscall_msg();
-    r->mailbox_id = msg->mailbox_id;
     
     switch (op) {
     // Look up
@@ -672,6 +682,7 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
     }
     
     // Return value
+    r->mailbox_id = ret_mbox_id;
     msg_param_value(r, (unsigned long)result);
     
 //     kprintf("To call syscall respond!\n");

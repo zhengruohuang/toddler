@@ -438,6 +438,8 @@ static int dispatch_write(struct urs_super *super, unsigned long node_id, void *
     else if (super->ops[op].type == udisp_msg) {
         msg_t *s, *r;
         
+//         kprintf("to dispatch write, buf: %s, size: %p\n", (char *)buf, count);
+        
         s = create_dispatch_msg(super, op, node_id);
         set_msg_param_buf(s, buf, count);
         set_msg_param_value(s, count);

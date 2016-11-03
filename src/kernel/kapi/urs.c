@@ -136,6 +136,31 @@ asmlinkage void urs_read_handler(struct kernel_msg_handler_arg *arg)
     kernel_unreachable();
 }
 
+asmlinkage void urs_write_handler(struct kernel_msg_handler_arg *arg)
+{
+    struct thread *t = arg->sender_thread;
+    msg_t *s = arg->msg;
+    msg_t *r = create_response_msg(t);
+    
+    ulong open_id = s->params[0].value;
+    void *write_buf = (void *)((ulong)s + s->params[1].offset);
+    int buf_size = (int)s->params[2].value;
+    ulong len = 0;
+    
+    int result = (int)urs_write_node(open_id, write_buf, buf_size, &len);
+    set_msg_param_value(r, len);
+    set_msg_param_value(r, (ulong)result);
+    
+    run_thread(t);
+    
+    // Clean up
+    terminate_thread_self(arg->handler_thread);
+    sfree(arg);
+    
+    // Wait for this thread to be terminated
+    kernel_unreachable();
+}
+
 asmlinkage void urs_list_handler(struct kernel_msg_handler_arg *arg)
 {
     u8 name_buf[128];

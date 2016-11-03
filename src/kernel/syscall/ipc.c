@@ -89,7 +89,7 @@ static struct process *get_process_by_mailbox_id(struct process *src_p,
 {
     struct process *p = NULL;
     
-    //kprintf("mailbox_id: %p, opcode: %p, func: %p\n", mailbox_id, opcode, func);
+//     kprintf("mailbox_id: %p, opcode: %p, func: %p\n", mailbox_id, opcode, func);
     
     if (opcode != IPC_OPCODE_NONE) {
         switch (mailbox_id) {

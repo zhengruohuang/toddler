@@ -114,8 +114,6 @@ void init_kapi()
     
     // URS
     register_kapi(KAPI_URS_REG_SUPER, urs_reg_super_handler);
-    register_kapi(KAPI_URS_REG_OP, urs_reg_op_handler);
-    
     register_kapi(KAPI_URS_OPEN, urs_open_handler);
     register_kapi(KAPI_URS_CLOSE, urs_close_handler);
     register_kapi(KAPI_URS_READ, urs_read_handler);

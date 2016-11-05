@@ -82,10 +82,10 @@ extern unsigned long kapi_thread_id();
 /*
  * URS
  */
-extern unsigned long kapi_urs_reg_super(char *path, char *name, int mode);
+extern unsigned long kapi_urs_reg_super(char *path, char *name, unsigned int flags, struct urs_reg_ops *ops);
 extern int kapi_urs_reg_op(unsigned long super_id, enum urs_op_type op, unsigned long msg_opcode, unsigned long msg_func_num);
 
-extern unsigned long kapi_urs_open(char *name, int mode);
+extern unsigned long kapi_urs_open(char *name, unsigned int flags);
 extern int kapi_urs_close(unsigned long fd);
 extern size_t kapi_urs_read(unsigned long fd, void *buf, size_t count);
 extern size_t kapi_urs_write(unsigned long fd, void *buf, size_t count);

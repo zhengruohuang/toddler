@@ -19,10 +19,12 @@ asmlinkage void urs_reg_super_handler(struct kernel_msg_handler_arg *arg)
     msg_t *r = create_response_msg(t);
     
     char *path = (char *)((ulong)s + s->params[0].offset);
-//     char *name = (char *)((ulong)s + s->params[1].offset);
-//     int mode = (int)s->params[2].value;
+    char *name = (char *)((ulong)s + s->params[1].offset);
+    int flags = (int)s->params[2].value;
+    struct urs_reg_ops *ops = (struct urs_reg_ops *)((ulong)s + s->params[3].offset);
+    ops->mbox_id = arg->sender_thread->proc_id;
     
-    int result = (int)urs_register(path);
+    int result = (int)urs_register(path, name, flags, ops);
     set_msg_param_value(r, (ulong)result);
     
     run_thread(t);
@@ -35,30 +37,30 @@ asmlinkage void urs_reg_super_handler(struct kernel_msg_handler_arg *arg)
     kernel_unreachable();
 }
 
-asmlinkage void urs_reg_op_handler(struct kernel_msg_handler_arg *arg)
-{
-    struct thread *t = arg->sender_thread;
-    msg_t *s = arg->msg;
-    msg_t *r = create_response_msg(t);
-    
-    ulong super_id = s->params[0].value;
-    enum urs_op_type op = (enum urs_op_type)s->params[1].value;
-//     ulong mbox_id = s->params[2].value;
-    ulong msg_opcode = s->params[2].value;
-    ulong msg_func_num = s->params[3].value;
-    
-    int result = (int)urs_register_op(super_id, op, NULL, arg->sender_thread->proc_id, msg_opcode, msg_func_num);
-    set_msg_param_value(r, (ulong)result);
-    
-    run_thread(t);
-    
-    // Clean up
-    terminate_thread_self(arg->handler_thread);
-    sfree(arg);
-    
-    // Wait for this thread to be terminated
-    kernel_unreachable();
-}
+// asmlinkage void urs_reg_op_handler(struct kernel_msg_handler_arg *arg)
+// {
+//     struct thread *t = arg->sender_thread;
+//     msg_t *s = arg->msg;
+//     msg_t *r = create_response_msg(t);
+//     
+//     ulong super_id = s->params[0].value;
+//     enum urs_op_type op = (enum urs_op_type)s->params[1].value;
+// //     ulong mbox_id = s->params[2].value;
+//     ulong msg_opcode = s->params[2].value;
+//     ulong msg_func_num = s->params[3].value;
+//     
+//     int result = (int)urs_register_op(super_id, op, NULL, arg->sender_thread->proc_id, msg_opcode, msg_func_num);
+//     set_msg_param_value(r, (ulong)result);
+//     
+//     run_thread(t);
+//     
+//     // Clean up
+//     terminate_thread_self(arg->handler_thread);
+//     sfree(arg);
+//     
+//     // Wait for this thread to be terminated
+//     kernel_unreachable();
+// }
 
 
 /*
@@ -71,9 +73,9 @@ asmlinkage void urs_open_handler(struct kernel_msg_handler_arg *arg)
     msg_t *r = create_response_msg(t);
     
     char *name = (char *)((ulong)s + s->params[0].offset);
-    int mode = (int)s->params[1].value;
+    int flags = (int)s->params[1].value;
     
-    int result = (int)urs_open_node(name, mode, t->proc_id);
+    int result = (int)urs_open_node(name, flags, t->proc_id);
     set_msg_param_value(r, (ulong)result);
     
     run_thread(t);
@@ -93,7 +95,7 @@ asmlinkage void urs_close_handler(struct kernel_msg_handler_arg *arg)
     msg_t *r = create_response_msg(t);
     
     ulong open_id = s->params[0].value;
-    int result = (int)urs_close_node(open_id, t->proc_id);
+    int result = (int)urs_close_node(open_id);
     set_msg_param_value(r, (ulong)result);
     
     run_thread(t);

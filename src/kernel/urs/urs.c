@@ -175,7 +175,7 @@ static struct urs_super *release_super(struct urs_super *s)
     s->ref_count--;
 }
 
-unsigned long urs_register(char *path)
+unsigned long urs_register(char *path, char *name, unsigned int flags, struct urs_reg_ops *ops)
 {
     int i;
     struct urs_super *super = NULL;
@@ -197,8 +197,23 @@ unsigned long urs_register(char *path)
     super->path = copy;
     super->ref_count = 1;
     
+    // Set up op
     for (i = 0; i < uop_count; i++) {
-        super->ops[i].type = udisp_none;
+        if (ops && ops->entries[i].type == ureg_func) {
+            super->ops[i].type = udisp_func;
+            super->ops[i].func = ops->entries[i].func;
+        }
+        
+        else if (ops && ops->entries[i].type == ureg_msg) {
+            super->ops[i].type = udisp_msg;
+            super->ops[i].mbox_id = ops->mbox_id;
+            super->ops[i].msg_opcode = ops->entries[i].msg_opcode;
+            super->ops[i].msg_func_num = ops->entries[i].msg_func_num;
+        }
+        
+        else {
+            super->ops[i].type = udisp_none;
+        }
     }
     
     hashtable_insert(super_table, (ulong)copy, super);
@@ -210,29 +225,29 @@ int urs_unregister(char *path)
     return 0;
 }
 
-int urs_register_op(
-    unsigned long id, enum urs_op_type op, void *func,
-    unsigned long mbox_id, unsigned long msg_opcode, unsigned long msg_func_num)
-{
-    struct urs_super *super = get_super_by_id(id);
-    if (!super) {
-        return -1;
-    }
-    
-    if (func) {
-        super->ops[op].type = udisp_func;
-        super->ops[op].func = func;
-    }
-    
-    else {
-        super->ops[op].type = udisp_msg;
-        super->ops[op].mbox_id = mbox_id;
-        super->ops[op].msg_opcode = msg_opcode;
-        super->ops[op].msg_func_num = msg_func_num;
-    }
-    
-    return 0;
-}
+// int urs_register_op(
+//     unsigned long id, enum urs_op_type op, void *func,
+//     unsigned long mbox_id, unsigned long msg_opcode, unsigned long msg_func_num)
+// {
+//     struct urs_super *super = get_super_by_id(id);
+//     if (!super) {
+//         return -1;
+//     }
+//     
+//     if (func) {
+//         super->ops[op].type = udisp_func;
+//         super->ops[op].func = func;
+//     }
+//     
+//     else {
+//         super->ops[op].type = udisp_msg;
+//         super->ops[op].mbox_id = mbox_id;
+//         super->ops[op].msg_opcode = msg_opcode;
+//         super->ops[op].msg_func_num = msg_func_num;
+//     }
+//     
+//     return 0;
+// }
 
 
 /*
@@ -259,7 +274,7 @@ static int dispatch_lookup(struct urs_super *super, unsigned long node_id, char 
     int result = 0;
     enum urs_op_type op = uop_lookup;
     
-    kprintf("To dispatch lookup @ %s\n", next);
+//     kprintf("To dispatch lookup @ %s\n", next);
     
     if (super->ops[op].type == udisp_none) {
         if (is_link) {
@@ -292,8 +307,8 @@ static int dispatch_lookup(struct urs_super *super, unsigned long node_id, char 
             *next_id = r->params[1].value;
         }
         
-        kprintf("send win @ %p, recv win @ %p\n", s, r);
-        kprintf("lookup returned, is link: %d, next: %p\n", (int)r->params[0].value, r->params[1].value);
+//         kprintf("send win @ %p, recv win @ %p\n", s, r);
+//         kprintf("lookup returned, is link: %d, next: %p\n", (int)r->params[0].value, r->params[1].value);
         
 //         if (buf) {
 //             u8 *src = (u8 *)((unsigned long)r + r->params[2].offset);
@@ -333,8 +348,6 @@ static int dispatch_open(struct urs_super *super, unsigned long node_id)
     }
     
     else if (super->ops[op].type == udisp_msg) {
-        kprintf("to dispatch open\n");
-        
         msg_t *s, *r;
         s = create_dispatch_msg(super, op, node_id);
         
@@ -602,7 +615,7 @@ static int dispatch_seek_list(struct urs_super *super, unsigned long node_id, un
     return result;
 }
 
-static int dispatch_create(struct urs_super *super, unsigned long node_id, char *name)
+static int dispatch_create(struct urs_super *super, unsigned long node_id, char *name, enum urs_create_type type, char *target, unsigned long target_id)
 {
     int result = 0;
     enum urs_op_type op = uop_create;
@@ -612,7 +625,7 @@ static int dispatch_create(struct urs_super *super, unsigned long node_id, char 
     }
     
     else if (super->ops[op].type == udisp_func) {
-        result = super->ops[op].func(super->id, node_id, name);
+        result = super->ops[op].func(super->id, node_id, name, type, target, target_id);
     }
     
     else if (super->ops[op].type == udisp_msg) {
@@ -620,6 +633,9 @@ static int dispatch_create(struct urs_super *super, unsigned long node_id, char 
         
         s = create_dispatch_msg(super, op, node_id);
         set_msg_param_buf(s, name, strlen(name) + 1);
+        set_msg_param_value(s, (unsigned long)type);
+        set_msg_param_buf(s, target, strlen(target) + 1);
+        set_msg_param_value(s, target_id);
         
         r = ksys_request();
         result = (int)r->params[r->param_count - 1].value;
@@ -883,7 +899,7 @@ static struct urs_node *resolve_path(char *path, struct urs_super **real_super)
     return cur_node;
 }
 
-unsigned long urs_open_node(char *path, unsigned int mode, unsigned long process_id)
+unsigned long urs_open_node(char *path, unsigned int flags, unsigned long process_id)
 {
     struct urs_open *o = NULL;
     struct urs_super *super = NULL;
@@ -914,7 +930,7 @@ unsigned long urs_open_node(char *path, unsigned int mode, unsigned long process
     return o->id;
 }
 
-int urs_close_node(unsigned long id, unsigned long process_id)
+int urs_close_node(unsigned long id)
 {
     int error = EOK;
     struct urs_open *o = get_open_by_id(id);
@@ -1022,15 +1038,32 @@ int urs_seek_list(long unsigned int id, long long unsigned int offset, enum urs_
     return error;
 }
 
-int urs_create_node(unsigned long id, char *name)
+int urs_create_node(unsigned long id, char *name, unsigned int flags, enum urs_create_type type, char *target)
 {
     int error = EOK;
-    struct urs_open *o = get_open_by_id(id);
+    unsigned long target_node_id = 0;
     
-    if (o) {
-        error = dispatch_create(o->node->super, o->node->dispatch_id, name);
-    } else {
-        error = EBADF;
+    struct urs_open *o = get_open_by_id(id);
+    if (!o) {
+        return EBADF;
+    }
+    
+    switch (type) {
+    // Hard link needs to figure out the target dispatch node ID first
+    case ucreate_hard_link:
+        target_node_id = -1;
+    
+    // Create the link
+    case ucreate_node:
+    case ucreate_sym_link:
+        error = dispatch_create(o->node->super, o->node->dispatch_id, name, type, target, target_node_id);
+        break;
+    
+    // Do not do anything
+    case ucreate_dyn_link:
+    case ucreate_none:
+    default:
+        break;
     }
     
     return error;

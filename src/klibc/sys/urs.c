@@ -6,7 +6,7 @@
 #include "klibc/include/sys.h"
 
 
-unsigned long kapi_urs_reg_super(char *path, char *name, int mode)
+unsigned long kapi_urs_reg_super(char *path, char *name, unsigned int flags, struct urs_reg_ops *ops)
 {
     msg_t *s = kapi_msg(KAPI_URS_REG_SUPER);
     msg_t *r;
@@ -14,7 +14,8 @@ unsigned long kapi_urs_reg_super(char *path, char *name, int mode)
     
     msg_param_buffer(s, path, (size_t)(strlen(path) + 1));
     msg_param_buffer(s, name, (size_t)(strlen(name) + 1));
-    msg_param_value(s, (unsigned long)mode);
+    msg_param_value(s, (unsigned long)flags);
+    msg_param_buffer(s, ops, (size_t)(sizeof(struct urs_reg_ops)));
     
     r = syscall_request();
     result = kapi_return_value(r);
@@ -22,32 +23,32 @@ unsigned long kapi_urs_reg_super(char *path, char *name, int mode)
     return result;
 }
 
-int kapi_urs_reg_op(unsigned long super_id, enum urs_op_type op, unsigned long msg_opcode, unsigned long msg_func_num)
-{
-    msg_t *s = kapi_msg(KAPI_URS_REG_OP);
-    msg_t *r;
-    unsigned long result = 0;
-    
-    msg_param_value(s, super_id);
-    msg_param_value(s, (unsigned long)op);
-//     msg_param_value(s, mbox_id);
-    msg_param_value(s, msg_opcode);
-    msg_param_value(s, msg_func_num);
-    
-    r = syscall_request();
-    result = (int)kapi_return_value(r);
-    
-    return result;
-}
+// int kapi_urs_reg_op(unsigned long super_id, enum urs_op_type op, unsigned long msg_opcode, unsigned long msg_func_num)
+// {
+//     msg_t *s = kapi_msg(KAPI_URS_REG_OP);
+//     msg_t *r;
+//     unsigned long result = 0;
+//     
+//     msg_param_value(s, super_id);
+//     msg_param_value(s, (unsigned long)op);
+// //     msg_param_value(s, mbox_id);
+//     msg_param_value(s, msg_opcode);
+//     msg_param_value(s, msg_func_num);
+//     
+//     r = syscall_request();
+//     result = (int)kapi_return_value(r);
+//     
+//     return result;
+// }
 
-unsigned long kapi_urs_open(char *name, int mode)
+unsigned long kapi_urs_open(char *name, unsigned int flags)
 {
     msg_t *s = kapi_msg(KAPI_URS_OPEN);
     msg_t *r;
     unsigned long result = 0;
     
     msg_param_buffer(s, name, (size_t)(strlen(name) + 1));
-    msg_param_value(s, (unsigned long)mode);
+    msg_param_value(s, (unsigned long)flags);
     
     r = syscall_request();
     result = kapi_return_value(r);

@@ -700,27 +700,19 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
  */
 #define REG_OP(op, handler) do {                                        \
     unsigned long func_num = alloc_msg_num();                           \
-    kapi_urs_reg_op(super_id, op, (unsigned long)op, func_num);         \
+    ops.entries[op].type = ureg_msg;                                    \
+    ops.entries[op].msg_opcode = (unsigned long)op;                     \
+    ops.entries[op].msg_func_num = func_num;                            \
     syscall_reg_msg_handler(func_num, ramfs_msg_handler);               \
 } while (0)
 
 int register_ramfs(char *path)
 {
+    struct urs_reg_ops ops;
     struct ramfs_node *root = NULL;
+    unsigned long super_id = 0;
     
-    unsigned long super_id = kapi_urs_reg_super(path, "ramfs", 0);
-    if (!super_id) {
-        return -2;
-    }
-    
-    root = create_node("/", NULL);
-    if (!root) {
-        return -3;
-    }
-    
-    hash_insert(ramfs_table, (void *)super_id, root);
-    
-    // Register operations
+    // Prepare operations
     REG_OP(uop_lookup, lookup);
     REG_OP(uop_open, open);
     REG_OP(uop_release, release);
@@ -736,6 +728,19 @@ int register_ramfs(char *path)
     REG_OP(uop_create, create);
     REG_OP(uop_remove, remove);
     REG_OP(uop_rename, rename);
+    
+    // Register the FS
+    super_id = kapi_urs_reg_super(path, "ramfs", 0, &ops);
+    if (!super_id) {
+        return -2;
+    }
+    
+    root = create_node("/", NULL);
+    if (!root) {
+        return -3;
+    }
+    
+    hash_insert(ramfs_table, (void *)super_id, root);
     
     return 0;
 }

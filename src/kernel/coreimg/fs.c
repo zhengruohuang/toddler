@@ -273,24 +273,29 @@ static int seek_list(unsigned long super_id, unsigned long node_id, unsigned lon
 /*
  * Init
  */
-#define REG_OP_FUNC(type, func) urs_register_op(super_id, type, func, 0, 0, 0)
+#define OP_FUNC(t, f)   ops.entries[t].type = ureg_func; ops.entries[t].func = f
+
 
 void init_coreimgfs()
 {
-    unsigned long super_id = urs_register("coreimg://");
+    // Prepare operations
+    struct urs_reg_ops ops;
+    
+    OP_FUNC(uop_lookup, lookup);
+    OP_FUNC(uop_open, open);
+    OP_FUNC(uop_release, release);
+    
+    OP_FUNC(uop_read, read);
+    OP_FUNC(uop_seek_data, seek_data);
+    
+    OP_FUNC(uop_list, list);
+    OP_FUNC(uop_seek_list, seek_list);
+    
+    // Register the FS
+    unsigned long super_id = urs_register("coreimg://", "coreimgfs", 0, &ops);
     assert(super_id);
     
-    // Register operations
-    REG_OP_FUNC(uop_lookup, lookup);
-    REG_OP_FUNC(uop_open, open);
-    REG_OP_FUNC(uop_release, release);
-    
-    REG_OP_FUNC(uop_read, read);
-    REG_OP_FUNC(uop_seek_data, seek_data);
-    
-    REG_OP_FUNC(uop_list, list);
-    REG_OP_FUNC(uop_seek_list, seek_list);
-    
+    // Take care of salloc
     open_record_salloc_id = salloc_create(sizeof(struct open_record), 0, 0, NULL, NULL);
     open_table = hashtable_new(0, NULL, NULL);
     

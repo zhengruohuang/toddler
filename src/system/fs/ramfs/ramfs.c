@@ -431,15 +431,23 @@ static int list(unsigned long super_id, unsigned long node_id, void *buf, unsign
         return -1;
     }
     
+    // No more entries
+    if (node->sub.pos >= node->sub.count) {
+        return -1;
+    }
+    
     // Obtain the sub entry
+//     kprintf("to obtain at pos: %p, entries: %p, count: %p\n", node->sub.pos, node->sub.entries, node->sub.count);
     sub = hash_obtain_at(node->sub.entries, node->sub.pos);
+//     kprintf("obtained: %p\n", sub);
     
     // Copy the name
     if (buf) {
         len = strlen(sub->name) + 1;
         len = count > len ? len : count;
         memcpy(buf, sub->name, len);
-        ((char *)buf)[len] = '\0';
+        ((char *)buf)[len - 1] = '\0';
+//         kprintf("entry name: %s\n", (char *)buf);
     }
     
     if (actual) {
@@ -447,11 +455,6 @@ static int list(unsigned long super_id, unsigned long node_id, void *buf, unsign
     }
     
     node->sub.pos++;
-    if (node->sub.pos >= node->sub.count) {
-        node->sub.pos = 0;
-        result = -1;
-    }
-    
     hash_release(node->sub.entries, NULL, sub);
     
     return result;
@@ -488,7 +491,7 @@ static int seek_list(unsigned long super_id, unsigned long node_id, unsigned lon
     return 0;
 }
 
-static int create(unsigned long super_id, unsigned long node_id, char *name)
+static int create(unsigned long super_id, unsigned long node_id, char *name, enum urs_create_type type, unsigned int flags, char *target, unsigned long target_id)
 {
     struct ramfs_node *sub = NULL;
     
@@ -497,17 +500,35 @@ static int create(unsigned long super_id, unsigned long node_id, char *name)
         return -1;
     }
     
-    sub = create_node(name, node);
-    if (!node->sub.entries) {
-        node->sub.entries = hash_new(0, urs_hash_func, urs_hash_cmp);
+    switch (type) {
+    case ucreate_node:
+        sub = create_node(name, node);
+        if (!node->sub.entries) {
+            node->sub.entries = hash_new(0, urs_hash_func, urs_hash_cmp);
+            kprintf("New has table created @ %p\n", node->sub.entries);
+        }
+        
+        kprintf("To insert into hash table, name: %s, sub: %p\n", name, sub);
+        if (hash_insert(node->sub.entries, name, sub)) {
+            sfree(sub);
+            return -2;
+        };
+        
+        node->sub.count++;
+        break;
+    
+    case ucreate_sym_link:
+        break;
+    case ucreate_hard_link:
+        break;
+    
+    case ucreate_dyn_link:
+        return -1;
+        
+    case ucreate_none:
+    default:
+        break;
     }
-    
-    if (hash_insert(node->sub.entries, name, sub)) {
-        sfree(sub);
-        return -2;
-    };
-    
-    node->sub.count++;
     
     return 0;
 }
@@ -662,7 +683,12 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
     // Create
     case uop_create: {
         char *name = (void *)((unsigned long)msg + msg->params[3].offset);
-        result = create(super_id, node_id, name);
+        enum urs_create_type type = (enum urs_create_type)msg->params[4].value;
+        unsigned int flags = (unsigned int)msg->params[5].value;
+        char *target = (void *)((unsigned long)msg + msg->params[6].offset);
+        unsigned long target_node_id = msg->params[7].value;
+        
+        result = create(super_id, node_id, name, type, flags, target, target_node_id);
         break;
     }
     

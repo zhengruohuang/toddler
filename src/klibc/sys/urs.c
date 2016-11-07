@@ -144,6 +144,29 @@ size_t kapi_urs_list(unsigned long fd, void *buf, size_t count)
     return result;
 }
 
+int kapi_urs_create(unsigned long fd, char *name, enum urs_create_type type, unsigned int flags, char *target)
+{
+    // Setup the msg
+    msg_t *s = kapi_msg(KAPI_URS_CREATE);
+    msg_t *r = NULL;
+    int result = -1;
+    
+    // Setup the params
+    msg_param_value(s, fd);
+    msg_param_buffer(s, name, strlen(name) + 1);
+    msg_param_value(s, (unsigned long)type);
+    msg_param_value(s, (unsigned long)flags);
+    msg_param_buffer(s, target, target ? strlen(name) + 1 : 0);
+    
+    // Issue the KAPI and obtain the result
+    r = syscall_request();
+    
+    // Setup the result
+    result = (int)kapi_return_value(r);
+    
+    return result;
+}
+
 //  int lseek(int file, int ptr, int dir);
 
 //  int fstat(int file, struct stat *st);

@@ -565,6 +565,8 @@ static int dispatch_list(struct urs_super *super, unsigned long node_id, void *b
                 dest[len] = src[len];
                 len++;
             }
+            
+//             kprintf("received: %s\n", buf);
         }
         if (actual) {
             *actual = len;
@@ -615,7 +617,7 @@ static int dispatch_seek_list(struct urs_super *super, unsigned long node_id, un
     return result;
 }
 
-static int dispatch_create(struct urs_super *super, unsigned long node_id, char *name, enum urs_create_type type, char *target, unsigned long target_id)
+static int dispatch_create(struct urs_super *super, unsigned long node_id, char *name, enum urs_create_type type, unsigned int flags, char *target, unsigned long target_id)
 {
     int result = 0;
     enum urs_op_type op = uop_create;
@@ -625,7 +627,7 @@ static int dispatch_create(struct urs_super *super, unsigned long node_id, char 
     }
     
     else if (super->ops[op].type == udisp_func) {
-        result = super->ops[op].func(super->id, node_id, name, type, target, target_id);
+        result = super->ops[op].func(super->id, node_id, name, type, flags, target, target_id);
     }
     
     else if (super->ops[op].type == udisp_msg) {
@@ -634,6 +636,7 @@ static int dispatch_create(struct urs_super *super, unsigned long node_id, char 
         s = create_dispatch_msg(super, op, node_id);
         set_msg_param_buf(s, name, strlen(name) + 1);
         set_msg_param_value(s, (unsigned long)type);
+        set_msg_param_value(s, (unsigned long)flags);
         set_msg_param_buf(s, target, strlen(target) + 1);
         set_msg_param_value(s, target_id);
         
@@ -1038,7 +1041,7 @@ int urs_seek_list(long unsigned int id, long long unsigned int offset, enum urs_
     return error;
 }
 
-int urs_create_node(unsigned long id, char *name, unsigned int flags, enum urs_create_type type, char *target)
+int urs_create_node(unsigned long id, char *name, enum urs_create_type type, unsigned int flags, char *target)
 {
     int error = EOK;
     unsigned long target_node_id = 0;
@@ -1056,7 +1059,7 @@ int urs_create_node(unsigned long id, char *name, unsigned int flags, enum urs_c
     // Create the link
     case ucreate_node:
     case ucreate_sym_link:
-        error = dispatch_create(o->node->super, o->node->dispatch_id, name, type, target, target_node_id);
+        error = dispatch_create(o->node->super, o->node->dispatch_id, name, type, flags, target, target_node_id);
         break;
     
     // Do not do anything

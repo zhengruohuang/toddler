@@ -22,6 +22,7 @@ static struct builtin_cmd builtin_cmd_list[] = {
     { "ls", ls },
     { "cat", cat },
     { "touch", touch },
+    { "touch2", touch2 },
 };
 
 

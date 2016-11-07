@@ -49,3 +49,43 @@ int touch(int argc, char **argv)
     
     return err;
 }
+
+int touch2(int argc, char **argv)
+{
+    int err = EOK;
+    
+    char *dir = NULL;
+    char *name = NULL;
+    if (argc > 2) {
+        dir = argv[1];
+        name = argv[2];
+    } else {
+        dir = "ramfs://";
+        name = "test.txt";
+    }
+    
+    // Create the node
+    unsigned long id = kapi_urs_open(dir, 0);
+    kprintf("Dir open: %p\n", id);
+    if (!id) {
+        err = ENOENT;
+        return err;
+    }
+    
+    err = kapi_urs_create(id, name, ucreate_node, 0, NULL);
+    kprintf("Node create: %d\n", err);
+    if (err) {
+        return err;
+    }
+    
+    err = kapi_urs_close(id);
+    kprintf("Dir close: %p (%d)\n", id, err);
+    if (err) {
+        return err;
+    }
+    
+    // Write something to the file
+    
+    
+    return err;
+}

@@ -160,7 +160,7 @@ void *hash_obtain_at(hash_t *l, unsigned long index)
         count += bucket->node_count;
         if (count > index) {
             count -= bucket->node_count;
-            count = index - count - 1;
+            count = index - count;
             break;
         }
     }

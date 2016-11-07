@@ -73,7 +73,7 @@ asmlinkage void urs_open_handler(struct kernel_msg_handler_arg *arg)
     msg_t *r = create_response_msg(t);
     
     char *name = (char *)((ulong)s + s->params[0].offset);
-    int flags = (int)s->params[1].value;
+    unsigned int flags = (unsigned int)s->params[1].value;
     
     int result = (int)urs_open_node(name, flags, t->proc_id);
     set_msg_param_value(r, (ulong)result);
@@ -181,6 +181,31 @@ asmlinkage void urs_list_handler(struct kernel_msg_handler_arg *arg)
     int result = (int)urs_list_node(open_id, name_buf, buf_size, &len);
     set_msg_param_buf(r, name_buf, len);
     set_msg_param_value(r, len);
+    set_msg_param_value(r, (ulong)result);
+    
+    run_thread(t);
+    
+    // Clean up
+    terminate_thread_self(arg->handler_thread);
+    sfree(arg);
+    
+    // Wait for this thread to be terminated
+    kernel_unreachable();
+}
+
+asmlinkage void urs_create_handler(struct kernel_msg_handler_arg *arg)
+{
+    struct thread *t = arg->sender_thread;
+    msg_t *s = arg->msg;
+    msg_t *r = create_response_msg(t);
+    
+    ulong open_id = s->params[0].value;
+    char *name = (char *)((ulong)s + s->params[1].offset);
+    enum urs_create_type type = s->params[2].value;
+    unsigned int flags = (unsigned int)s->params[3].value;
+    char *target = s->params[4].offset ? (char *)((ulong)s + s->params[4].offset) : NULL;
+    
+    int result = (int)urs_create_node(open_id, name, type, flags, target);
     set_msg_param_value(r, (ulong)result);
     
     run_thread(t);

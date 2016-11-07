@@ -87,9 +87,13 @@ extern int kapi_urs_reg_op(unsigned long super_id, enum urs_op_type op, unsigned
 
 extern unsigned long kapi_urs_open(char *name, unsigned int flags);
 extern int kapi_urs_close(unsigned long fd);
+
 extern size_t kapi_urs_read(unsigned long fd, void *buf, size_t count);
 extern size_t kapi_urs_write(unsigned long fd, void *buf, size_t count);
+
 extern size_t kapi_urs_list(unsigned long fd, void *buf, size_t count);
+
+extern int kapi_urs_create(unsigned long fd, char *name, enum urs_create_type type, unsigned int flags, char *target);
 
 /*
  * Interrupt

@@ -19,4 +19,22 @@ extern int parse_cmd(char *in, char **cmd, int *argc, char ***argv);
 extern int free_cmd(char *cmd, int argc, char **argv);
 
 
+/*
+ * Path manipulation
+ */
+extern int is_valid_path(const char *path);
+extern int is_absolute_path(const char *path);
+extern int is_relative_path(const char *path);
+extern char *join_path(const char *a, const char *b);
+extern char *normalize_path(const char *path);
+
+
+/*
+ * Working directory
+ */
+extern void init_cwd();
+extern char *get_cwd();
+extern void change_cwd(const char *path);
+
+
 #endif

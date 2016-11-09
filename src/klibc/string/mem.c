@@ -2,7 +2,7 @@
 #include "klibc/include/string.h"
 
 
-void memcpy(void *dest, void *src, size_t count)
+void memcpy(void *dest, const void *src, size_t count)
 {
     size_t i;
     
@@ -37,7 +37,7 @@ void memzero(void *src, size_t size)
     
 }
 
-int memcmp(void *src1, void *src2, size_t len)
+int memcmp(const void *src1, const void *src2, size_t len)
 {
     unsigned char *cmp1 = (unsigned char *)src1;
     unsigned char *cmp2 = (unsigned char *)src2;

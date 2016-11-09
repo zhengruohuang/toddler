@@ -13,7 +13,7 @@ extern int echo(int argc, char **argv);
 extern int ls(int argc, char **argv);
 extern int cat(int argc, char **argv);
 extern int touch(int argc, char **argv);
-extern int touch2(int argc, char **argv);
+extern int cd(int argc, char **argv);
 
 
 #endif

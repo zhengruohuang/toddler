@@ -14,10 +14,10 @@ extern char *strdup(const char *str);
 /*
  * Memory
  */
-extern void memcpy(void *dest, void *src, size_t count);
+extern void memcpy(void *dest, const void *src, size_t count);
 extern void memset(void *src, int value, size_t size);
 extern void memzero(void *src, size_t size);
-extern int memcmp(void *src1, void *src2, size_t len);
+extern int memcmp(const void *src1, const void *src2, size_t len);
 
 
 #endif

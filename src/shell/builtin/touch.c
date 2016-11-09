@@ -1,28 +1,106 @@
 #include "common/include/data.h"
 #include "common/include/errno.h"
 #include "klibc/include/stdio.h"
+#include "klibc/include/stdlib.h"
+#include "klibc/include/string.h"
 #include "klibc/include/sys.h"
 #include "shell/include/shell.h"
 
 
-static int do_touch(char *name)
+static char touch_content[] = "Hello world!\nFile touched!";
+
+
+static int touch_file(unsigned long id)
 {
-    char buf[] = "Hello world!\nFile touched!\n";
-    size_t j;
     int err = EOK;
-    
-    unsigned long id = kapi_urs_open(name, 0);
-    kprintf("Open: %p\n", id);
     
     if (id) {
         size_t s = 0;
-        s = kapi_urs_write(id, buf, sizeof(buf));
+        s = kapi_urs_write(id, touch_content, sizeof(touch_content));
         err = kapi_urs_close(id);
-        kprintf("Closed: %p (%d)\n", id, err);
+//         kprintf("Closed: %p (%d)\n", id, err);
     }
     
     else {
         err = ENOENT;
+    }
+    
+    return err;
+}
+
+static int create_file(char *name)
+{
+    int err = EOK;
+    unsigned long id = 0;
+    
+    int i;
+    int name_idx = 0;
+    char *dir = NULL;
+    char *file = NULL;
+    
+    // Find out dir name and file name
+    for (i = strlen(name) - 1; i >= 0; i--) {
+        if (name[i] == '/') {
+            break;
+        }
+    }
+    
+    if (!i) {
+        return ENOENT;
+    }
+    
+    name_idx = i + 1;
+    dir = calloc(name_idx + 1, sizeof(char));
+    memcpy(dir, name, name_idx);
+    dir[name_idx] = '\0';
+    file = &name[name_idx];
+//     kprintf("dir: %s, file: %s\n", dir, file);
+    
+    // Create the file
+    id = kapi_urs_open(dir, 0);
+    free(dir);
+    kprintf("Dir open: %p\n", id);
+    if (!id) {
+        return ENOENT;
+    }
+    
+    err = kapi_urs_create(id, file, ucreate_node, 0, NULL);
+//     kprintf("Node create: %d\n", err);
+    if (err) {
+        return err;
+    }
+    
+    err = kapi_urs_close(id);
+//     kprintf("Dir close: %p (%d)\n", id, err);
+    if (err) {
+        return err;
+    }
+    
+    // Actually touch the file
+    id = kapi_urs_open(name, 0);
+    if (id) {
+        kprintf("Open: %p\n", id);
+        err = touch_file(id);
+    } else {
+        err = ENOENT;
+    }
+    
+    return err;
+}
+
+static int do_touch(char *name)
+{
+    int err = EOK;
+    unsigned long id = kapi_urs_open(name, 0);
+    
+    if (id) {
+        kprintf("Open: %p\n", id);
+        err = touch_file(id);
+    }
+    
+    else {
+//         kprintf("To create new file\n");
+        err = create_file(name);
     }
     
     return err;
@@ -46,46 +124,6 @@ int touch(int argc, char **argv)
     else {
         err = do_touch("ramfs://");
     }
-    
-    return err;
-}
-
-int touch2(int argc, char **argv)
-{
-    int err = EOK;
-    
-    char *dir = NULL;
-    char *name = NULL;
-    if (argc > 2) {
-        dir = argv[1];
-        name = argv[2];
-    } else {
-        dir = "ramfs://";
-        name = "test.txt";
-    }
-    
-    // Create the node
-    unsigned long id = kapi_urs_open(dir, 0);
-    kprintf("Dir open: %p\n", id);
-    if (!id) {
-        err = ENOENT;
-        return err;
-    }
-    
-    err = kapi_urs_create(id, name, ucreate_node, 0, NULL);
-    kprintf("Node create: %d\n", err);
-    if (err) {
-        return err;
-    }
-    
-    err = kapi_urs_close(id);
-    kprintf("Dir close: %p (%d)\n", id, err);
-    if (err) {
-        return err;
-    }
-    
-    // Write something to the file
-    
     
     return err;
 }

@@ -4,6 +4,8 @@
 #include "klibc/include/stdlib.h"
 #include "klibc/include/string.h"
 #include "klibc/include/stdstruct.h"
+#include "klibc/include/assert.h"
+#include "klibc/include/sys.h"
 #include "shell/include/shell.h"
 
 
@@ -143,10 +145,15 @@ char *normalize_path(const char *path)
 /*
  * Working directory
  */
-static char *cwd = "coreimg://";
+#define STARTUP_WORK_DIR    "coreimg://"
+
+static char *cwd = NULL;
 
 void init_cwd()
 {
+    cwd = strdup(STARTUP_WORK_DIR);
+    unsigned long id = kapi_urs_open(cwd, 0);
+    assert(id);
 }
 
 char *get_cwd()
@@ -156,5 +163,6 @@ char *get_cwd()
 
 void change_cwd(const char *path)
 {
+    free(cwd);
     cwd = strdup(path);
 }

@@ -212,6 +212,7 @@ int main(int argc, char *argv[])
     test_out();
     kapi_process_started(0);
     
+    init_cwd();
     welcome();
     prompt();
     

@@ -315,6 +315,7 @@ static int open(unsigned long super_id, unsigned long node_id)
     
     node->data.pos = 0;
     node->data.cur_offset = 0;
+    node->sub.pos = 0;
     
     return 0;
 }

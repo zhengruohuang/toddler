@@ -82,6 +82,7 @@ static int open(unsigned long super_id, unsigned long node_id)
     
     if (node) {
         node->ref_count++;
+        node->pos = 0;
         hashtable_release(open_table, node_id, node);
     }
     

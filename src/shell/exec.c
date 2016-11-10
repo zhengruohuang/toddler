@@ -33,13 +33,14 @@ static int is_space(char c)
     return c == ' ' || c == '\t';
 }
 
-int parse_cmd(char *in, char **cmd, int *argc, char ***argv)
+int parse_cmd(char *in, char **cmd, int *argc, char ***argv, char **stdin, char **stdout, char **stderr)
 {
+    int i;
     char *c = in;
     char *cmd_name = NULL;
     int cmd_pos = 0;
-    int arg_count = 0;
-    char **arg_list = NULL;
+    int part_count = 0;
+    char **part_list = NULL;
     
     // Skip leading space
     while (*in && is_space(*in)) {
@@ -64,7 +65,7 @@ int parse_cmd(char *in, char **cmd, int *argc, char ***argv)
 //     kprintf("cmd name: %s, pos: %d\n", cmd_name, cmd_pos);
     
     // Count arguments
-    arg_count = 1;
+    part_count = 1;
     
     while (*c) {
         int arg_len = 0;
@@ -83,24 +84,20 @@ int parse_cmd(char *in, char **cmd, int *argc, char ***argv)
         
         // Arg count
         if (arg_len) {
-            arg_count++;
+            part_count++;
         }
     }
     
-    if (argc) {
-        *argc = arg_count;
-    }
-    
     // Construct arg list
-    if (arg_count) {
+    if (part_count) {
         int arg_index = 0;
         int arg_pos = cmd_pos;
         int arg_len = 0;
         
         c = in + cmd_pos;
-        arg_list = (char **)calloc(arg_count, sizeof(char *));
+        part_list = (char **)calloc(part_count, sizeof(char *));
         
-        arg_list[0] = strdup(cmd_name);
+        part_list[0] = strdup(cmd_name);
         arg_index++;
         
         while (*c) {
@@ -122,7 +119,7 @@ int parse_cmd(char *in, char **cmd, int *argc, char ***argv)
                 char *arg = (char *)calloc(arg_len + 1, sizeof(char));
                 memcpy(arg, in + arg_pos, arg_len);
                 arg[arg_len] = '\0';
-                arg_list[arg_index] = arg;
+                part_list[arg_index] = arg;
                 
                 arg_index++;
                 arg_pos += arg_len;
@@ -136,14 +133,99 @@ int parse_cmd(char *in, char **cmd, int *argc, char ***argv)
         free(cmd_name);
     }
     
+    // Extract stdio redirection
+    char *stdin_redirect = NULL;
+    char *stdout_redirect = NULL;
+    char *stderr_redirect = NULL;
+    
+    i = 0;
+    do {
+        int shift = 0;
+        
+        // stdin
+        if (!strcmp(part_list[i], "<")) {
+            if (i + 1 < part_count) {
+                stdin_redirect = part_list[i + 1];
+                free(part_list[i]);
+                shift = 2;
+            } else {
+                shift = 1;
+            }
+        }
+        
+        // stdout
+        else if (!strcmp(part_list[i], ">")) {
+            if (i + 1 < part_count) {
+                stdout_redirect = part_list[i + 1];
+                free(part_list[i]);
+                shift = 2;
+            } else {
+                shift = 1;
+            }
+        }
+        
+        // stderr
+        else if (!strcmp(part_list[i], "e>")) {
+            if (i + 1 < part_count) {
+                stderr_redirect = part_list[i + 1];
+                free(part_list[i]);
+                shift = 2;
+            } else {
+                shift = 1;
+            }
+        }
+        
+        // Take care of shift
+        if (shift) {
+            int idx;
+            for (idx = i; idx < part_count - shift; idx++) {
+                part_list[idx] = part_list[idx + shift];
+            }
+            
+            part_count -= shift;
+        } else {
+            i++;
+        }
+    } while (i < part_count);
+    
+    if (argc) {
+        *argc = part_count;
+    }
+    
     if (argv) {
-        *argv = arg_list;
+        *argv = part_list;
+    }
+    
+    if (stdin_redirect || stdout_redirect || stderr_redirect) {
+        kprintf("stdio redirection, stdin: %s, stdout: %s, stderr: %s\n",
+                stdin_redirect ? stdin_redirect : "no",
+                stdout_redirect ? stdout_redirect : "no",
+                stderr_redirect ? stderr_redirect : "no"
+        );
+    }
+    
+    if (stdin) {
+        *stdin = stdin_redirect;
+    } else {
+        free(stdin_redirect);
+    }
+    
+    if (stdout) {
+        *stdout = stdout_redirect;
+    } else {
+        free(stdout_redirect);
+    }
+    
+    if (stderr) {
+        *stderr = stderr_redirect;
+    } else {
+        free(stderr_redirect);
     }
     
     return EOK;
 }
 
-int free_cmd(char *cmd, int argc, char **argv)
+int free_cmd(char *cmd, int argc, char **argv, char *in, char *out, char *err)
 {
     int i;
     
@@ -159,6 +241,18 @@ int free_cmd(char *cmd, int argc, char **argv)
     
     if (argv) {
         free(argv);
+    }
+    
+    if (in) {
+        free(in);
+    }
+    
+    if (out) {
+        free(out);
+    }
+    
+    if (err) {
+        free(err);
     }
     
     return EOK;

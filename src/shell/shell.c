@@ -180,6 +180,10 @@ static void prompt()
     int argc;
     char **argv;
     
+    char *in;
+    char *out;
+    char *err;
+    
     do {
         kprintf("system > ");
         len = input(&cmd);
@@ -188,10 +192,10 @@ static void prompt()
         argc = 0;
         argv = NULL;
         
-        parse_cmd(cmd, &name, &argc, &argv);
+        parse_cmd(cmd, &name, &argc, &argv, &in, &out, &err);
         exec_cmd(name, argc, argv);
         
-        free_cmd(name, argc, argv);
+        free_cmd(name, argc, argv, in, out, err);
         free(cmd);
     } while (1);
 }

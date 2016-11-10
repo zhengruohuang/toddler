@@ -11,7 +11,7 @@ static int do_cat(char *name)
     size_t j;
     int err = EOK;
     
-    unsigned long id = kapi_urs_open(name, 0);
+    unsigned long id = open_path(name, 0);
     kprintf("Open: %p\n", id);
     
     if (id) {
@@ -54,10 +54,6 @@ int cat(int argc, char **argv)
                 break;
             }
         }
-    }
-    
-    else {
-        err = do_cat("coreimg://init.py");
     }
     
     return err;

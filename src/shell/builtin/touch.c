@@ -57,7 +57,7 @@ static int create_file(char *name)
 //     kprintf("dir: %s, file: %s\n", dir, file);
     
     // Create the file
-    id = kapi_urs_open(dir, 0);
+    id = open_path(dir, 0);
     free(dir);
     kprintf("Dir open: %p\n", id);
     if (!id) {
@@ -65,19 +65,20 @@ static int create_file(char *name)
     }
     
     err = kapi_urs_create(id, file, ucreate_node, 0, NULL);
-//     kprintf("Node create: %d\n", err);
+    kprintf("Node create: %d\n", err);
     if (err) {
         return err;
     }
     
+    kprintf("To close dir, id: %p\n", id);
     err = kapi_urs_close(id);
-//     kprintf("Dir close: %p (%d)\n", id, err);
+    kprintf("Dir close: %p (%d)\n", id, err);
     if (err) {
         return err;
     }
     
     // Actually touch the file
-    id = kapi_urs_open(name, 0);
+    id = open_path(name, 0);
     if (id) {
         kprintf("Open: %p\n", id);
         err = touch_file(id);
@@ -91,7 +92,7 @@ static int create_file(char *name)
 static int do_touch(char *name)
 {
     int err = EOK;
-    unsigned long id = kapi_urs_open(name, 0);
+    unsigned long id = open_path(name, 0);
     
     if (id) {
         kprintf("Open: %p\n", id);
@@ -119,10 +120,6 @@ int touch(int argc, char **argv)
                 break;
             }
         }
-    }
-    
-    else {
-        err = do_touch("ramfs://");
     }
     
     return err;

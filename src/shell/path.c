@@ -166,3 +166,30 @@ void change_cwd(const char *path)
     free(cwd);
     cwd = strdup(path);
 }
+
+
+/*
+ * Path operation helpers
+ */
+unsigned long open_path(char *name, unsigned int flags)
+{
+    unsigned long id = 0;
+    
+    // Find out the new cwd
+    char *new_dir = NULL;
+    if (is_absolute_path(name)) {
+        new_dir = strdup(name);
+    } else {
+        char *cwd = get_cwd();
+        new_dir = join_path(cwd, name);
+        free(cwd);
+    }
+    
+    // Try opening the dir
+    id = kapi_urs_open(new_dir, flags);
+    
+    // Clean up
+    free(new_dir);
+    
+    return id;
+}

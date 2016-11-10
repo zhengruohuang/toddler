@@ -37,4 +37,10 @@ extern char *get_cwd();
 extern void change_cwd(const char *path);
 
 
+/*
+ * Path operation helpers
+ */
+extern unsigned long open_path(char *name, unsigned int flags);
+
+
 #endif

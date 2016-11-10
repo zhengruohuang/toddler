@@ -1,6 +1,7 @@
 #include "common/include/data.h"
 #include "common/include/errno.h"
 #include "klibc/include/stdio.h"
+#include "klibc/include/stdlib.h"
 #include "klibc/include/sys.h"
 #include "shell/include/shell.h"
 
@@ -8,7 +9,7 @@
 static int do_ls(char *name)
 {
     char buf[64];
-    unsigned long id = kapi_urs_open(name, 0);
+    unsigned long id = open_path(name, 0);
     kprintf("Open: %p\n", id);
     
     int last = 0;
@@ -48,7 +49,10 @@ int ls(int argc, char **argv)
     }
     
     else {
-        err = do_ls("coreimg://");
+    
+        char *path = get_cwd();
+        do_ls(path);
+        free(path);
     }
     
     return err;

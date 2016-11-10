@@ -116,7 +116,7 @@ static struct urs_super *match_super(char *path)
     cur_pos = strlen(copy) - 1;
     
     do {
-        kprintf("copy: %s\n", copy);
+//         kprintf("copy: %s\n", copy);
         if (hashtable_contains(super_table, (ulong)copy)) {
             found = 1;
             break;
@@ -920,7 +920,7 @@ unsigned long urs_open_node(char *path, unsigned int flags, unsigned long proces
     
     o = (struct urs_open *)salloc(open_salloc_id);
     o->id = (unsigned long)o;
-    o->path = path;
+    o->path = strdup(path);
     o->node = node;
     o->ref_count = 1;
     
@@ -929,7 +929,7 @@ unsigned long urs_open_node(char *path, unsigned int flags, unsigned long proces
     o->list_pos = 0;
     o->list_size = 0;
     
-    hashtable_insert(open_table, (ulong)path, o);
+    hashtable_insert(open_table, (ulong)o->path, o);
     return o->id;
 }
 
@@ -945,11 +945,12 @@ int urs_close_node(unsigned long id)
     o->ref_count--;
     if (!o->ref_count) {
         error = dispatch_release(o->node->super, o->node->dispatch_id);
+//         kprintf("Node released: %p\n", id);
         if (!error) {
             hashtable_remove(open_table, (ulong)o->path);
             release_super(o->node->super);
             sfree(o->node);
-//             free(o->path);
+            free(o->path);
             sfree(o);
         }
     }
@@ -1089,7 +1090,7 @@ int urs_remove_node(unsigned long id)
     hashtable_remove(open_table, (ulong)o->path);
     release_super(o->node->super);
     sfree(o->node);
-//     free(o->path);
+    free(o->path);
     sfree(o);
     
     return 0;

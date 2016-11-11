@@ -241,5 +241,44 @@ int hash_insert(hash_t *l, void *key, void *n)
 
 int hash_remove(hash_t *l, void *key)
 {
-    return 0;
+    int cmp = 0;
+    int found = 0;
+    hash_node_t *s = NULL, *prev = NULL;
+    
+    // Get the hash and bucket
+    ulong hash = l->hash_func(key, l->bucket_count);
+    hash_bucket_t *bucket = &l->buckets[hash];
+    
+    // Lock the table
+    kthread_mutex_lock(&l->lock);
+    
+    // Find the node
+    s = bucket->head;
+    while (s) {
+        cmp = l->hash_cmp(key, s->key);
+        if (0 == cmp) {
+            found = 1;
+            break;
+        } else if (-1 == cmp) {
+            break;
+        }
+        
+        prev = s;
+        s = s->next;
+    }
+    
+    if (found) {
+        if (prev) {
+            prev->next = s->next;
+        } else {
+            bucket->head = s->next;
+        }
+    }
+    
+    // Unlock
+    kthread_mutex_unlock(&l->lock);
+    
+    sfree(s);
+    
+    return found;
 }

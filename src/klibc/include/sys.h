@@ -94,6 +94,7 @@ extern size_t kapi_urs_write(unsigned long fd, void *buf, size_t count);
 extern size_t kapi_urs_list(unsigned long fd, void *buf, size_t count);
 
 extern int kapi_urs_create(unsigned long fd, char *name, enum urs_create_type type, unsigned int flags, char *target);
+extern int kapi_urs_remove(unsigned long fd);
 
 /*
  * Interrupt

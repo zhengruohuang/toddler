@@ -81,6 +81,10 @@ static int urs_hash_cmp(void *cmp_key, void *node_key)
 /*
  * Data
  */
+static void free_data_block(struct ramfs_data *data)
+{
+}
+
 static unsigned long read_data_block(struct ramfs_data *data, u8 *buf, unsigned long count)
 {
     unsigned long index = 0;
@@ -213,7 +217,7 @@ static struct ramfs_node *create_node(const char *name, struct ramfs_node *paren
     
     node->id = (unsigned long)node;
     node->name = strdup(name);
-    node->ref_count = 1;
+    node->ref_count = 0;
     
     node->parent = parent;
     
@@ -510,7 +514,7 @@ static int create(unsigned long super_id, unsigned long node_id, char *name, enu
         }
         
         kprintf("To insert into hash table, name: %s, sub: %p\n", name, sub);
-        if (hash_insert(node->sub.entries, name, sub)) {
+        if (hash_insert(node->sub.entries, sub->name, sub)) {
             sfree(sub);
             return -2;
         };
@@ -536,7 +540,50 @@ static int create(unsigned long super_id, unsigned long node_id, char *name, enu
 
 static int remove(unsigned long super_id, unsigned long node_id)
 {
-    return 0;
+    struct ramfs_node *parent = NULL;
+    struct ramfs_node *node = get_node_by_id(node_id);
+    if (!node) {
+        return -1;
+    }
+    
+    kprintf("To remove node, ref count: %p\n", node->ref_count);
+    
+    // Make sure this node is not busy
+    if (node->ref_count > 1) {
+        return -1;
+    }
+    
+    kprintf("here?\n");
+    
+    // Get the parent and make sure this is not root
+    parent = node->parent;
+    if (!parent) {
+        return -2;
+    }
+    
+    // Make sure this node does not have any sub entries
+    if (node->sub.count) {
+        return -1;
+    }
+    
+    // Remove the node from parent
+    assert(parent->sub.entries);
+    assert(parent->sub.count);
+    
+    hash_remove(parent->sub.entries, node->name);
+    parent->sub.count--;
+    
+    // Free this node
+    if (node->sub.entries) {
+        sfree(node->sub.entries);
+    }
+    if (node->link) {
+        free(node->link);
+    }
+    free_data_block(&node->data);
+    free(node->name);
+    
+    return EOK;
 }
 
 static int rename(unsigned long super_id, unsigned long node_id, char *name)

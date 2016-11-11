@@ -34,7 +34,7 @@ extern char *normalize_path(const char *path);
  */
 extern void init_cwd();
 extern char *get_cwd();
-extern void change_cwd(const char *path);
+extern int change_cwd(char *path);
 
 
 /*

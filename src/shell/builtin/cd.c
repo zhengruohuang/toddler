@@ -27,13 +27,7 @@ int cd(int argc, char **argv)
     }
     
     // Try opening the dir
-    unsigned long id = kapi_urs_open(new_dir, 0);
-    kprintf("Open: %p\n", id);
-    if (id) {
-        change_cwd(new_dir);
-    } else{
-        err = ENOENT;
-    }
+    err = change_cwd(new_dir);
     
     // Clean up
     free(new_dir);

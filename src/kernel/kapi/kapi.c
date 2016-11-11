@@ -120,6 +120,7 @@ void init_kapi()
     register_kapi(KAPI_URS_WRITE, urs_write_handler);
     register_kapi(KAPI_URS_LIST, urs_list_handler);
     register_kapi(KAPI_URS_CREATE, urs_create_handler);
+    register_kapi(KAPI_URS_REMOVE, urs_remove_handler);
     
     kprintf("KAPI Initialized\n");
 }

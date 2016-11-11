@@ -50,7 +50,7 @@ int ls(int argc, char **argv)
     
     else {
         char *path = get_cwd();
-        do_ls(path);
+        err = do_ls(path);
         free(path);
     }
     

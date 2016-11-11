@@ -167,6 +167,25 @@ int kapi_urs_create(unsigned long fd, char *name, enum urs_create_type type, uns
     return result;
 }
 
+int kapi_urs_remove(unsigned long fd)
+{
+    // Setup the msg
+    msg_t *s = kapi_msg(KAPI_URS_REMOVE);
+    msg_t *r = NULL;
+    int result = -1;
+    
+    // Setup the params
+    msg_param_value(s, fd);
+    
+    // Issue the KAPI and obtain the result
+    r = syscall_request();
+    
+    // Setup the result
+    result = (int)kapi_return_value(r);
+    
+    return result;
+}
+
 //  int lseek(int file, int ptr, int dir);
 
 //  int fstat(int file, struct stat *st);

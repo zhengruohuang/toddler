@@ -16,15 +16,20 @@ int cd(int argc, char **argv)
     }
     
     // Find out the new cwd
+    char *join = NULL;
     char *new_dir = NULL;
     char *dir = argv[1];
     if (is_absolute_path(dir)) {
-        new_dir = strdup(dir);
+        join = strdup(dir);
     } else {
         char *cwd = get_cwd();
-        new_dir = join_path(cwd, dir);
+        join = join_path(cwd, dir);
         free(cwd);
     }
+    
+    // Normalize
+    new_dir = normalize_path(join);
+    free(join);
     
     // Try opening the dir
     err = change_cwd(new_dir);

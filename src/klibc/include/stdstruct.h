@@ -18,8 +18,8 @@ typedef struct dlist_node {
 
 typedef struct dlist {
     unsigned int count;
-    struct dlist_node *next;
-    struct dlist_node *prev;
+    struct dlist_node *tail;
+    struct dlist_node *head;
     
     kthread_mutex_t lock;
 } dlist_t;
@@ -29,6 +29,7 @@ extern dlist_t *dlist_new();
 extern void dlist_push_back(dlist_t *l, void *n);
 extern void dlist_remove(dlist_t *l, dlist_node_t *s);
 extern void *dlist_pop_front(dlist_t *l);
+extern void *dlist_pop_back(dlist_t *l);
 
 
 /*

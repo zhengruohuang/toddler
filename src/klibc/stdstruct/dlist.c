@@ -21,8 +21,8 @@ void dlist_create(dlist_t *l)
     }
     
     l->count = 0;
-    l->next = NULL;
-    l->prev = NULL;
+    l->head = NULL;
+    l->tail = NULL;
     
     kthread_mutex_init(&l->lock);
 }
@@ -52,15 +52,15 @@ void dlist_push_back(dlist_t *l, void *n)
     
     // Push back
     s->next = NULL;
-    s->prev = l->prev;
+    s->prev = l->tail;
     
-    if (l->prev) {
-        l->prev->next = s;
+    if (l->tail) {
+        l->tail->next = s;
     }
-    l->prev = s;
+    l->tail = s;
     
-    if (!l->next) {
-        l->next = s;
+    if (!l->head) {
+        l->head = s;
     }
     
     l->count++;
@@ -78,12 +78,12 @@ static void inline dlist_detach(dlist_t *l, dlist_node_t *s)
         s->next->prev = s->prev;
     }
     
-    if (l->prev == s) {
-        l->prev = s->prev;
+    if (l->tail == s) {
+        l->tail = s->prev;
     }
     
-    if (l->next == s) {
-        l->next = s->next;
+    if (l->head == s) {
+        l->head = s->next;
     }
     
     l->count--;
@@ -108,14 +108,40 @@ void *dlist_pop_front(dlist_t *l)
     if (l->count) {
         //assert(l->next);
         
-        s = l->next;
+        s = l->head;
         dlist_detach(l, s);
     }
     
     kthread_mutex_unlock(&l->lock);
     
-    n = s->node;
-    sfree(s);
+    if (s) {
+        n = s->node;
+        sfree(s);
+    }
+    
+    return n;
+}
+
+void *dlist_pop_back(dlist_t *l)
+{
+    dlist_node_t *s = NULL;
+    void *n = NULL;
+    
+    kthread_mutex_lock(&l->lock);
+    
+    if (l->count) {
+        //assert(l->next);
+        
+        s = l->tail;
+        dlist_detach(l, s);
+    }
+    
+    kthread_mutex_unlock(&l->lock);
+    
+    if (s) {
+        n = s->node;
+        sfree(s);
+    }
     
     return n;
 }

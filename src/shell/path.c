@@ -50,9 +50,9 @@ char *join_path(const char *a, const char *b)
     
     // Find out final size of the new path
     if (b[0] == '/' && a[len_a - 1] == '/') {
-        len++;
-    } else if (b[0] != '/' && a[len_a - 1] != '/') {
         len--;
+    } else if (b[0] != '/' && a[len_a - 1] != '/') {
+        len++;
     }
     
     // Create the new path
@@ -78,6 +78,8 @@ char *join_path(const char *a, const char *b)
     
     // Finalize
     p[len] = '\0';
+    kprintf("Path joined: %s + %s -> %s, len: %d\n", a, b, p, len);
+    
     return p;
 }
 
@@ -89,16 +91,19 @@ char *normalize_path(const char *path)
     int ori_len = strlen(path);
     char *norm = calloc(ori_len + 1, sizeof(char));
     
+    dlist_t type_stack;
     dlist_t dup_stack;
     dlist_create(&dup_stack);
-    dlist_push_back(&dup_stack, (void *)0);
+    dlist_create(&type_stack);
     
     do {
         // Extract the next part of ori path
+        int is_namespace = 0;
         int ori_search = ori_idx;
         for (ori_search = ori_idx; ori_search < ori_len; ori_search++) {
             if (path[ori_search] == ':' && path[ori_search + 1] == '/' && path[ori_search + 2] == '/') {
                 ori_search += 3;
+                is_namespace = 1;
                 break;
             } else if (path[ori_search] == '/') {
                 ori_search += 1;
@@ -107,21 +112,32 @@ char *normalize_path(const char *path)
         }
         
         // Go to the previous dir
-        if (ori_search - ori_idx == 3 && path[ori_idx] == '.' && path[ori_idx + 1] == '.') {
-            dup_idx = (int)(unsigned long)dlist_pop_front(&dup_stack);
+        if (ori_search - ori_idx == 2 && path[ori_idx] == '.' && path[ori_idx + 1] == '.') {
+            int type = (int)(unsigned long)dlist_pop_back(&type_stack);
+            if (type) {
+                dlist_push_back(&type_stack, (void *)(unsigned long)1);
+            } else {
+                dup_idx = (int)(unsigned long)dlist_pop_back(&dup_stack);
+                kprintf("dup idx popped: %d\n", dup_idx);
+            }
         }
         
         // If not staying in the same dir, then this is a regular dir
         else if (
-            ori_search - ori_idx != 1 &&
-            (ori_search - ori_idx != 2 || path[ori_idx] != '.')
+            ori_search - ori_idx != 0 &&
+            (ori_search - ori_idx != 1 || path[ori_idx] != '.')
         ) {
             int cpy_len = ori_search - ori_idx;
             memcpy(&norm[dup_idx], &path[ori_idx], cpy_len);
             
-            dup_idx += cpy_len;
+            kprintf("copy len: %d\n", cpy_len);
+            
             dlist_push_back(&dup_stack, (void *)(unsigned long)dup_idx);
+            dlist_push_back(&type_stack, (void *)(unsigned long)is_namespace);
+            dup_idx += cpy_len;
         }
+        
+        kprintf("ori_search: %d, ori_idx: %d\n", ori_search, ori_idx);
         
         // Move to next part
         ori_idx = ori_search;
@@ -130,13 +146,17 @@ char *normalize_path(const char *path)
     // Finalize the string
     norm[dup_idx] = '\0';
     if (dup_idx && norm[dup_idx - 1] == '/') {
-        norm[dup_idx] = '\0';
+        if (dup_idx < 2 || norm[dup_idx - 2] != '/') {
+            norm[dup_idx - 1] = '\0';
+        }
     }
     
     // Clean up the stack
     do {
         dup_idx = (int)(unsigned long)dlist_pop_front(&dup_stack);
+        dlist_pop_front(&type_stack);
     } while (dup_idx);
+    kprintf("Path normalized: %s\n", norm);
     
     return norm;
 }

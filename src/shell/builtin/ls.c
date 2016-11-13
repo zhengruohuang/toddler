@@ -10,7 +10,7 @@ static int do_ls(char *name)
 {
     char buf[64];
     unsigned long id = open_path(name, 0);
-    kprintf("Open: %p\n", id);
+//     kprintf("Open: %p\n", id);
     
     int last = 0;
     do {

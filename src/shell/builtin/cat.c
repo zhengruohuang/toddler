@@ -12,7 +12,7 @@ static int do_cat(char *name)
     int err = EOK;
     
     unsigned long id = open_path(name, 0);
-    kprintf("Open: %p\n", id);
+//     kprintf("Open: %p\n", id);
     
     if (id) {
         size_t s = 0;
@@ -31,7 +31,7 @@ static int do_cat(char *name)
         kprintf("\n");
         
         err = kapi_urs_close(id);
-        kprintf("Closed: %p (%d)\n", id, err);
+//         kprintf("Closed: %p (%d)\n", id, err);
     }
     
     else {

@@ -9,7 +9,7 @@
 static int do_rm(char *name)
 {
     unsigned long id = open_path(name, 0);
-    kprintf("Open: %p\n", id);
+//     kprintf("Open: %p\n", id);
     
     int err = kapi_urs_remove(id);
     return err;

@@ -167,7 +167,7 @@ int kapi_urs_create(unsigned long fd, char *name, enum urs_create_type type, uns
     return result;
 }
 
-int kapi_urs_remove(unsigned long fd)
+int kapi_urs_remove(unsigned long fd, int erase)
 {
     // Setup the msg
     msg_t *s = kapi_msg(KAPI_URS_REMOVE);
@@ -176,6 +176,7 @@ int kapi_urs_remove(unsigned long fd)
     
     // Setup the params
     msg_param_value(s, fd);
+    msg_param_value(s, (unsigned long)erase);
     
     // Issue the KAPI and obtain the result
     r = syscall_request();

@@ -16,31 +16,29 @@
 struct ramfs_block {
     struct ramfs_block *prev;
     struct ramfs_block *next;
+    
     u8 data[RAMFS_BLOCK_SIZE];
 };
 
 struct ramfs_data {
     unsigned long block_count;
     unsigned long size;
-    unsigned long pos;
     
     struct ramfs_block *head;
     struct ramfs_block *tail;
-    
-    unsigned long cur_offset;
-    struct ramfs_block *cur;
 };
 
 struct ramfs_sub {
     unsigned long count;
-    unsigned long pos;
     hash_t *entries;
 };
 
 struct ramfs_node {
     unsigned long id;
     char *name;
+    
     unsigned long ref_count;
+    unsigned long open_count;
     
     struct ramfs_node *parent;
     struct ramfs_data data;
@@ -48,9 +46,18 @@ struct ramfs_node {
     char *link;
 };
 
+struct ramfs_open {
+    unsigned long id;
+    struct ramfs_node *node;
+    
+    unsigned long data_pos;
+    unsigned long sub_pos;
+};
+
 
 static unsigned long block_salloc_id;
 static unsigned long node_salloc_id;
+static unsigned long open_salloc_id;
 static hash_t *ramfs_table;
 
 
@@ -81,134 +88,166 @@ static int urs_hash_cmp(void *cmp_key, void *node_key)
 /*
  * Data
  */
-static void free_data_block(struct ramfs_data *data)
+static int seek_data_block(struct ramfs_data *data, unsigned long pos, unsigned long *real_pos, struct ramfs_block **cur_block, unsigned long *cur_offset)
 {
+    struct ramfs_block *block = data->head;
+    unsigned long offset = 0;
+    
+    if (pos > data->size) {
+        pos = data->size;
+    }
+    
+    offset = pos;
+    while (offset >= RAMFS_BLOCK_SIZE) {
+        offset -= RAMFS_BLOCK_SIZE;
+        assert(block);
+        block = block->next;
+    }
+    
+    if (real_pos) {
+        *real_pos = pos;
+    }
+    if (cur_block) {
+        *cur_block = block;
+    }
+    if (cur_offset) {
+        *cur_offset = offset;
+    }
+    
+    return 0;
 }
 
-static unsigned long read_data_block(struct ramfs_data *data, u8 *buf, unsigned long count)
+static unsigned long read_data_block(struct ramfs_data *data, unsigned long pos, u8 *buf, unsigned long count)
 {
-    unsigned long index = 0;
+    int index = 0;
+    unsigned long cur_pos = pos;
     
-    while (data->pos < data->size && index < count && data->cur) {
+    struct ramfs_block *block;
+    unsigned long offset = 0;
+    if (seek_data_block(data, pos, &cur_pos, &block, &offset)) {
+        return 0;
+    }
+    
+    while (cur_pos < data->size && (unsigned long)index < count && block) {
         // Copy data
-        buf[index] = data->cur->data[data->cur_offset];
+        buf[index] = block->data[offset];
         index++;
-        data->cur_offset++;
-        data->pos++;
+        offset++;
+        cur_pos++;
         
         // Move to next data block
-        if (data->cur_offset == RAMFS_BLOCK_SIZE) {
-            data->cur = data->cur->next;
-            data->cur_offset = 0;
+        if (offset == RAMFS_BLOCK_SIZE) {
+            block = block->next;
+            offset = 0;
         }
     }
     
 //     kprintf("data read: %s, size: %p\n", (char *)buf, index);
-    
     return index;
 }
 
-static unsigned long write_data_block(struct ramfs_data *data, u8 *buf, unsigned long count)
+static unsigned long write_data_block(struct ramfs_data *data, unsigned long pos, u8 *buf, unsigned long count)
 {
-    unsigned long index = 0;
+    int index = 0;
+    unsigned long cur_pos = pos;
+    
+    struct ramfs_block *block;
+    unsigned long offset = 0;
+    if (seek_data_block(data, pos, &cur_pos, &block, &offset)) {
+        return 0;
+    }
     
 //     kprintf("write, buf: %s, count: %p\n", buf, count);
     
-    while (index < count) {
+    while ((unsigned long)index < count) {
         // Allocate a new block if necessary
-        if (!data->cur) {
-            data->cur = (struct ramfs_block *)salloc(block_salloc_id);
-            data->cur_offset = 0;
+        if (!block) {
+            block = (struct ramfs_block *)salloc(block_salloc_id);
+            offset = 0;
             
-            data->cur->next = NULL;
-            data->cur->prev = data->tail;
+            block->next = NULL;
+            block->prev = data->tail;
             
             if (data->tail) {
-                data->tail->next = data->cur;
+                data->tail->next = block;
             }
             
-            data->tail = data->cur;
+            data->tail = block;
             if (!data->head) {
-                data->head = data->cur;
+                data->head = block;
             }
             
             data->block_count++;
         }
         
         // Copy data
-        data->cur->data[data->cur_offset] = buf[index];
+        block->data[offset] = buf[index];
         index++;
-        data->cur_offset++;
-        data->pos++;
+        offset++;
+        cur_pos++;
         data->size++;
         
         // Move to next data block
-        if (data->cur_offset == RAMFS_BLOCK_SIZE) {
-            data->cur = data->cur->next;
-            data->cur_offset = 0;
+        if (offset == RAMFS_BLOCK_SIZE) {
+            block = block->next;
+            offset = 0;
         }
     }
     
     return index;
 }
 
-static int truncate_data_block(struct ramfs_data *data)
+static int truncate_data_block(struct ramfs_data *data, unsigned long pos)
 {
-    struct ramfs_block *block = data->cur->next;
+    unsigned long cur_pos = pos;
+    struct ramfs_block *block;
+    unsigned long offset = 0;
+    if (seek_data_block(data, pos, &cur_pos, &block, &offset)) {
+        return 0;
+    }
+    
+    // Mark cur block as the last block
+    data->tail = block;
+    block->next = NULL;
     
     // Free following blocks
+    block = block->next;
+    while (block) {
+        struct ramfs_block *next = block->next;
+        sfree(block);
+        data->block_count--;
+        block = next;
+    }
+    
+    // Set file size
+    data->size = cur_pos;
+    
+    return 0;
+}
+
+static void free_data_block(struct ramfs_data *data)
+{
+    // Free all blocks
+    struct ramfs_block *block = data->head;
     while (block) {
         struct ramfs_block *next = block->next;
         sfree(block);
         block = next;
     }
-    data->tail = block;
-    data->cur->next = NULL;
     
-    // Recalculate file size
+    // Reset data
+    data->block_count = 0;
+    data->head = data->tail = NULL;
     data->size = 0;
-    block = data->head;
-    while (block != data->cur) {
-        data->size += RAMFS_BLOCK_SIZE;
-        block = block->next;
-    }
-    data->size += data->cur_offset;
-    
-    return 0;
-}
-
-static void seek_data_block_begin(struct ramfs_data *data, unsigned long offset)
-{
-    if (offset > data->size) {
-        offset = data->size;
-    }
-    
-    data->pos = 0;
-    data->cur_offset = 0;
-    data->cur = data->head;
-    
-    while (offset) {
-        if (offset >= RAMFS_BLOCK_SIZE) {
-            offset -= RAMFS_BLOCK_SIZE;
-            data->pos += RAMFS_BLOCK_SIZE;
-            
-            assert(data->cur);
-            data->cur = data->cur->next;
-        } else {
-            data->pos += offset;
-            data->cur_offset = offset;
-            offset = 0;
-        }
-    }
 }
 
 
 /*
- * Node
+ * Helpers
  */
-static struct ramfs_node *get_node_by_id(unsigned long id)
+static struct ramfs_node *get_node_by_id(unsigned long super_id, unsigned long node_id)
 {
-    return (struct ramfs_node *)id;
+    return (struct ramfs_node *)node_id;
 }
 
 static struct ramfs_node *create_node(const char *name, struct ramfs_node *parent)
@@ -222,16 +261,11 @@ static struct ramfs_node *create_node(const char *name, struct ramfs_node *paren
     node->parent = parent;
     
     node->data.block_count = 0;
-    node->data.pos = 0;
     node->data.size = 0;
     node->data.head = NULL;
     node->data.tail = NULL;
     
-    node->data.cur = NULL;
-    node->data.cur_offset = 0;
-    
     node->sub.count = 0;
-    node->sub.pos = 0;
     node->sub.entries = NULL;
     
     node->link = NULL;
@@ -239,6 +273,33 @@ static struct ramfs_node *create_node(const char *name, struct ramfs_node *paren
     return node;
 }
 
+static struct ramfs_open *get_open_by_id(unsigned long open_id)
+{
+    return (struct ramfs_open *)open_id;
+}
+
+static struct ramfs_open *create_open(unsigned long super_id, unsigned long node_id)
+{
+    struct ramfs_node *node = get_node_by_id(super_id, node_id);
+    if (!node) {
+        return NULL;
+    }
+    
+    struct ramfs_open *open = (struct ramfs_open *)salloc(open_salloc_id);
+    
+    open->id = (unsigned long)open;
+    open->node = node;
+    
+    open->data_pos = 0;
+    open->sub_pos = 0;
+    
+    return open;
+}
+
+
+/*
+ * Node
+ */
 static int lookup(unsigned long super_id, unsigned long node_id, const char *name, int *is_link,
                   unsigned long *next_id, void *buf, unsigned long count, unsigned long *actual)
 {
@@ -248,7 +309,7 @@ static int lookup(unsigned long super_id, unsigned long node_id, const char *nam
     
     // Find out the next node
     if (node_id) {
-        node = get_node_by_id(node_id);
+        node = get_node_by_id(super_id, node_id);
         assert(node);
         
         node->ref_count--;
@@ -310,44 +371,51 @@ static int lookup(unsigned long super_id, unsigned long node_id, const char *nam
     return 0;
 }
 
-static int open(unsigned long super_id, unsigned long node_id)
+static int open(unsigned long super_id, unsigned long node_id, unsigned long *open_id)
 {
-    struct ramfs_node *node = get_node_by_id(node_id);
+    struct ramfs_node *node = get_node_by_id(super_id, node_id);
     if (!node) {
-        return -1;
+        return ENOENT;
     }
     
-    node->data.pos = 0;
-    node->data.cur_offset = 0;
-    node->sub.pos = 0;
+    struct ramfs_open *open = create_open(super_id, node_id);
+    if (!open) {
+        return EBADF;
+    }
     
-    return 0;
+    if (open_id) {
+        *open_id = open->id;
+    }
+    
+    return EOK;
 }
 
-static int release(unsigned long super_id, unsigned long node_id)
+static int close(unsigned long open_id)
+{
+    struct ramfs_open *open = get_open_by_id(open_id);
+    if (!open) {
+        return EBADF;
+    }
+    
+    // FIXME: Lock needed
+    open->node->open_count--;
+    sfree(open);
+    
+    return EOK;
+}
+
+static int read(unsigned long open_id, void *buf, unsigned long count, unsigned long *actual)
 {
     unsigned long result = 0;
     
-    struct ramfs_node *node = get_node_by_id(node_id);
-    if (!node) {
-        return -1;
+    struct ramfs_open *open = get_open_by_id(open_id);
+    if (!open) {
+        return EBADF;
     }
     
-    node->ref_count--;
+    result = read_data_block(&open->node->data, (unsigned long)open->data_pos, buf, count);
+    open->data_pos = result;
     
-    return 0;
-}
-
-static int read(unsigned long super_id, unsigned long node_id, void *buf, unsigned long count, unsigned long *actual)
-{
-    unsigned long result = 0;
-    
-    struct ramfs_node *node = get_node_by_id(node_id);
-    if (!node) {
-        return -1;
-    }
-    
-    result = read_data_block(&node->data, buf, count);
     if (actual) {
         *actual = result;
     }
@@ -355,16 +423,18 @@ static int read(unsigned long super_id, unsigned long node_id, void *buf, unsign
     return 0;
 }
 
-static int write(unsigned long super_id, unsigned long node_id, void *buf, unsigned long count, unsigned long *actual)
+static int write(unsigned long open_id, void *buf, unsigned long count, unsigned long *actual)
 {
     unsigned long result = 0;
     
-    struct ramfs_node *node = get_node_by_id(node_id);
-    if (!node) {
-        return -1;
+    struct ramfs_open *open = get_open_by_id(open_id);
+    if (!open) {
+        return EBADF;
     }
     
-    result = write_data_block(&node->data, buf, count);
+    result = write_data_block(&open->node->data, (unsigned long)open->data_pos, buf, count);
+    open->data_pos = result;
+    
     if (actual) {
         *actual = result;
     }
@@ -372,63 +442,92 @@ static int write(unsigned long super_id, unsigned long node_id, void *buf, unsig
     return 0;
 }
 
-static int truncate(unsigned long super_id, unsigned long node_id)
+static int truncate(unsigned long open_id)
 {
     int result = 0;
     
-    struct ramfs_node *node = get_node_by_id(node_id);
-    if (!node) {
-        return -1;
+    struct ramfs_open *open = get_open_by_id(open_id);
+    if (!open) {
+        return EBADF;
     }
     
-    result = truncate_data_block(&node->data);
+    result = truncate_data_block(&open->node->data, (unsigned long)open->data_pos);
     return result;
 }
 
-static int seek_data(unsigned long super_id, unsigned long node_id, unsigned long offset, enum urs_seek_from from, unsigned long *newpos)
+static int seek_data(unsigned long open_id, u64 offset, enum urs_seek_from from, u64 *newpos)
 {
-    unsigned long result = 0;
-    struct ramfs_data *data = NULL;
+    unsigned long pos = 0;
     
-    struct ramfs_node *node = get_node_by_id(node_id);
-    if (!node) {
-        return -1;
+    struct ramfs_open *open = NULL;
+    struct ramfs_node *node = NULL;
+    
+    open = get_open_by_id(open_id);
+    if (!open) {
+        return EBADF;
     }
     
-    data = &node->data;
+    node = open->node;
+    if (!node) {
+        return ECLOSED;
+    }
+    
     switch (from) {
     case seek_from_begin:
-        seek_data_block_begin(data, offset);
+        pos = (unsigned long)offset;
+        if (pos > node->data.size) {
+            pos = node->data.size;
+        }
         break;
     case seek_from_cur_fwd:
-        seek_data_block_begin(data, data->pos + offset);
+        pos = open->data_pos + (unsigned long)offset;
+        if (pos > node->data.size) {
+            pos = node->data.size;
+        }
         break;
     case seek_from_cur_bwd:
-        seek_data_block_begin(data, data->pos > offset ? data->pos - offset : 0);
+        if (open->data_pos > (unsigned long)offset) {
+            pos = open->data_pos - (unsigned long)offset;
+        } else {
+            pos = 0;
+        }
         break;
     case seek_from_end:
-        seek_data_block_begin(data, data->size > offset ? data->size - offset : 0);
+        if (node->data.size > (unsigned long)offset) {
+            pos = node->data.size - (unsigned long)offset;
+        } else {
+            pos = 0;
+        }
         break;
     default:
         break;
     }
     
+    open->data_pos = (u64)pos;
     if (newpos) {
-        *newpos = data->pos;
+        *newpos = (u64)pos;
     }
     
     return 0;
 }
 
-static int list(unsigned long super_id, unsigned long node_id, void *buf, unsigned long count, unsigned long *actual)
+static int list(unsigned long open_id, void *buf, unsigned long count, unsigned long *actual)
 {
     struct ramfs_node *sub = NULL;
     unsigned long len = 0;
     int result = 0;
      
-    struct ramfs_node *node = get_node_by_id(node_id);
+    struct ramfs_open *open = NULL;
+    struct ramfs_node *node = NULL;
+    
+    open = get_open_by_id(open_id);
+    if (!open) {
+        return EBADF;
+    }
+    
+    node = open->node;
     if (!node) {
-        return -1;
+        return ECLOSED;
     }
     
     // Sub entries have not yet been initialized
@@ -437,13 +536,13 @@ static int list(unsigned long super_id, unsigned long node_id, void *buf, unsign
     }
     
     // No more entries
-    if (node->sub.pos >= node->sub.count) {
+    if (open->sub_pos >= node->sub.count) {
         return -1;
     }
     
     // Obtain the sub entry
 //     kprintf("to obtain at pos: %p, entries: %p, count: %p\n", node->sub.pos, node->sub.entries, node->sub.count);
-    sub = hash_obtain_at(node->sub.entries, node->sub.pos);
+    sub = hash_obtain_at(node->sub.entries, open->sub_pos);
 //     kprintf("obtained: %p\n", sub);
     
     // Copy the name
@@ -459,55 +558,112 @@ static int list(unsigned long super_id, unsigned long node_id, void *buf, unsign
         *actual = len;
     }
     
-    node->sub.pos++;
+    open->sub_pos++;
     hash_release(node->sub.entries, NULL, sub);
     
     return result;
 }
 
-static int seek_list(unsigned long super_id, unsigned long node_id, unsigned long offset, enum urs_seek_from from, unsigned long *newpos)
+static int seek_list(unsigned long open_id, u64 offset, enum urs_seek_from from, u64 *newpos)
 {
-    struct ramfs_node *node = get_node_by_id(node_id);
+    unsigned long pos = 0;
+    
+    struct ramfs_open *open = NULL;
+    struct ramfs_node *node = NULL;
+    
+    open = get_open_by_id(open_id);
+    if (!open) {
+        return EBADF;
+    }
+    
+    node = open->node;
     if (!node) {
-        return -1;
+        return ECLOSED;
     }
     
     switch (from) {
     case seek_from_begin:
-        node->sub.pos = offset < node->sub.count ? offset : node->sub.count - 1;
+        pos = (unsigned long)offset;
+        if (pos > node->sub.count) {
+            pos = node->sub.count;
+        }
         break;
     case seek_from_cur_fwd:
-        node->sub.pos = node->sub.pos + offset < node->sub.count ? node->sub.pos + offset : node->sub.count - 1;
+        pos = open->sub_pos + (unsigned long)offset;
+        if (pos > node->sub.count) {
+            pos = node->sub.count;
+        }
         break;
     case seek_from_cur_bwd:
-        node->sub.pos = offset < node->sub.pos ? node->sub.pos - offset : 0;
+        if (open->sub_pos > (unsigned long)offset) {
+            pos = open->sub_pos - (unsigned long)offset;
+        } else {
+            pos = 0;
+        }
         break;
     case seek_from_end:
-        node->sub.pos = offset < node->sub.count ? node->sub.count - offset - 1 : 0;
+        if (node->sub.count > (unsigned long)offset) {
+            pos = node->sub.count - (unsigned long)offset;
+        } else {
+            pos = 0;
+        }
         break;
     default:
         break;
     }
     
+    open->sub_pos = (u64)pos;
     if (newpos) {
-        *newpos = node->sub.pos;
+        *newpos = (u64)pos;
     }
     
     return 0;
 }
 
-static int create(unsigned long super_id, unsigned long node_id, char *name, enum urs_create_type type, unsigned int flags, char *target, unsigned long target_id)
+static int create(unsigned long open_id, char *name, enum urs_create_type type, unsigned int flags, char *target, unsigned long target_open_id)
 {
     struct ramfs_node *sub = NULL;
     
-    struct ramfs_node *node = get_node_by_id(node_id);
+    struct ramfs_open *open = NULL;
+    struct ramfs_node *node = NULL;
+    
+    open = get_open_by_id(open_id);
+    if (!open) {
+        return EBADF;
+    }
+    
+    node = open->node;
     if (!node) {
-        return -1;
+        return ECLOSED;
     }
     
     switch (type) {
     case ucreate_node:
         sub = create_node(name, node);
+        break;
+    case ucreate_sym_link:
+        sub = create_node(name, node);
+        sub->link = strdup(target);
+        break;
+    case ucreate_hard_link: {
+        struct ramfs_open *target_open = get_open_by_id(target_open_id);
+        if (!target_open) {
+            return EBADF;
+        }
+        sub = open->node;
+        assert(sub);
+        sub->ref_count++;
+        break;
+    }
+    case ucreate_dyn_link:
+        return -1;
+    case ucreate_none:
+        return 0;
+    default:
+        break;
+    }
+    
+    if (sub) {
         if (!node->sub.entries) {
             node->sub.entries = hash_new(0, urs_hash_func, urs_hash_cmp);
             kprintf("New has table created @ %p\n", node->sub.entries);
@@ -515,45 +671,37 @@ static int create(unsigned long super_id, unsigned long node_id, char *name, enu
         
         kprintf("To insert into hash table, name: %s, sub: %p\n", name, sub);
         if (hash_insert(node->sub.entries, sub->name, sub)) {
+            if (sub->link) {
+                free(sub->link);
+            }
+            
             sfree(sub);
             return -2;
         };
         
         node->sub.count++;
-        break;
-    
-    case ucreate_sym_link:
-        break;
-    case ucreate_hard_link:
-        break;
-    
-    case ucreate_dyn_link:
-        return -1;
-        
-    case ucreate_none:
-    default:
-        break;
     }
     
     return 0;
 }
 
-static int remove(unsigned long super_id, unsigned long node_id)
+static int remove(unsigned long open_id, int erase)
 {
     struct ramfs_node *parent = NULL;
-    struct ramfs_node *node = get_node_by_id(node_id);
+    struct ramfs_open *open = NULL;
+    struct ramfs_node *node = NULL;
+    
+    open = get_open_by_id(open_id);
+    if (!open) {
+        return EBADF;
+    }
+    
+    node = open->node;
     if (!node) {
-        return -1;
+        return ECLOSED;
     }
     
     kprintf("To remove node, ref count: %p\n", node->ref_count);
-    
-    // Make sure this node is not busy
-    if (node->ref_count > 1) {
-        return -1;
-    }
-    
-    kprintf("here?\n");
     
     // Get the parent and make sure this is not root
     parent = node->parent;
@@ -574,25 +722,41 @@ static int remove(unsigned long super_id, unsigned long node_id)
     parent->sub.count--;
     
     // Free this node
-    if (node->sub.entries) {
-        sfree(node->sub.entries);
+    node->ref_count--;
+    
+    if (!node->ref_count) {
+        if (node->sub.entries) {
+            sfree(node->sub.entries);
+        }
+        if (node->link) {
+            free(node->link);
+        }
+        free_data_block(&node->data);
+        free(node->name);
     }
-    if (node->link) {
-        free(node->link);
-    }
-    free_data_block(&node->data);
-    free(node->name);
+    
+    // Emptify open
+    open->node = NULL;
+    open->data_pos = open->sub_pos = 0;
     
     return EOK;
 }
 
-static int rename(unsigned long super_id, unsigned long node_id, char *name)
+static int rename(unsigned long open_id, char *name)
 {
     struct ramfs_node *parent = NULL;
     
-    struct ramfs_node *node = get_node_by_id(node_id);
+    struct ramfs_open *open = NULL;
+    struct ramfs_node *node = NULL;
+    
+    open = get_open_by_id(open_id);
+    if (!open) {
+        return EBADF;
+    }
+    
+    node = open->node;
     if (!node) {
-        return -1;
+        return ECLOSED;
     }
     
     parent = node->parent;
@@ -621,16 +785,17 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
     unsigned long ret_mbox_id = msg->mailbox_id;
     
     // Get common data fields
+    // Note that we also discard the 0th field of the msg as it is the same as opcode
     enum urs_op_type op = (enum urs_op_type)msg->opcode;
-    unsigned long super_id = msg->params[1].value;
-    unsigned long node_id = msg->params[2].value;
     
     // Setup the reply msg
-    msg_t *r = syscall_msg();
+    msg_t *r = NULL;
     
     switch (op) {
     // Look up
     case uop_lookup: {
+        unsigned long super_id = msg->params[1].value;
+        unsigned long node_id = msg->params[2].value;
         char *name = (char *)((unsigned long)msg + msg->params[3].offset);
         int is_link = 0;
         unsigned long next_id = 0;
@@ -639,6 +804,7 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
         
         kprintf("name: %s, node: %p, is link: %d, next: %p\n", name, node_id, is_link, next_id);
         
+        r = syscall_msg();
         msg_param_value(r, (unsigned long)is_link);
         msg_param_value(r, next_id);
         msg_param_buffer(r, NULL, 0);
@@ -648,17 +814,27 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
     }
     
     case uop_open: {
-        result = open(super_id, node_id);
+        unsigned long super_id = msg->params[1].value;
+        unsigned long node_id = msg->params[2].value;
+        unsigned long open_id = 0;
+        
+        result = open(super_id, node_id, &open_id);
+        
+        r = syscall_msg();
+        msg_param_value(r, open_id);
+        
         break;
     }
     
     case uop_release: {
-        result = release(super_id, node_id);
+        unsigned long open_id = msg->params[2].value;
+        result = close(open_id);
         break;
     }
     
     // Data
     case uop_read: {
+        unsigned long open_id = msg->params[2].value;
         u8 buf[64];
         unsigned long count = sizeof(buf);
         unsigned long actual = 0;
@@ -666,7 +842,9 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
             count = msg->params[3].value;
         }
         
-        result = read(super_id, node_id, buf, count, &actual);
+        result = read(open_id, buf, count, &actual);
+        
+        r = syscall_msg();
         msg_param_buffer(r, buf, actual);
         msg_param_value(r, actual);
         
@@ -674,34 +852,42 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
     }
     
     case uop_write: {
+        unsigned long open_id = msg->params[2].value;
         void *buf = (void *)((unsigned long)msg + msg->params[3].offset);
         unsigned long count = msg->params[4].value;
         unsigned long actual = 0;
         
-        result = write(super_id, node_id, buf, count, &actual);
+        result = write(open_id, buf, count, &actual);
+        
+        r = syscall_msg();
         msg_param_value(r, actual);
         
         break;
     }
     
     case uop_truncate: {
-        result = truncate(super_id, node_id);
+        unsigned long open_id = msg->params[2].value;
+        result = truncate(open_id);
         break;
     }
     
     case uop_seek_data: {
-        unsigned long offset = msg->params[3].value;
+        unsigned long open_id = msg->params[2].value;
+        u64 offset = msg->params[3].value64;
         enum urs_seek_from from = (enum urs_seek_from)msg->params[4].value;
-        unsigned long newpos = 0;
+        u64 newpos = 0;
         
-        result = seek_data(super_id, node_id, offset, from, &newpos);
-        msg_param_value(r, newpos);
+        result = seek_data(open_id, offset, from, &newpos);
+        
+        r = syscall_msg();
+        msg_param_value64(r, newpos);
         
         break;
     }
     
     // List
     case uop_list: {
+        unsigned long open_id = msg->params[2].value;
         u8 buf[64];
         unsigned long count = sizeof(buf);
         unsigned long actual = 0;
@@ -710,7 +896,9 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
             count = msg->params[3].value;
         }
         
-        result = list(super_id, node_id, buf, count, &actual);
+        result = list(open_id, buf, count, &actual);
+        
+        r = syscall_msg();
         msg_param_buffer(r, buf, actual);
         msg_param_value(r, actual);
         
@@ -718,36 +906,43 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
     }
     
     case uop_seek_list: {
-        unsigned long offset = msg->params[3].value;
+        unsigned long open_id = msg->params[2].value;
+        u64 offset = msg->params[3].value64;
         enum urs_seek_from from = (enum urs_seek_from)msg->params[4].value;
-        unsigned long newpos = 0;
+        u64 newpos = 0;
         
-        result = seek_list(super_id, node_id, offset, from, &newpos);
-        msg_param_value(r, newpos);
+        result = seek_list(open_id, offset, from, &newpos);
+        
+        r = syscall_msg();
+        msg_param_value64(r, newpos);
         
         break;
     }
     
     // Create
     case uop_create: {
+        unsigned long open_id = msg->params[2].value;
         char *name = (void *)((unsigned long)msg + msg->params[3].offset);
         enum urs_create_type type = (enum urs_create_type)msg->params[4].value;
         unsigned int flags = (unsigned int)msg->params[5].value;
         char *target = (void *)((unsigned long)msg + msg->params[6].offset);
-        unsigned long target_node_id = msg->params[7].value;
+        unsigned long target_open_id = msg->params[7].value;
         
-        result = create(super_id, node_id, name, type, flags, target, target_node_id);
+        result = create(open_id, name, type, flags, target, target_open_id);
         break;
     }
     
     case uop_remove: {
-        result = remove(super_id, node_id);
+        unsigned long open_id = msg->params[2].value;
+        int erase = (int)msg->params[3].value;
+        result = remove(open_id, erase);
         break;
     }
     
     case uop_rename: {
+        unsigned long open_id = msg->params[2].value;
         char *name = (void *)((unsigned long)msg + msg->params[3].offset);
-        result = rename(super_id, node_id, name);
+        result = rename(open_id, name);
         break;
     }
     
@@ -756,6 +951,9 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
     }
     
     // Return value
+    if (!r) {
+        r = syscall_msg();
+    }
     r->mailbox_id = ret_mbox_id;
     msg_param_value(r, (unsigned long)result);
     
@@ -826,6 +1024,7 @@ int register_ramfs(char *path)
 void init_ramfs()
 {
     ramfs_table = hash_new(0, NULL, NULL);
+    open_salloc_id = salloc_create(sizeof(struct ramfs_open), 0, NULL, NULL);
     node_salloc_id = salloc_create(sizeof(struct ramfs_node), 0, NULL, NULL);
     block_salloc_id = salloc_create(sizeof(struct ramfs_block), 0, NULL, NULL);
     

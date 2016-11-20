@@ -53,14 +53,15 @@
 // Message param type
 #define MSG_PARAM_EMPTY         0x0
 #define MSG_PARAM_VALUE         0x1
-#define MSG_PARAM_BUFFER        0x2
+#define MSG_PARAM_VALUE64       0x2
+#define MSG_PARAM_BUFFER        0x3
 
 struct msg_param {
     int type;
     
     union {
         unsigned long value;
-        
+        u64 value64;
         struct {
             int offset;
             int size;

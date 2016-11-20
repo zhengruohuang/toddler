@@ -74,8 +74,9 @@ asmlinkage void urs_open_handler(struct kernel_msg_handler_arg *arg)
     
     char *name = (char *)((ulong)s + s->params[0].offset);
     unsigned int flags = (unsigned int)s->params[1].value;
+//     unsigned long open_id = 0;
     
-    int result = (int)urs_open_node(name, flags, t->proc_id);
+    unsigned long result = urs_open_node(name, flags, t->proc_id);
     set_msg_param_value(r, (ulong)result);
     
     run_thread(t);
@@ -225,7 +226,8 @@ asmlinkage void urs_remove_handler(struct kernel_msg_handler_arg *arg)
     msg_t *r = create_response_msg(t);
     
     ulong open_id = s->params[0].value;
-    int result = (int)urs_remove_node(open_id);
+    int erase = (int)s->params[1].value;
+    int result = (int)urs_remove_node(open_id, erase);
     set_msg_param_value(r, (ulong)result);
     
     run_thread(t);

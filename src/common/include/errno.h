@@ -13,6 +13,7 @@
 #define ELIMIT      -11     // Limit exceeded
 #define EBUSY       -12     // Resource busy
 #define EBADF       -13     // Bad file number
+#define ECLOSED     -14     // File closed
 
 // Memory
 #define ENOMEM      -20     // No enough memory

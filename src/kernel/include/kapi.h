@@ -21,6 +21,7 @@ extern void init_kapi();
 extern msg_t *create_request_msg();
 extern msg_t *create_response_msg(struct thread *t);
 extern void set_msg_param_value(msg_t *m, unsigned long value);
+extern void set_msg_param_value64(msg_t *m, u64 value);
 extern void set_msg_param_buf(msg_t *m, void *buf, unsigned long size);
 
 

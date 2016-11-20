@@ -76,7 +76,7 @@ static int lookup(unsigned long super_id, unsigned long node_id, const char *nam
     return ret;
 }
 
-static int open(unsigned long super_id, unsigned long node_id)
+static int open(unsigned long super_id, unsigned long node_id, unsigned long *open_dispatch_id)
 {
     struct open_record *node = (struct open_record *)hashtable_obtain(open_table, node_id);
     
@@ -103,6 +103,10 @@ static int open(unsigned long super_id, unsigned long node_id)
         }
         
         hashtable_insert(open_table, node_id, node);
+    }
+    
+    if (open_dispatch_id) {
+        *open_dispatch_id = node_id;
     }
     
     return 0;

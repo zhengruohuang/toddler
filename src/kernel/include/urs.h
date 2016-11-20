@@ -47,17 +47,11 @@ struct urs_node {
 
 struct urs_open {
     unsigned long id;
-    
     char *path;
-    unsigned long ref_count;
     
-    u64 data_pos;
-    u64 data_size;
-    
-    u64 list_pos;
-    u64 list_size;
-    
+    struct urs_super *super;
     struct urs_node *node;
+    unsigned long open_dispatch_id;
 };
 
 
@@ -76,13 +70,13 @@ extern int urs_close_node(unsigned long id);
 extern int urs_read_node(unsigned long id, void *buf, unsigned long count, unsigned long *actual);
 extern int urs_write_node(unsigned long id, void *buf, unsigned long count, unsigned long *actual);
 extern int urs_truncate_node(unsigned long id);
-extern int urs_seek_data(unsigned long id, unsigned long offset, enum urs_seek_from from, unsigned long *newpos);
+extern int urs_seek_data(unsigned long id, u64 offset, enum urs_seek_from from, u64 *newpos);
 
 extern int urs_list_node(unsigned long id, void *buf, unsigned long count, unsigned long *actual);
-extern int urs_seek_list(unsigned long id, u64 offset, enum urs_seek_from from, unsigned long *newpos);
+extern int urs_seek_list(unsigned long id, u64 offset, enum urs_seek_from from, u64 *newpos);
 
 extern int urs_create_node(unsigned long id, char *name, enum urs_create_type type, unsigned int flags, char *target);
-extern int urs_remove_node(unsigned long id);
+extern int urs_remove_node(unsigned long id, int erase);
 extern int urs_rename_node(unsigned long id, char *name);
 
 

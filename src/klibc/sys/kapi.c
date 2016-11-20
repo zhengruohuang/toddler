@@ -63,6 +63,16 @@ void msg_param_value(msg_t *m, unsigned long value)
     m->param_count++;
 }
 
+void msg_param_value64(msg_t *m, u64 value64)
+{
+    int index = m->param_count;
+    
+    m->params[index].type = MSG_PARAM_VALUE64;
+    m->params[index].value64 = value64;
+    
+    m->param_count++;
+}
+
 void msg_param_buffer(msg_t *m, void *buf, size_t size)
 {
     int index = m->param_count;

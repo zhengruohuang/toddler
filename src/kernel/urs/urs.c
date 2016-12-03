@@ -714,6 +714,41 @@ static int dispatch_rename(struct urs_super *super, unsigned long node_id, char 
     return result;
 }
 
+static int dispatch_stat(struct urs_super *super, unsigned long node_id, struct urs_stat *stat)
+{
+    int result = 0;
+    enum urs_op_type op = uop_stat;
+    
+    if (super->ops[op].type == udisp_none) {
+        return -1;
+    }
+    
+    else if (super->ops[op].type == udisp_func) {
+        result = super->ops[op].func(super->id, node_id, stat);
+    }
+    
+    else if (super->ops[op].type == udisp_msg) {
+        msg_t *s, *r;
+        struct urs_stat *ret = NULL;
+        
+        s = create_dispatch_msg(super, op, node_id);
+        r = ksys_request();
+        
+        ret = (struct urs_stat *)((unsigned long)r + r->params[0].offset);
+        if (ret && stat) {
+            memcpy(stat, ret, sizeof(struct urs_stat));
+        }
+        
+        result = (int)r->params[r->param_count - 1].value;
+    }
+    
+    else {
+        return -2;
+    }
+    
+    return result;
+}
+
 
 /*
  * Node operations
@@ -1097,6 +1132,20 @@ int urs_rename_node(unsigned long id, char *name)
     
     if (o) {
         error = dispatch_rename(o->super, o->open_dispatch_id, name);
+    } else {
+        error = EBADF;
+    }
+    
+    return error;
+}
+
+int urs_stat_node(unsigned long id, struct urs_stat *stat)
+{
+    int error = EOK;
+    struct urs_open *o = get_open_by_id(id);
+    
+    if (o) {
+        error = dispatch_stat(o->super, o->open_dispatch_id, stat);
     } else {
         error = EBADF;
     }

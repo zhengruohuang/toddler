@@ -22,6 +22,12 @@ extern void sys_yield();
 
 
 /*
+ * Time - should be moved to std time
+ */
+extern u64 get_systime();
+
+
+/*
  * System call
  */
 extern struct thread_control_block *get_tcb();
@@ -29,6 +35,7 @@ extern int do_syscall(unsigned long num, unsigned long param1, unsigned long par
 
 extern int syscall_ping(unsigned long ping, unsigned long *pong);
 extern int syscall_kputs(char *s);
+extern int syscall_time(unsigned long *high, unsigned long *low);
 extern int syscall_yield();
 
 extern msg_t *syscall_msg();
@@ -96,6 +103,9 @@ extern size_t kapi_urs_list(unsigned long fd, void *buf, size_t count);
 
 extern int kapi_urs_create(unsigned long fd, char *name, enum urs_create_type type, unsigned int flags, char *target);
 extern int kapi_urs_remove(unsigned long fd, int erase);
+extern int kapi_urs_rename(unsigned long fd, char *name);
+
+extern int kapi_urs_stat(unsigned long fd, struct urs_stat *stat);
 
 /*
  * Interrupt

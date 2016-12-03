@@ -79,4 +79,10 @@ extern void blocked_delay(int ms);
 extern void init_blocked_delay();
 
 
+/*
+ * System time
+ */
+extern void get_system_time(unsigned long *high, unsigned long *low);
+
+
 #endif

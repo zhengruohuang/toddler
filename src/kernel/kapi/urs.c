@@ -239,3 +239,46 @@ asmlinkage void urs_remove_handler(struct kernel_msg_handler_arg *arg)
     // Wait for this thread to be terminated
     kernel_unreachable();
 }
+
+asmlinkage void urs_rename_handler(struct kernel_msg_handler_arg *arg)
+{
+    struct thread *t = arg->sender_thread;
+    msg_t *s = arg->msg;
+    msg_t *r = create_response_msg(t);
+    
+    ulong open_id = s->params[0].value;
+    char *name = (char *)((ulong)s + s->params[1].offset);
+    int result = (int)urs_rename_node(open_id, name);
+    set_msg_param_value(r, (ulong)result);
+    
+    run_thread(t);
+    
+    // Clean up
+    terminate_thread_self(arg->handler_thread);
+    sfree(arg);
+    
+    // Wait for this thread to be terminated
+    kernel_unreachable();
+}
+
+asmlinkage void urs_stat_handler(struct kernel_msg_handler_arg *arg)
+{
+    struct thread *t = arg->sender_thread;
+    msg_t *s = arg->msg;
+    msg_t *r = create_response_msg(t);
+    
+    ulong open_id = s->params[0].value;
+    struct urs_stat stat;
+    int result = (int)urs_stat_node(open_id, &stat);
+    set_msg_param_buf(r, &stat, sizeof(stat));
+    set_msg_param_value(r, (ulong)result);
+    
+    run_thread(t);
+    
+    // Clean up
+    terminate_thread_self(arg->handler_thread);
+    sfree(arg);
+    
+    // Wait for this thread to be terminated
+    kernel_unreachable();
+}

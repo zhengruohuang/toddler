@@ -2,6 +2,9 @@
 #define __COMMON_INCLUDE_URS__
 
 
+#include "common/include/data.h"
+
+
 /*
  * Seek data and list
  */
@@ -78,6 +81,22 @@ enum urs_create_type {
     ucreate_dyn_link,
     ucreate_sym_link,
     ucreate_hard_link,
+};
+
+
+/*
+ * Stat
+ */
+struct urs_stat {
+    unsigned long super_id;
+    unsigned long open_dispatch_id;
+    unsigned long num_links;
+    u64 data_size;
+    u64 occupied_size;
+    u64 create_time;
+    u64 read_time;
+    u64 write_time;
+    u64 change_time;
 };
 
 

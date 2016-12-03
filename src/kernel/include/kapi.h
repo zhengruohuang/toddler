@@ -66,8 +66,12 @@ extern asmlinkage void urs_close_handler(struct kernel_msg_handler_arg *arg);
 extern asmlinkage void urs_read_handler(struct kernel_msg_handler_arg *arg);
 extern asmlinkage void urs_write_handler(struct kernel_msg_handler_arg *arg);
 extern asmlinkage void urs_list_handler(struct kernel_msg_handler_arg *arg);
+
 extern asmlinkage void urs_create_handler(struct kernel_msg_handler_arg *arg);
 extern asmlinkage void urs_remove_handler(struct kernel_msg_handler_arg *arg);
+extern asmlinkage void urs_rename_handler(struct kernel_msg_handler_arg *arg);
+
+extern asmlinkage void urs_stat_handler(struct kernel_msg_handler_arg *arg);
 
 
 #endif

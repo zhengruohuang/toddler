@@ -12,7 +12,8 @@
 #define SYSCALL_NONE            0x0
 #define SYSCALL_PING            0x1
 #define SYSCALL_KPUTS           0x2
-#define SYSCALL_YIELD           0x3
+#define SYSCALL_TIME            0x3
+#define SYSCALL_YIELD           0x4
 
 // I/O ports
 // On systems with only memory-mapped I/O, making these calls is unnecessary
@@ -126,7 +127,8 @@ typedef asmlinkage void (*msg_handler_t)(msg_t *msg);
 #define KAPI_URS_CREATE         0x68
 #define KAPI_URS_REMOVE         0x69
 #define KAPI_URS_RENAME         0x6a
-#define KAPI_URS_IOCTL          0x6b
+#define KAPI_URS_STAT           0x6b
+#define KAPI_URS_IOCTL          0x6c
 
 #define KAPI_URS_REG_SUPER      0x70
 #define KAPI_URS_REG_OP         0x71

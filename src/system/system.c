@@ -34,6 +34,11 @@ int main(int argc, char *argv[])
     // FS tests
     //test_ramfs();
     
+//     u64 t = get_systime();
+//     unsigned long time_high = 0, time_low = 0;
+//     syscall_time(&time_high, &time_low);
+//     kprintf("Time: %x %x\n", (unsigned long)(t >> 32), (unsigned long)t);
+    
     // Init done
     kprintf("System process initialized!\n");
     kapi_process_started(0);

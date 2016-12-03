@@ -13,6 +13,7 @@
  * Dispatch
  */
 extern void init_dispatch();
+extern void set_syscall_return(struct thread *t, unsigned long return0, unsigned long return1);
 extern int dispatch_syscall(struct kernel_dispatch_info *disp_info);
 extern int dispatch_interrupt(struct kernel_dispatch_info *disp_info);
 
@@ -29,6 +30,8 @@ struct kernel_msg_handler_arg {
 extern void init_ipc();
 
 extern void kputs_worker_thread(ulong param);
+
+extern void time_worker(struct kernel_dispatch_info *disp_info);
 
 extern void io_in_worker(struct kernel_dispatch_info *disp_info);
 extern void io_out_worker(struct kernel_dispatch_info *disp_info);

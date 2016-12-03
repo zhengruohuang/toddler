@@ -60,6 +60,11 @@ int syscall_kputs(char *s)
     return do_syscall(SYSCALL_KPUTS, (unsigned long)s, 0, NULL, NULL);
 }
 
+int syscall_time(unsigned long *high, unsigned long *low)
+{
+    return do_syscall(SYSCALL_TIME, 0, 0, high, low);
+}
+
 int syscall_yield()
 {
     return do_syscall(SYSCALL_YIELD, 0, 0, NULL, NULL);

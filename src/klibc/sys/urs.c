@@ -187,10 +187,49 @@ int kapi_urs_remove(unsigned long fd, int erase)
     return result;
 }
 
-//  int lseek(int file, int ptr, int dir);
+int kapi_urs_rename(unsigned long fd, char *name)
+{
+    // Setup the msg
+    msg_t *s = kapi_msg(KAPI_URS_RENAME);
+    msg_t *r = NULL;
+    int result = -1;
+    
+    // Setup the params
+    msg_param_value(s, fd);
+    msg_param_buffer(s, name, strlen(name) + 1);
+    
+    // Issue the KAPI and obtain the result
+    r = syscall_request();
+    
+    // Setup the result
+    result = (int)kapi_return_value(r);
+    
+    return result;
+}
 
-//  int fstat(int file, struct stat *st);
-//  int stat(const char *file, struct stat *st);
+int kapi_urs_stat(unsigned long fd, struct urs_stat *stat)
+{
+    // Setup the msg
+    msg_t *s = kapi_msg(KAPI_URS_STAT);
+    msg_t *r = NULL;
+    struct urs_stat *ret = NULL;
+    int result = -1;
+    
+    // Setup the params
+    msg_param_value(s, fd);
+    
+    // Issue the KAPI and obtain the result
+    r = syscall_request();
+    
+    // Setup the result
+    ret = (struct urs_stat *)((unsigned long)r + r->params[0].offset);
+    if (ret && stat) {
+        memcpy(stat, ret, sizeof(struct urs_stat));
+    }
+    result = (int)kapi_return_value(r);
+    
+    return result;
+}
 
 //  int link(char *old, char *new);
 //  int unlink(char *name);

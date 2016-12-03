@@ -3,7 +3,7 @@
  */
 #include "common/include/task.h"
 #include "kernel/include/hal.h"
-#include "kernel/include/proc.h"
+#include "kernel/include/syscall.h"
 
 
 void io_in_worker(struct kernel_dispatch_info *disp_info)
@@ -26,7 +26,8 @@ void io_in_worker(struct kernel_dispatch_info *disp_info)
         break;
     }
     
-    disp_info->syscall.ret_value = result;
+//     disp_info->syscall.return0 = result;
+    set_syscall_return(disp_info->thread, result, 0);
 }
 
 void io_out_worker(struct kernel_dispatch_info *disp_info)

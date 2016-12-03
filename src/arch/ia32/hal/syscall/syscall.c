@@ -123,3 +123,10 @@ void asmlinkage sysenter_handler_entry(struct context *context)
         context->edi = ret_size;
     }
 }
+
+void set_syscall_return(struct context *context, int succeed, ulong return0, ulong return1)
+{
+    context->eax = succeed;
+    context->esi = return0;
+    context->edi = return1;
+}

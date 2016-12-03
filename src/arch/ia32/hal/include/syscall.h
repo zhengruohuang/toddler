@@ -16,6 +16,7 @@
 extern u32 syscall_proxy_entry;
 extern void asmlinkage save_context_sysenter(struct context *context);
 extern void asmlinkage sysenter_handler_entry(struct context* context);
+extern void set_syscall_return(struct context *context, int succeed, ulong return0, ulong return1);
 
 
 /*

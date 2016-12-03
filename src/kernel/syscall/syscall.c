@@ -16,12 +16,19 @@
 static int kernel_dispatch_salloc_id;
 
 
+/*
+ * Init
+ */
 void init_dispatch()
 {
     kernel_dispatch_salloc_id = salloc_create(sizeof(struct kernel_dispatch_info), 0, 0, NULL, NULL);
     kprintf("\tKernel dispatch node salloc ID: %d\n", kernel_dispatch_salloc_id);
 }
 
+
+/*
+ * Helper functions
+ */
 static struct kernel_dispatch_info *prepare_thread(struct kernel_dispatch_info *disp_info)
 {
     // Put the thread to wait
@@ -36,11 +43,23 @@ static struct kernel_dispatch_info *prepare_thread(struct kernel_dispatch_info *
     return dup_disp_info;
 }
 
+void set_syscall_return(struct thread *t, unsigned long return0, unsigned long return1)
+{
+    hal->set_syscall_return(&t->context, 0, return0, return1);
+}
+
+
+/*
+ * Dispatch syscall
+ */
 int dispatch_syscall(struct kernel_dispatch_info *disp_info)
 {
     int resched = 0;
     struct thread *t = NULL;
     struct kernel_dispatch_info *dup_disp_info = NULL;
+    
+    // First clear the return values
+    set_syscall_return(disp_info->thread, 0, 0);
     
     // Do the actual dispatch
     switch (disp_info->syscall.num) {
@@ -49,6 +68,9 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
         dup_disp_info = prepare_thread(disp_info);
         t = create_thread(kernel_proc, (ulong)&kputs_worker_thread, (ulong)dup_disp_info, -1, 0, 0);
         assert(t);
+        break;
+    case SYSCALL_TIME:
+        time_worker(disp_info);
         break;
     case SYSCALL_YIELD:
         break;
@@ -120,7 +142,7 @@ int dispatch_syscall(struct kernel_dispatch_info *disp_info)
 
 
 /*
- * Interrupt
+ * Dispatch interrupt
  */
 int dispatch_interrupt(struct kernel_dispatch_info *disp_info)
 {

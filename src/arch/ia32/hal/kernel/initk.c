@@ -8,6 +8,8 @@
 #include "hal/include/task.h"
 #include "hal/include/int.h"
 #include "hal/include/kernel.h"
+#include "hal/include/time.h"
+#include "hal/include/syscall.h"
 
 #ifndef __HAL__
 #define __HAL__
@@ -36,6 +38,7 @@ void init_kernel()
     
     // General functions
     hexp->kprintf = kprintf;
+    hexp->time = get_system_time;
     hexp->halt = wrap_halt;
     
     // Kernel info
@@ -74,6 +77,7 @@ void init_kernel()
     hexp->init_addr_space = wrap_init_addr_space;
     hexp->init_context = init_thread_context;
     hexp->switch_context = switch_context;
+    hexp->set_syscall_return = set_syscall_return;
     hexp->sleep = wrap_sleep;
     hexp->yield = wrap_yield;
     hexp->ksyscall = wrap_ksyscall;

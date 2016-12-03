@@ -25,6 +25,7 @@ static struct builtin_cmd builtin_cmd_list[] = {
     { "cd", cd },
     { "pwd", pwd },
     { "rm", rm },
+    { "mv", mv },
 };
 
 

@@ -79,5 +79,7 @@ extern int urs_create_node(unsigned long id, char *name, enum urs_create_type ty
 extern int urs_remove_node(unsigned long id, int erase);
 extern int urs_rename_node(unsigned long id, char *name);
 
+extern int urs_stat_node(unsigned long id, struct urs_stat *stat);
+
 
 #endif

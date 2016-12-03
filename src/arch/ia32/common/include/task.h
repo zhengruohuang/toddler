@@ -67,7 +67,8 @@ struct kernel_dispatch_info {
             ulong param2;
             
             // Filled by kernel syscall handler
-            ulong ret_value;
+            ulong return0;
+            ulong return1;
         } syscall;
         
         struct {

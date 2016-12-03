@@ -772,7 +772,39 @@ static int rename(unsigned long open_id, char *name)
         hash_insert(parent->sub.entries, node->name, node);
     }
     
-    return 0;
+    return EOK;
+}
+
+static int stat(unsigned long open_id, struct urs_stat *stat)
+{
+    struct ramfs_open *open = NULL;
+    struct ramfs_node *node = NULL;
+    
+    open = get_open_by_id(open_id);
+    if (!open) {
+        return EBADF;
+    }
+    
+    node = open->node;
+    if (!node) {
+        return ECLOSED;
+    }
+    
+    if (stat) {
+        stat->super_id = 0;
+        stat->open_dispatch_id = open->id;
+        
+        stat->num_links = open->node->ref_count;
+        stat->data_size = open->node->data.size;
+        stat->occupied_size = stat->data_size;
+        
+        stat->create_time = 0;
+        stat->read_time = 0;
+        stat->write_time = 0;
+        stat->change_time = 0;
+    }
+    
+    return EOK;
 }
 
 
@@ -1000,6 +1032,8 @@ int register_ramfs(char *path)
     REG_OP(uop_create, create);
     REG_OP(uop_remove, remove);
     REG_OP(uop_rename, rename);
+    
+    REG_OP(uop_stat, stat);
     
     // Register the FS
     super_id = kapi_urs_reg_super(path, "ramfs", 0, &ops);

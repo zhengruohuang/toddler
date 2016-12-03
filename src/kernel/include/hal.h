@@ -43,6 +43,7 @@ struct hal_exports {
     
     // General functions
     int asmlinkage (*kprintf)(char *s, ...);
+    void (*time)(ulong *high, ulong *low);
     void (*halt)();
     
     // Kernel info
@@ -85,6 +86,7 @@ struct hal_exports {
     void (*switch_context)(ulong sched_id, struct context *context,
                                       ulong page_dir_pfn, int user_mode, ulong asid,
                                       struct thread_control_block *tcb);
+    void (*set_syscall_return)(struct context *context, int succeed, ulong return0, ulong return1);
     void (*sleep)();
     void (*yield)();
     int (*ksyscall)(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2);

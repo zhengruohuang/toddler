@@ -7,6 +7,7 @@
 #include "klibc/include/stdstruct.h"
 #include "klibc/include/assert.h"
 #include "klibc/include/sys.h"
+#include "klibc/include/time.h"
 #include "klibc/include/kthread.h"
 
 
@@ -39,6 +40,11 @@ struct ramfs_node {
     
     unsigned long ref_count;
     unsigned long open_count;
+    
+    time_t create_time;
+    time_t read_time;
+    time_t write_time;
+    time_t change_time;
     
     struct ramfs_node *parent;
     struct ramfs_data data;
@@ -270,6 +276,11 @@ static struct ramfs_node *create_node(const char *name, struct ramfs_node *paren
     
     node->link = NULL;
     
+    node->create_time = time();
+    node->read_time = 0;
+    node->write_time = 0;
+    node->change_time = 0;
+    
     return node;
 }
 
@@ -387,6 +398,8 @@ static int open(unsigned long super_id, unsigned long node_id, unsigned long *op
         *open_id = open->id;
     }
     
+    node->change_time = time();
+    
     return EOK;
 }
 
@@ -396,6 +409,8 @@ static int close(unsigned long open_id)
     if (!open) {
         return EBADF;
     }
+    
+    open->node->change_time = time();
     
     // FIXME: Lock needed
     open->node->open_count--;
@@ -420,6 +435,8 @@ static int read(unsigned long open_id, void *buf, unsigned long count, unsigned 
         *actual = result;
     }
     
+    open->node->read_time = time();
+    
     return 0;
 }
 
@@ -439,6 +456,8 @@ static int write(unsigned long open_id, void *buf, unsigned long count, unsigned
         *actual = result;
     }
     
+    open->node->write_time = time();
+    
     return 0;
 }
 
@@ -452,6 +471,9 @@ static int truncate(unsigned long open_id)
     }
     
     result = truncate_data_block(&open->node->data, (unsigned long)open->data_pos);
+    
+    open->node->write_time = time();
+    
     return result;
 }
 
@@ -560,6 +582,8 @@ static int list(unsigned long open_id, void *buf, unsigned long count, unsigned 
     
     open->sub_pos++;
     hash_release(node->sub.entries, NULL, sub);
+    
+    node->read_time = time();
     
     return result;
 }
@@ -791,17 +815,19 @@ static int stat(unsigned long open_id, struct urs_stat *stat)
     }
     
     if (stat) {
+        struct ramfs_node *n = open->node;
+        
         stat->super_id = 0;
         stat->open_dispatch_id = open->id;
         
-        stat->num_links = open->node->ref_count;
-        stat->data_size = open->node->data.size;
+        stat->num_links = node->ref_count;
+        stat->data_size = node->data.size;
         stat->occupied_size = stat->data_size;
         
-        stat->create_time = 0;
-        stat->read_time = 0;
-        stat->write_time = 0;
-        stat->change_time = 0;
+        stat->create_time = node->create_time;
+        stat->read_time = node->read_time;
+        stat->write_time = node->write_time;
+        stat->change_time = node->change_time;
     }
     
     return EOK;

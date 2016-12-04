@@ -3,6 +3,7 @@
 
 
 #include "common/include/data.h"
+#include "hal/include/int.h"
 
 
 /*
@@ -70,7 +71,7 @@ extern void pit_gen_tick(int freq);
 /*
  * Tick
  */
-#define TICK_FREQ   103
+#define TICK_FREQ   1
 #define BLOCKED_DELAY_TEST_SEC  0
 
 extern void change_tick(int freq);
@@ -83,6 +84,8 @@ extern void init_blocked_delay();
  * System time
  */
 extern void get_system_time(unsigned long *high, unsigned long *low);
+extern int time_interrupt_handler(struct int_context *context, struct kernel_dispatch_info *kdi);
+extern void init_time();
 
 
 #endif

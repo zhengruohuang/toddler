@@ -5,7 +5,7 @@
 
 void change_tick(int freq)
 {
-    pit_gen_tick(TICK_FREQ);
+    pit_gen_tick(freq);
 }
 
 void init_tick()

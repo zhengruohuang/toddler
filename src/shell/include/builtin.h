@@ -17,6 +17,6 @@ extern int cd(int argc, char **argv);
 extern int pwd(int argc, char **argv);
 extern int rm(int argc, char **argv);
 extern int mv(int argc, char **argv);
-
+extern int date(int argc, char **argv);
 
 #endif

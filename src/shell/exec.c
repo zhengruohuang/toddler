@@ -18,6 +18,7 @@ int exec_cmd(char *cmd, int argc, char **argv)
     if (builtin_index >= 0) {
         err = exec_builtin_cmd(builtin_index, argc, argv);
     } else {
+        kprintf("Unknown command: %s\n", cmd);
         err = -1;
     }
     

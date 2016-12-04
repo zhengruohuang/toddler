@@ -26,6 +26,7 @@ static struct builtin_cmd builtin_cmd_list[] = {
     { "pwd", pwd },
     { "rm", rm },
     { "mv", mv },
+    { "date", date },
 };
 
 

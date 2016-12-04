@@ -87,6 +87,10 @@ static void hal_entry()
     // Bringup APs
     bringup_mp();
     
+    // Init time, init this as late as possible since we need the pit interrupt
+    init_time();
+    init_tick();
+    
     // Start to work
     kprintf("Initialization is done! Will start working!\n");
     release_mp_lock();

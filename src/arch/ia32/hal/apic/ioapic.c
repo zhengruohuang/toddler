@@ -10,6 +10,7 @@
 #include "hal/include/cpu.h"
 #include "hal/include/int.h"
 #include "hal/include/drv.h"
+#include "hal/include/time.h"
 #include "hal/include/apic.h"
 
 
@@ -54,7 +55,7 @@ static int ioapic_handler(struct int_context *context, struct kernel_dispatch_in
     
     switch (irq) {
     case 0:
-        //result = hal_interrupt_handler_global_timer();
+        result = time_interrupt_handler(context, kdi);
         break;
     case 1:
         result = keyboard_interrupt_handler(context, kdi);
@@ -226,7 +227,7 @@ static void ioapic_override_mps()
 
 void ioapic_start()
 {
-    //ioapic_enable_irq(0);
+    ioapic_enable_irq(0);
     ioapic_enable_irq(1);
     //ioapic_enable_irq(15);
 }

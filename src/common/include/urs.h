@@ -90,12 +90,16 @@ enum urs_create_type {
 struct urs_stat {
     unsigned long super_id;
     unsigned long open_dispatch_id;
+    
     unsigned long num_links;
+    unsigned long sub_count;
     u64 data_size;
     u64 occupied_size;
+    
     u64 create_time;
     u64 read_time;
     u64 write_time;
+    u64 list_time;
     u64 change_time;
 };
 

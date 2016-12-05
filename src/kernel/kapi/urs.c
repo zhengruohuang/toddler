@@ -270,7 +270,7 @@ asmlinkage void urs_stat_handler(struct kernel_msg_handler_arg *arg)
     ulong open_id = s->params[0].value;
     struct urs_stat stat;
     int result = (int)urs_stat_node(open_id, &stat);
-    set_msg_param_buf(r, &stat, sizeof(stat));
+    set_msg_param_buf(r, &stat, sizeof(struct urs_stat));
     set_msg_param_value(r, (ulong)result);
     
     run_thread(t);

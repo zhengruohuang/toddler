@@ -736,7 +736,7 @@ static int dispatch_stat(struct urs_super *super, unsigned long node_id, struct 
         
         ret = (struct urs_stat *)((unsigned long)r + r->params[0].offset);
         if (ret && stat) {
-            memcpy(stat, ret, sizeof(struct urs_stat));
+            memcpy(ret, stat, sizeof(struct urs_stat));
         }
         
         result = (int)r->params[r->param_count - 1].value;

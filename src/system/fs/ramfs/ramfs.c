@@ -44,6 +44,7 @@ struct ramfs_node {
     time_t create_time;
     time_t read_time;
     time_t write_time;
+    time_t list_time;
     time_t change_time;
     
     struct ramfs_node *parent;
@@ -583,7 +584,7 @@ static int list(unsigned long open_id, void *buf, unsigned long count, unsigned 
     open->sub_pos++;
     hash_release(node->sub.entries, NULL, sub);
     
-    node->read_time = time();
+    node->list_time = time();
     
     return result;
 }
@@ -821,12 +822,14 @@ static int stat(unsigned long open_id, struct urs_stat *stat)
         stat->open_dispatch_id = open->id;
         
         stat->num_links = node->ref_count;
+        stat->sub_count = node->sub.count;
         stat->data_size = node->data.size;
         stat->occupied_size = stat->data_size;
         
         stat->create_time = node->create_time;
         stat->read_time = node->read_time;
         stat->write_time = node->write_time;
+        stat->list_time = node->list_time;
         stat->change_time = node->change_time;
     }
     
@@ -1001,6 +1004,19 @@ asmlinkage void ramfs_msg_handler(msg_t *msg)
         unsigned long open_id = msg->params[2].value;
         char *name = (void *)((unsigned long)msg + msg->params[3].offset);
         result = rename(open_id, name);
+        break;
+    }
+    
+    // Stat
+    case uop_stat: {
+        unsigned long open_id = msg->params[2].value;
+        struct urs_stat s;
+        
+        result = stat(open_id, &s);
+        
+        r = syscall_msg();
+        msg_param_buffer(r, &s, sizeof(struct urs_stat));
+        
         break;
     }
     

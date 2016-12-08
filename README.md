@@ -84,7 +84,7 @@ The driver process provides several essential devices drivers, including keyboar
 
 |Time|Event|Arch|Target|Status|
 |---|---|---|---|---|
-|Feb. 2016|A working *modern* kernel and a simple working shell|ia32|Netbust PC|Active|
+|Feb. 2017|A working *modern* kernel and a simple working shell|ia32|Netbust PC|Active|
 |Apr. 2017|A working 32-bit ARMv7 port|armv7|Raspberry Pi 2|Active|
 |May 2017|SMP support for 32-bit ARMv7|armv7|Raspberry Pi 2|Planned|
 |Aug. 2017|A working 32-bit PowerPC port|ppc32|Mac Mini G4|Planned|

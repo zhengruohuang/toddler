@@ -1,5 +1,7 @@
 # Toddler
 
+![Screenshot](https://cloud.githubusercontent.com/assets/17039006/21021636/5c26c944-bd47-11e6-809f-3e02bd932b64.png)
+
 ## Brief History
 
 Toddler was originally a half-hobby and half-research project developed during summer and winter breaks when I was in college.

@@ -35,14 +35,25 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 
 ## Architecture
 
-
 ### Hardware Abstraction Layer
+
+The hardware abstraction layer (HAL) provides an abstraction of each processor model and basic IO devices. It exports a series of functions and constants to kernel.
+HAL is mapped to the highest 4MB of all processes except the kernel process.
 
 ### The kernel Process
 
+Unlike conventional operating systems, Toddler's kernel is a *real* process. The kernel is not mapped to the address space of user processes.
+However, the virtual address space layout of kernel is a bit different from other processes. The kernel has a *one-to-one* mapping thanks to the small size of HAL.
+As a result, physical memory management is much easier and cleaner.
+
 ### The system Process
 
+Although Toddler is a micro-kernel OS, being *many-server* might not be a good idea. Instead, many system-level functionalities are provided in a single server -- system.
+The system process implements the universal resource manager (URS), user account manager (UAM), and several file systems.
+
 ### The driver Process
+
+The driver process provides several essential devices drivers, including keyboards, consoles, and disks.
 
 
 ## Ports
@@ -50,14 +61,14 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 |Architecture|Width|Target Machine|Status|
 |---|---|---|---|---|
 |ia32|32|NetBurst-based PC|Active|
+|armv7|32|Raspberry Pi 2|Active|
 |ppc32|32|Mac Mini G4, PowerMac G4|Initial|
-|armv7|32|Raspberry Pi 2|Initial|
 |mips32|32|Creator CI20|Planned|
 |sparcv8|32|SuperSPARC II|Planned|
 |m68k|32|M68K|No Plan|
 |amd64|64|Skylake-based PC|Planned|
-|ppc64|64|PowerMac G5|Planned|
 |armv8|64|Raspberry Pi 3|Planned|
+|ppc64|64|PowerMac G5|Planned|
 |mips64|64|Loongson 3 Desktop|Planned|
 |sparcv9|64|Sun UltraSPARC II Workstation|Planned|
 |riscv|64|RISC V QEMU Emulator|Planned|
@@ -73,23 +84,23 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 
 |Time|Event|Arch|Target|Status|
 |---|---|---|---|---|
-|Dec. 2016|A working *modern* kernel and a simple working shell|ia32|Netbust PC|Active|
-|Jan. 2017|A working 32-bit ARMv7 port|armv7|Raspberry Pi 2|Active|
-|Feb. 2017|SMP support for 32-bit ARMv7|armv7|Raspberry Pi 2|Planned|
-|Mar. 2017|A working 32-bit PowerPC port|ppc32|Mac Mini G4|Planned|
-|Apr. 2017|SMP support for 32-bit PowerPC|ppc32|PowerMac G4 Dual|Planned|
-|Later|64-bit Toddler|||Planned|
+|Feb. 2016|A working *modern* kernel and a simple working shell|ia32|Netbust PC|Active|
+|Apr. 2017|A working 32-bit ARMv7 port|armv7|Raspberry Pi 2|Active|
+|May 2017|SMP support for 32-bit ARMv7|armv7|Raspberry Pi 2|Planned|
+|Aug. 2017|A working 32-bit PowerPC port|ppc32|Mac Mini G4|Planned|
+|Sep. 2017|SMP support for 32-bit PowerPC|ppc32|PowerMac G4 Dual|Planned|
+|Late 2017|64-bit Toddler|||Planned|
 
 ### Kernel
 
 |Time|Event|Status|
 |----|-----|------|
-|Dec. 2016|Efficient memory management and sophisticated scheduling|Planned|
-|Feb. 2017|Better SMP support|Planned|
+|Feb. 2017|Efficient memory management and sophisticated scheduling|Planned|
+|Apr. 2017|Better SMP support|Planned|
 
 ### Building system
 
 |Time|Event|Status|
 |----|-----|------|
-|Jan. 2017|Clean up the code, HD image builder|Planned|
-|Feb. 2017|Parallel building|Planned|
+|Feb. 2017|Clean up the code, HD image builder|Planned|
+|Apr. 2017|Parallel building|Planned|

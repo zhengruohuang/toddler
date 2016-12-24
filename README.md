@@ -20,7 +20,7 @@ The lock-free idea has been abandoned since it created too much unnecessary comp
 
 Toddler has its own building system written in Python: tmake. tmake takes care of file dependancies and provides a series of primitives such as _compile_, _link_, _build_, and etc. tmake scripts (also in Python) then use the primitives to construct the building procedure.
 
-Python is required for all targets; GCC and Binutils are required for each different target; NASM is required for x86 (ia32 and amd64) targets. Note that your toolchain may also require the corresponding libc6-dev. QEMU is also required if you want to test Toddler.
+Python is required for all targets; GCC and Binutils are required for each different target; NASM is required for x86 (ia32 and amd64) targets. Note that your toolchain may also require the corresponding libc6 development package. QEMU is also required if you want to test Toddler.
 
 Once all the packages are installed, fetch the source code then go into the ```toddler/``` directory.
 ```bash
@@ -50,12 +50,12 @@ As a result, physical memory management is much easier and cleaner.
 
 ### The system Process
 
-Although Toddler is a micro-kernel OS, being *many-server* might not be a good idea. Instead, many system-level functionalities are provided in a single server -- system.
-The system process implements the universal resource manager (URS), user account manager (UAM), and several file systems.
+Although Toddler is a micro-kernel OS, being *many-server* might not be a good idea. Instead, many system-level functionalities are provided in a single server - system.
+The system process implements universal resource manager (URS), user account manager (UAM), and several file systems.
 
 ### The driver Process
 
-The driver process provides several essential devices drivers, including keyboards, consoles, and disks.
+The driver process provides several essential device drivers, including keyboards, consoles, and disks.
 
 
 ## Ports
@@ -65,7 +65,7 @@ The driver process provides several essential devices drivers, including keyboar
 |ia32|32|NetBurst-based PC|Active|
 |armv7|32|Raspberry Pi 2|Active|
 |ppc32|32|Mac Mini G4, PowerMac G4|Initial|
-|mips32|32|Creator CI20|Planned|
+|mips32|32|Creator CI20, QEMU Malta|Initial|
 |sparcv8|32|SuperSPARC II|Planned|
 |m68k|32|M68K|No Plan|
 |amd64|64|Skylake-based PC|Planned|

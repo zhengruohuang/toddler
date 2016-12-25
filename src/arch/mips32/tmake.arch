@@ -1,0 +1,184 @@
+#!/usr/bin/python
+
+
+global_tools = { \
+    '.c' : { \
+        'exec'  : 'mipsel-linux-gnu-gcc',
+        'flags' : '-c -g -fno-builtin -fno-stack-protector -mno-abicalls -fno-pic -O2',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-MM __src__ > __dep__',
+    },
+
+    '.S' : { \
+        'exec'  : 'mipsel-linux-gnu-gcc',
+        'flags' : '-c -f elf',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-M __src__ > __dep__',
+    },
+    
+    'ld' : { \
+        'exec'  : 'mipsel-linux-gnu-ld',
+        'flags' : '-s',
+        'script': '-T __script__',
+        'obj'   : '-o __target__ __obj__',
+    },
+    
+    'ar' : { \
+        'exec'  : 'mipsel-linux-gnu-ar',
+        'flags' : 'crD',
+        'obj'   : '__target__ __obj__',
+    },
+    
+    'strip' : { \
+        'exec'  : 'mipsel-linux-gnu-strip',
+        'flags' : '',
+        'obj'   : '__target__',
+    },
+    
+    'gen_bin' : { \
+        'exec'  : 'mipsel-linux-gnu-objcopy',
+        'flags' : '-O binary',
+        'obj'   : '__src__ __target__',
+    },
+}
+
+boot_tools = { \
+    '.c' : { \
+        'exec'  : 'mipsel-linux-gnu-gcc',
+        'flags' : '-c -nostdlib -fno-builtin -nostartfiles -fno-stack-protector -mno-abicalls -fno-pic -O2',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-MM __src__ > __dep__',
+    },
+
+    '.S' : { \
+        'exec'  : 'mipsel-linux-gnu-gcc',
+        'flags' : '-c -nostdlib -fno-builtin -nostartfiles -fno-stack-protector -mno-abicalls -fno-pic -O0',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-M __src__ > __dep__',
+    },
+    
+    'ld' : { \
+        'exec'  : 'mipsel-linux-gnu-ld',
+        'flags' : '-s --no-undefined',
+        'script': '-T __script__',
+        'obj'   : '-o __target__ __obj__',
+    },
+}
+
+def build_loader():
+    print_info('loader', 'Building loader')
+    
+    build_files(
+        files = get_all_files(arch_dir + 'loader/', [ '.S', '.c' ]),
+        target_name = obj_dir + 'loader/loader.elf',
+        ext_dep = [ arch_dir + 'loader/loader.ld' ],
+        ext_flags = { 'ld/script' : arch_dir + 'loader/loader.ld' },
+        tools = arch_tools['boot_tools']
+    )
+    
+    #build_files(
+        #files = [ arch_dir + 'loader/periph2.c' ],
+        #target_name = obj_dir + 'loader/loader.elf',
+        #tools = arch_tools['boot_tools']
+    #)
+    
+    #gen_bin(
+        #src_name = obj_dir + 'loader/loader.elf',
+        #target_name = bin_dir + 'kernel7.img',
+        #tools = arch_tools['boot_tools']
+    #)
+    
+def build_hal():
+    print_info('hal', 'Building HAL')
+    build_dir(
+        arch_dir + 'hal/', [ '.c', '.asm' ],
+        bin_dir + 'tdlrhal.bin',
+        ext_flags = { 'ld/ext' : '-Ttext 0xFFF88000' },
+    )
+        
+def build_arch():
+    # Build loader
+    if 'build_loader' in arch_funcs:
+        arch_funcs['build_loader']()
+    
+    ## Build HAL
+    #if 'build_hal' in arch_funcs:
+        #arch_funcs['build_hal']()
+    
+def build_disk():
+    print_info('floppyimg', 'Building floppy image')
+
+def qemu8():
+    print_info('emulator', 'Starting SMP QEMU')
+    
+    img_name = img_dir + 'floppy.img'
+    
+    # Compose the cmd
+    cmd = 'qemu-system-mipsel' + \
+        ' -m 512' + \
+        ' -no-shutdown -no-reboot -no-kvm' + \
+        ' -smp cores=2,threads=2,sockets=2' + \
+        ' -drive if=floppy,format=raw,file=' + img_name
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def qemu():
+    print_info('emulator', 'Starting QEMU')
+    
+    img_name = img_dir + 'floppy.img'
+    
+    # Compose the cmd
+    cmd = 'qemu-system-arm' + \
+        ' -m 256' + \
+        ' -no-shutdown -no-reboot -no-kvm' + \
+        ' -drive if=floppy,format=raw,file=' + img_name
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def bochs():
+    print_info('emulator', 'Starting Bochs')
+    
+    # Compose the cmd
+    img_name = img_dir + 'floppy.img'
+    bochs_dir = vm_dir + 'bochs/'
+    cmd = 'cd ' + bochs_dir + ' && bochs -f ' + bochs_dir + 'bochsrc -q -log ' + bochs_dir + 'bochslog.txt -rc ' + bochs_dir + 'bochscmd;'
+        
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def start_emu():
+    emu_type = 'qemu'
+    if emu_type in arch_funcs:
+        arch_funcs[emu_type]()
+    
+
+# Setup global tools
+arch_tools['global_tools'] = global_tools
+
+# Setup arch tools
+arch_tools['boot_tools'] = boot_tools
+
+# Setup callback functions
+arch_funcs['build_arch'] = build_arch
+arch_funcs['build_disk'] = build_disk
+
+arch_funcs['build_loader'] = build_loader
+arch_funcs['build_hal'] = build_hal
+
+arch_funcs['qemu'] = qemu
+arch_funcs['qemu8'] = qemu8
+arch_funcs['bochs'] = bochs
+arch_funcs['start_emu'] = start_emu

@@ -11,4 +11,6 @@
 #define SEG_KERNEL      0xc0000000
 
 
+#define PHYS_MEM_SIZE   0x10000000
+
 #endif

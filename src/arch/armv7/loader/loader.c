@@ -126,7 +126,7 @@ static void build_bootparam()
     zone_count++;
     
     // Usable memory (2MB to periph base)
-    boot_param.mem_zones[zone_count].start_paddr = 0x100000;
+    boot_param.mem_zones[zone_count].start_paddr = 0x200000;
     boot_param.mem_zones[zone_count].len = PERIPHERAL_BASE - 0x200000;
     boot_param.mem_zones[zone_count].type = 1;
     zone_count++;

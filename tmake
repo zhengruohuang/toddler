@@ -976,6 +976,7 @@ print_info('target', 'Architecture: {0}, platform: {1}, suffix: {2}'.format(
 
 # Include arch specific make file
 arch_funcs = {}
+arch_vars = {}
 arch_tools = {}
 include(project_dir + 'tmake.main')
 include(tools_src_dir + 'tmake.tools')

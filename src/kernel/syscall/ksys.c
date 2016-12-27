@@ -9,6 +9,7 @@ no_opt struct thread_control_block *ksys_get_tcb()
 {
     unsigned long addr = 0;
     
+#ifdef __i386__
     __asm__ __volatile__
     (
         "xorl   %%esi, %%esi;"
@@ -17,6 +18,7 @@ no_opt struct thread_control_block *ksys_get_tcb()
         :
         : "%esi"
     );
+#endif
     
     return (struct thread_control_block *)addr;
 }

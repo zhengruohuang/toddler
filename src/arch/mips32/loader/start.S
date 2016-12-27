@@ -3,7 +3,6 @@
 
 
 LEAF(_start)
-    .set    mips2
     .set    noreorder
     
     // Disable interrupts
@@ -19,8 +18,8 @@ LEAF(_start)
     ori     t0, 0x2
     mtc0    t0, CP0_CONFIG
     
-    // Set up stack @ 1MB
-    li      sp, SEG_LOW_DIRECT + 0x100000 - 16
+    // Set up stack
+    li      sp, SEG_LOW_DIRECT + LOADER_STACK_TOP - 0x10
     
     // Jump to main
     jal     main

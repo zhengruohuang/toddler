@@ -4,7 +4,7 @@
 global_tools = { \
     '.c' : { \
         'exec'  : 'mipsel-linux-gnu-gcc',
-        'flags' : '-c -g -fno-builtin -fno-stack-protector -mno-abicalls -fno-pic -O2',
+        'flags' : '-c -g -nostdlib -fno-builtin -nostartfiles -fno-stack-protector -mno-abicalls -fno-pic -march=mips32r2 -O2',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
@@ -13,7 +13,7 @@ global_tools = { \
 
     '.S' : { \
         'exec'  : 'mipsel-linux-gnu-gcc',
-        'flags' : '-c -f elf',
+        'flags' : '-c -nostdlib -fno-builtin -nostartfiles -fno-stack-protector -mno-abicalls -fno-pic -march=mips32r2 -O0',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
@@ -22,7 +22,7 @@ global_tools = { \
     
     'ld' : { \
         'exec'  : 'mipsel-linux-gnu-ld',
-        'flags' : '-s',
+        'flags' : '-s --no-undefined',
         'script': '-T __script__',
         'obj'   : '-o __target__ __obj__',
     },
@@ -49,7 +49,7 @@ global_tools = { \
 boot_tools = { \
     '.c' : { \
         'exec'  : 'mipsel-linux-gnu-gcc',
-        'flags' : '-c -nostdlib -fno-builtin -nostartfiles -fno-stack-protector -mno-abicalls -fno-pic -O2',
+        'flags' : '-c -nostdlib -fno-builtin -nostartfiles -fno-stack-protector -mno-abicalls -fno-pic -march=mips32r2 -O2',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
@@ -58,7 +58,7 @@ boot_tools = { \
 
     '.S' : { \
         'exec'  : 'mipsel-linux-gnu-gcc',
-        'flags' : '-c -nostdlib -fno-builtin -nostartfiles -fno-stack-protector -mno-abicalls -fno-pic -O0',
+        'flags' : '-c -nostdlib -fno-builtin -nostartfiles -fno-stack-protector -mno-abicalls -fno-pic -march=mips32r2 -O0',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
@@ -78,17 +78,11 @@ def build_loader():
     
     build_files(
         files = get_all_files(arch_dir + 'loader/', [ '.S', '.c' ]),
-        target_name = obj_dir + 'loader/loader.elf',
+        target_name = bin_dir + 'tdlrldr.elf',
         ext_dep = [ arch_dir + 'loader/loader.ld' ],
         ext_flags = { 'ld/script' : arch_dir + 'loader/loader.ld' },
         tools = arch_tools['boot_tools']
     )
-    
-    #build_files(
-        #files = [ arch_dir + 'loader/periph2.c' ],
-        #target_name = obj_dir + 'loader/loader.elf',
-        #tools = arch_tools['boot_tools']
-    #)
     
     #gen_bin(
         #src_name = obj_dir + 'loader/loader.elf',
@@ -99,9 +93,10 @@ def build_loader():
 def build_hal():
     print_info('hal', 'Building HAL')
     build_dir(
-        arch_dir + 'hal/', [ '.c', '.asm' ],
+        arch_dir + 'hal/', [ '.c', '.S' ],
         bin_dir + 'tdlrhal.bin',
-        ext_flags = { 'ld/ext' : '-Ttext 0xFFF88000' },
+        ext_dep = [ arch_dir + 'hal/hal.ld' ],
+        ext_flags = { 'ld/script' : arch_dir + 'hal/hal.ld' },
     )
         
 def build_arch():
@@ -109,9 +104,9 @@ def build_arch():
     if 'build_loader' in arch_funcs:
         arch_funcs['build_loader']()
     
-    ## Build HAL
-    #if 'build_hal' in arch_funcs:
-        #arch_funcs['build_hal']()
+    # Build HAL
+    if 'build_hal' in arch_funcs:
+        arch_funcs['build_hal']()
     
 def build_disk():
     print_info('floppyimg', 'Building floppy image')
@@ -119,14 +114,16 @@ def build_disk():
 def qemu8():
     print_info('emulator', 'Starting SMP QEMU')
     
-    img_name = img_dir + 'floppy.img'
+    loader_name = bin_dir + 'tdlrldr.elf'
+    coreimg_name = loader_name
     
     # Compose the cmd
     cmd = 'qemu-system-mipsel' + \
-        ' -m 512' + \
-        ' -no-shutdown -no-reboot -no-kvm' + \
+        ' -m 256' + \
+        ' -nographic -serial mon:stdio' + \
         ' -smp cores=2,threads=2,sockets=2' + \
-        ' -drive if=floppy,format=raw,file=' + img_name
+        ' -kernel ' + loader_name + \
+        ' -initrd ' + coreimg_name
     
     # Execute the cmd
     code = exec_cmd(cmd)
@@ -135,26 +132,16 @@ def qemu8():
 def qemu():
     print_info('emulator', 'Starting QEMU')
     
-    img_name = img_dir + 'floppy.img'
+    loader_name = bin_dir + 'tdlrldr.elf'
+    coreimg_name = bin_dir + 'tdlrcore.img'
     
     # Compose the cmd
-    cmd = 'qemu-system-arm' + \
+    cmd = 'qemu-system-mipsel' + \
         ' -m 256' + \
-        ' -no-shutdown -no-reboot -no-kvm' + \
-        ' -drive if=floppy,format=raw,file=' + img_name
+        ' -nographic -serial mon:stdio' + \
+        ' -kernel ' + loader_name + \
+        ' -initrd ' + coreimg_name
     
-    # Execute the cmd
-    code = exec_cmd(cmd)
-    assert(code == 0)
-    
-def bochs():
-    print_info('emulator', 'Starting Bochs')
-    
-    # Compose the cmd
-    img_name = img_dir + 'floppy.img'
-    bochs_dir = vm_dir + 'bochs/'
-    cmd = 'cd ' + bochs_dir + ' && bochs -f ' + bochs_dir + 'bochsrc -q -log ' + bochs_dir + 'bochslog.txt -rc ' + bochs_dir + 'bochscmd;'
-        
     # Execute the cmd
     code = exec_cmd(cmd)
     assert(code == 0)
@@ -180,5 +167,7 @@ arch_funcs['build_hal'] = build_hal
 
 arch_funcs['qemu'] = qemu
 arch_funcs['qemu8'] = qemu8
-arch_funcs['bochs'] = bochs
 arch_funcs['start_emu'] = start_emu
+
+# Custom kernel entry point
+arch_vars['kernel_entry'] = '0x80202000'

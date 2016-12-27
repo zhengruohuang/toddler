@@ -244,7 +244,7 @@ static int list(unsigned long super_id, unsigned long node_id, void *buf, unsign
     if (len > count) {
         len = count;
     }
-    memcpy(name, buf, len);
+    memcpy(buf, name, len);
     
     if (actual) {
         *actual = len;

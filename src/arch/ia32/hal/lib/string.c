@@ -2,7 +2,7 @@
 #include "hal/include/print.h"
 
 
-void memcpy(void *src, void *dest, size_t count)
+void memcpy(void *dest, void *src, size_t count)
 {
     ulong i;
     

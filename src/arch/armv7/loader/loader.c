@@ -293,6 +293,8 @@ static void (*hal_entry)();
 
 static void jump_to_hal()
 {
+    lprintf("Starting HAL ... ");
+    
     hal_entry = (void *)boot_param.hal_entry_addr;
     hal_entry();
 }

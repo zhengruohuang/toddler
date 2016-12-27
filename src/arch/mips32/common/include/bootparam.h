@@ -49,6 +49,7 @@ struct boot_parameters {
     
     // Address where free memory starts
     ulong free_addr_start;
+    ulong free_pfn_start;
         
     // Memory size
     u64 mem_size;

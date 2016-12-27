@@ -56,7 +56,7 @@ char *strdup(const char *s)
 /*
  * Mem series
  */
-void memcpy(void *src, void *dest, size_t count)
+void memcpy(void *dest, void *src, size_t count)
 {
     size_t i;
     

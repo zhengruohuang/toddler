@@ -57,7 +57,7 @@ void init_syscall()
     syscall_proxy_entry = SYSCALL_PROXY_VADDR;
     
     memcpy(
-        sysenter_proxy_start_origin, (void *)SYSCALL_PROXY_VADDR,
+        (void *)SYSCALL_PROXY_VADDR, sysenter_proxy_start_origin,
         (ulong)sysenter_proxy_end_origin - (ulong)sysenter_proxy_start_origin
     );
     

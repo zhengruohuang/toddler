@@ -8,6 +8,7 @@ no_opt struct thread_control_block *get_tcb()
 {
     unsigned long addr = 0;
     
+#ifdef __i386__
     __asm__ __volatile__
     (
         "xorl   %%esi, %%esi;"
@@ -16,6 +17,7 @@ no_opt struct thread_control_block *get_tcb()
         :
         : "%esi"
     );
+#endif
     
     return (struct thread_control_block *)addr;
 }
@@ -25,6 +27,7 @@ no_opt int do_syscall(unsigned long num, unsigned long param1, unsigned long par
     int succeed = 0;
     unsigned long value1 = 0, value2 = 0;
     
+#ifdef __i386__
     __asm__ __volatile__
     (
         "movl   %%esp, %%ecx;"
@@ -38,6 +41,7 @@ no_opt int do_syscall(unsigned long num, unsigned long param1, unsigned long par
         : "S"(num), "D" (param1), "a" (param2)
         : "%ecx", "%edx"
     );
+#endif
     
     if (out1) {
         *out1 = value1;

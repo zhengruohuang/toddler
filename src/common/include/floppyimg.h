@@ -1,5 +1,5 @@
-#ifndef __ARCH_IA32_COMMON_INCLUDE_FLOPPYIMG__
-#define __ARCH_IA32_COMMON_INCLUDE_FLOPPYIMG__
+#ifndef __COMMON_INCLUDE_FLOPPYIMG__
+#define __COMMON_INCLUDE_FLOPPYIMG__
 
 
 #include "common/include/data.h"

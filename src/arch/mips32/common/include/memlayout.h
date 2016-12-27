@@ -5,12 +5,23 @@
 /*
  * Segment
  */
-#define SEG_USER_BASE   0x0
-#define SEG_LOW_CACHED  0x8000000
-#define SEG_LOW_DIRECT  0xa0000000
-#define SEG_KERNEL      0xc0000000
+#define SEG_USER            0x0
+#define SEG_LOW_CACHED      0x80000000
+#define SEG_LOW_DIRECT      0xa0000000
+#define SEG_KERNEL          0xc0000000
 
 
-#define PHYS_MEM_SIZE   0x10000000
+/*
+ * Loader
+ */
+#define LOADER_STACK_TOP    0x10000     // 64KB
+
+
+/*
+ * HAL
+ */
+#define HAL_STACK_TOP_OFFSET    (0x11000 - 0x10)
+#define HAL_STACK_TOP_ADDR      (SEG_LOW_CACHED + HAL_STACK_TOP_OFFSET)
+
 
 #endif

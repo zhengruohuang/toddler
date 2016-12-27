@@ -47,6 +47,8 @@ extern void uart_write(u32);
 
 extern asmlinkage void lprintf(char *fmt, ...);
 
+extern void scan_area(u32 start, u32 len);
+
 extern void init_periph();
 
 

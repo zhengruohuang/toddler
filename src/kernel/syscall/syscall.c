@@ -38,7 +38,7 @@ static struct kernel_dispatch_info *prepare_thread(struct kernel_dispatch_info *
     // Duplicate dispatch info
     struct kernel_dispatch_info *dup_disp_info = salloc(kernel_dispatch_salloc_id);
     assert(dup_disp_info);
-    memcpy(disp_info, dup_disp_info, sizeof(struct kernel_dispatch_info));
+    memcpy(dup_disp_info, disp_info, sizeof(struct kernel_dispatch_info));
     
     return dup_disp_info;
 }

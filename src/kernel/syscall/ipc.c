@@ -144,7 +144,7 @@ static struct msg_node *duplicate_msg(
     
     // Create a new copy of the msg content
     n->msg = (msg_t *)salloc(msg_salloc_id);
-    memcpy((void *)s, (void *)n->msg, s->msg_size);
+    memcpy((void *)n->msg, (void *)s, s->msg_size);
     n->msg->mailbox_id = (ulong)src_t;
     
     return n;
@@ -166,7 +166,7 @@ static void copy_msg_to_recv(msg_t *src, struct thread *t)
     
 //     kprintf("dest: %p, src: %p\n", dest, src);
     
-    memcpy((void *)src, (void *)dest, src->msg_size);
+    memcpy((void *)dest, (void *)src, src->msg_size);
 }
 
 static void transfer_msg(msg_t *s, int sender_blocked, struct process *src_p, struct thread *src_t)

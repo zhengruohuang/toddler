@@ -89,10 +89,10 @@ static char *normalize_path(char *path)
     
     copy = (char *)calloc(len + 1, sizeof(char));
     if (path[0] == '/') {
-        memcpy(DEFAULT_NAMESPACE, copy, 6);
-        memcpy(path, copy + DEFAULT_NAMESPACE_LENGTH, len - DEFAULT_NAMESPACE_LENGTH);
+        memcpy(copy, DEFAULT_NAMESPACE, 6);
+        memcpy(copy + DEFAULT_NAMESPACE_LENGTH, path, len - DEFAULT_NAMESPACE_LENGTH);
     } else {
-        memcpy(path, copy, len);
+        memcpy(copy, path, len);
     }
     copy[len] = '\0';
     
@@ -736,7 +736,7 @@ static int dispatch_stat(struct urs_super *super, unsigned long node_id, struct 
         
         ret = (struct urs_stat *)((unsigned long)r + r->params[0].offset);
         if (ret && stat) {
-            memcpy(ret, stat, sizeof(struct urs_stat));
+            memcpy(stat, ret, sizeof(struct urs_stat));
         }
         
         result = (int)r->params[r->param_count - 1].value;
@@ -788,7 +788,7 @@ static int get_next_name(char *path, int start, char **name)
     
     if (name) {
         copy = (char *)calloc(end - start + 1, sizeof(char));
-        memcpy(&path[start], copy, end - start);
+        memcpy(copy, &path[start], end - start);
         copy[end - start] = '\0';
         *name = copy;
     }

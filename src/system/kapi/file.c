@@ -43,12 +43,14 @@ asmlinkage void kapi_write_handler(msg_t *msg)
     
     syscall_kputs("To call syscall respond!\n");
     
+#ifdef __i386__
     __asm__ __volatile__
     (
         "xchgw %%bx, %%bx;"
         :
         :
     );
+#endif
     
     // Issue the KAPI and obtain the result
     syscall_respond();

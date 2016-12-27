@@ -17,7 +17,7 @@ extern char *strdup(const char *s);
 /*
  * Mem
  */
-extern void memcpy(void *src, void *dest, size_t count);
+extern void memcpy(void *dest, void *src, size_t count);
 extern void memset(void *src, int value, size_t size);
 extern void memzero(void *src, size_t size);
 extern int memcmp(void *src1, void *src2, size_t len);

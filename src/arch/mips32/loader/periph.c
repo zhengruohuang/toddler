@@ -67,7 +67,6 @@ void uart_write(u32 val)
  */
 
 
-
 /*
  * Print
  */
@@ -222,6 +221,30 @@ asmlinkage void lprintf(char *fmt, ...)
     }
     
     va_end(va);
+}
+
+
+/*
+ * Search
+ */
+void scan_area(u32 start, u32 len)
+{
+    u32 end = start + len;
+    u32 word[2];
+    u32 addr;
+    
+    lprintf("Scan area @ start: %x, end: %x\n", start, end);
+    
+    for (addr = start; addr < end; addr += 4) {
+        word[0] = io_read(addr);
+        word[1] = 0;
+        
+        if (word[0]) {
+            lprintf("%x: %s (%x)\n", addr, word, word[0]);
+        }
+    }
+    
+    lprintf("\nScan done\n");
 }
 
 

@@ -113,7 +113,7 @@ u32 asmlinkage save_context(struct context *context)
         //kprintf("Need to switch stack for kernel->kernel\n");
         
         ulong new_stack = my_cpu_area + PER_CPU_STACK_TOP_OFFSET - sizeof(struct context);
-        memcpy(context, (void *)new_stack, sizeof(struct context));
+        memcpy((void *)new_stack, context, sizeof(struct context));
         return new_stack;
     }
     
@@ -191,7 +191,7 @@ static void no_opt switch_to_kernel(struct context *context)
     //kprintf("To switch, target ESP: %p\n", context->esp);
     
     struct context *dest = (struct context *)(context->esp - sizeof(struct context) + 8);
-    memcpy(context, dest, sizeof(struct context) - 8);
+    memcpy(dest, context, sizeof(struct context) - 8);
     
     __asm__ __volatile__
     (
@@ -230,7 +230,7 @@ void no_opt switch_context(ulong sched_id, struct context *context,
     // Copy the context for user mode switch
     struct context copy_context;
     if (user_mode) {
-        memcpy(context, &copy_context, sizeof(struct context));
+        memcpy(&copy_context, context, sizeof(struct context));
         //kprintf("User\n");
     }
     

@@ -276,7 +276,7 @@ int desched(ulong sched_id, struct context *context)
     
     // Save context
     assert(context);
-    memcpy(context, &t->context, sizeof(struct context));
+    memcpy(&t->context, context, sizeof(struct context));
     
     // Setup state
     assert(s->state == sched_run);

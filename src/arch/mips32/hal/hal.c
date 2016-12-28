@@ -26,6 +26,7 @@ static void hal_entry(struct boot_parameters *boot_param)
     init_int();
     
     // Init MP support
+    init_topo();
     init_mp();
     
     // Done

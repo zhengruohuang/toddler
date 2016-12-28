@@ -9,32 +9,20 @@
  * Context
  */
 struct context {
-    // Manually saved/stored
-    u32 gs;
-    u32 fs;
-    u32 es;
-    u32 ds;
+    // Unsaved registers
+    u32 zero;
+    u32 k0, k1;
     
-    // pushad/popad
-    u32 edi;
-    u32 esi;
-    u32 ebp;
-    u32 kernel_esp; // This field has no use, and POPAD will ignore it. It is PUSHAD that saves it automatically
-    u32 ebx;
-    u32 edx;
-    u32 ecx;
-    u32 eax;
-    
-    // Pushed by interrupt handler
-    u32 vector;
-    u32 error_code;
-    
-    // Pushed by HW upon an interrupt
-    u32 eip;
-    u32 cs;
-    u32 eflags;
-    u32 esp;
-    u32 ss;
+    // Saved registers
+    u32 at;
+    u32 v0, v1;
+    u32 a0, a1, a2, a3;
+    u32 t0, t1, t2, t3, t4, t5, t6, t7, t8, t9;
+    u32 s0, s1, s2, s3, s4, s5, s6, s7;
+    u32 gp;
+    u32 sp;
+    u32 fp;
+    u32 ra;
 } packedstruct;
 
 

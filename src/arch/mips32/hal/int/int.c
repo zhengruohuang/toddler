@@ -35,7 +35,7 @@ void init_int()
     
     // Clear and set exception base
     ebase &= ~0x3FFFF000;
-    ebase |= ((u32)&tlb_refill_entry) & ~0xFFF;
+    ebase |= ((u32)&int_entry_template_begin) & ~0xFFF;
     
     // Update ebase
     __asm__ __volatile__ (
@@ -45,7 +45,7 @@ void init_int()
         : "r" (ebase)
     );
     
-    kprintf("Interrupt base updated, TLB refill entry @ %x, SR: %x, EBase: %x\n", (u32)&tlb_refill_entry, sr, ebase);
+    kprintf("Interrupt base updated, Template starts @ %x, SR: %x, EBase: %x\n", (u32)&int_entry_template_begin, sr, ebase);
     
 //     // Test our handler
 //     volatile u32 *bad_addr = (u32 *)0x4096;

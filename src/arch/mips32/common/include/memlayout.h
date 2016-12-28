@@ -20,8 +20,14 @@
 /*
  * HAL
  */
-#define HAL_STACK_TOP_OFFSET    (0x11000 - 0x10)
-#define HAL_STACK_TOP_ADDR      (SEG_LOW_CACHED + HAL_STACK_TOP_OFFSET)
+#define HAL_STACK_TOP_OFFSET            (0x11000 - 0x10)
+#define HAL_STACK_TOP_ADDR              (SEG_LOW_CACHED + HAL_STACK_TOP_OFFSET)
+
+#define PER_CPU_AREA_PAGE_COUNT         (1)
+#define PER_CPU_AREA_SIZE               (PAGE_SIZE * PER_CPU_AREA_PAGE_COUNT)
+#define PER_CPU_DATA_START_OFFSET       (0)
+
+#define THREAD_CTRL_BLOCK_ALIGNMENT     (64)
 
 
 #endif

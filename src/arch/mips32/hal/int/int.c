@@ -1,6 +1,11 @@
 #include "common/include/data.h"
 #include "hal/include/print.h"
+#include "hal/include/cpu.h"
 #include "hal/include/int.h"
+
+
+dec_per_cpu(int, cur_in_user_mode);
+dec_per_cpu(u32, cur_page_dir);
 
 
 void init_int()
@@ -61,7 +66,7 @@ void tlb_refill_handler()
 
 void cache_error_handler()
 {
-    kprintf("Cache error!\n");
+    kprintf("Toddler doesn't support cache error handling!!\n");
     while (1);
 }
 

@@ -37,7 +37,7 @@ static void hal_entry(struct boot_parameters *boot_param)
 /*
  * This is the entry point of HAL
  */
-void asmlinkage no_opt __start(struct boot_parameters *boot_param)
+void asmlinkage no_opt _start(struct boot_parameters *boot_param)
 {
     switch (boot_param->hal_start_flag) {
     // Start HAL

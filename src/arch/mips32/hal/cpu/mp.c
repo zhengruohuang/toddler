@@ -67,10 +67,10 @@ ulong get_my_cpu_tcb_start_vaddr()
 void init_mp()
 {
     kprintf("Initializing multiprocessor support\n");
-
+    
     // Reserve pages
     ulong per_cpu_are_start_pfn = palloc(PER_CPU_AREA_PAGE_COUNT * num_cpus);
-    per_cpu_area_start_vaddr = PFN_TO_ADDR(per_cpu_are_start_pfn);
+    per_cpu_area_start_vaddr = PHYS_TO_HAL(PFN_TO_ADDR(per_cpu_are_start_pfn));
     
     // Map per CPU private area
     int i;
@@ -101,7 +101,7 @@ void init_mp()
     ulong tcb_page_count = tcb_area_size / PAGE_SIZE;
     
     ulong tcb_start_pfn = palloc(tcb_page_count);
-    tcb_area_start_vaddr = PFN_TO_ADDR(tcb_start_pfn);
+    tcb_area_start_vaddr = PHYS_TO_HAL(PFN_TO_ADDR(tcb_start_pfn));
     
     // Initialize the TCBs
     for (i = 0; i < num_cpus; i++) {
@@ -109,7 +109,7 @@ void init_mp()
         tcb->cpu_id = i;
         tcb->self = tcb;
         
-        //kprintf("TCB: %p\n", tcb);
+//         kprintf("TCB: %p\n", tcb);
         
         tcb->proc_id = 0;
         tcb->thread_id = 0;

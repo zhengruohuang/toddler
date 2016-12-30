@@ -22,9 +22,9 @@ ulong palloc(int count)
 //     assert(result >= KERNEL_INIT_PTE_START_PFN);
     
     // Zero the page
-    memzero((void *)PFN_TO_ADDR(result), PAGE_SIZE * count);
+    memzero((void *)PHYS_TO_HAL(PFN_TO_ADDR(result)), PAGE_SIZE * count);
     
-    kprintf("PAlloc: %p, count: %d\n", result, count);
+//     kprintf("PAlloc: %p, count: %d\n", result, count);
     
     return result;
 }

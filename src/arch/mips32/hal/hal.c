@@ -4,6 +4,7 @@
 #include "hal/include/print.h"
 #include "hal/include/lib.h"
 #include "hal/include/mem.h"
+#include "hal/include/task.h"
 #include "hal/include/int.h"
 #include "hal/include/cpu.h"
 
@@ -22,12 +23,15 @@ static void hal_entry(struct boot_parameters *boot_param)
     init_kalloc();
     init_tlb();
     
-    // Init interrupt
-    init_int();
-    
     // Init MP support
     init_topo();
     init_mp();
+    
+    // Init task
+    init_context();
+    
+    // Init interrupt
+    init_int();
     
     // Done
     kprintf("Initialization is done! Will start working!\n");

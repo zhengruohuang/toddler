@@ -2,6 +2,9 @@
 #define __ARCH_MIPS32_COMMON_INCLUDE_MEMLAYOUT__
 
 
+#include "common/include/memory.h"
+
+
 /*
  * Segment
  */
@@ -26,6 +29,7 @@
 #define PER_CPU_AREA_PAGE_COUNT         (1)
 #define PER_CPU_AREA_SIZE               (PAGE_SIZE * PER_CPU_AREA_PAGE_COUNT)
 #define PER_CPU_DATA_START_OFFSET       (0)
+#define PER_CPU_STACK_TOP_OFFSET        (PER_CPU_AREA_SIZE - 0x10)
 
 #define THREAD_CTRL_BLOCK_ALIGNMENT     (64)
 

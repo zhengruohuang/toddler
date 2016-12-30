@@ -5,14 +5,21 @@
 #include "common/include/data.h"
 
 
+/*
+ * Generic
+ */
 extern void init_int();
-extern void tlb_refill_handler();
-extern void cache_error_handler();
-extern void general_except_handler();
+
+extern void tlb_refill_handler(struct context *context);
+extern void cache_error_handler(struct context *context);
+extern void general_except_handler(struct context *context);
 
 
-extern void int_entry_template_begin();
-extern void int_entry_template_end();
+/*
+ * Entry
+ */
+extern void int_entry_wrapper_begin();
+extern void int_entry_wrapper_end();
 
 
 #endif

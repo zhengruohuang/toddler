@@ -2,7 +2,7 @@
 #define __ARCH_MIPS32_COMMON_INCLUDE_MEMORY__
 
 
-#include "common/include/data.h"
+#include "common/include/memlayout.h"
 
 
 #ifndef PAGE_SIZE
@@ -51,6 +51,10 @@
 
 #ifndef GET_PAGE_OFFSET
 #define GET_PAGE_OFFSET(addr)   (((addr) << 20) >> 20)
+#endif
+
+#ifndef PHYS_TO_HAL
+#define PHYS_TO_HAL(addr)       (SEG_LOW_CACHED | addr)
 #endif
 
 

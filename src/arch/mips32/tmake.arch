@@ -137,7 +137,7 @@ def qemu():
     
     # Compose the cmd
     cmd = 'qemu-system-mipsel' + \
-        ' -m 256' + \
+        ' -cpu 24Kf -M malta -m 256' + \
         ' -nographic -serial mon:stdio' + \
         ' -kernel ' + loader_name + \
         ' -initrd ' + coreimg_name

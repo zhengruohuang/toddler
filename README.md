@@ -64,7 +64,7 @@ The driver process provides several essential device drivers, including keyboard
 |---|---|---|---|---|
 |ia32|32|NetBurst-based PC|Active|
 |armv7|32|QEMU Integrator/CP, QEMU RealView MP, Raspberry Pi 2|Active|
-|mips32|32|Creator CI20, QEMU Malta|Active|
+|mips32|32|QEMU Malta, Creator CI20|Active|
 |ppc32|32|QEMU PREP, Mac Mini G4, PowerMac G4|Initial|
 |sparcv8|32|SuperSPARC II|Planned|
 |m68k|32|M68K|No Plan|

@@ -22,7 +22,7 @@ Toddler has its own building system written in Python: tmake. tmake takes care o
 
 Python is required for all targets; GCC and Binutils are required for each different target; NASM is required for x86 (ia32 and amd64) targets. Note that your toolchain may also require the corresponding libc6 development package. QEMU is also required if you want to test Toddler.
 
-Once all the packages are installed, fetch the source code then go into the ```toddler/``` directory.
+Once all the packages are installed, fetch the source code.
 ```bash
 git clone https://github.com/zhengruohuang/toddler.git
 cd toddler
@@ -34,6 +34,17 @@ If QEMU is installed for the target architecture, simply type ```./tmake qemu```
 
 The two steps can be combined by typing ```./tmake all```, or simply ```./tmake```.
 
+### Specifying Actions
+
+tmake supports *actions* for a building task. To specify actions, use ```./tmake <actions>```.
+For example, ```./tmake clean build``` will clean up existing object and binary files, then start a new build.
+
+### Specifying a Different Target
+
+tmake supports multiple targets. In order to build for a specific target, use ```./tmake target=<arch-machine>[-suffix]```.
+Note that *arch* and *machine* fields are required by tmake, and *suffix* is optional. However, the actual implemention of a specific target may require the user supply a value for *suffix*.
+For example, ```./tmake target=ia32-pc-bios``` will build Toddler for a BIOS-based IA32 PC system; ```./tmake target=armv7-rpi2``` will build Toddler for Raspberry Pi 2.
+Also note that you may not arbitrarily mix *arch* and *machine* fields. For example, ``ia32-rpi2'' is an invalid target. Invalid combinations of fields may fail to compile or even damage your device.
 
 ## Architecture
 

@@ -29,7 +29,8 @@ cd toddler
 ```
 
 Type ```./tmake build``` to build Toddler. Once done, it generates disk images in ```target/``` directory.  
-If QEMU is installed for the target architecture, simply type ```./tmake qemu``` to start QEMU with default parameters.  
+If QEMU is installed for the target architecture, simply type ```./tmake qemu``` to start QEMU with default parameters.
+
 The two steps can be combined by typing ```./tmake all```, or simply ```./tmake```.
 
 ### Specifying Actions
@@ -42,8 +43,10 @@ For example, ```./tmake clean build``` will clean up existing object and binary 
 tmake supports multiple targets. In order to build for a specific target, use ```./tmake target=<arch-machine>[-suffix]```.  
 Note that *arch* and *machine* fields are required by tmake, and *suffix* is optional. However, the actual implemention of a specific target may require the user supply a value for *suffix*.
 
-For example, ```./tmake target=ia32-pc-bios``` will build Toddler for a BIOS-based IA32 PC system; ```./tmake target=armv7-rpi2``` will build Toddler for Raspberry Pi 2.  
-Also note that you may not arbitrarily mix *arch* and *machine* fields. For example, ```target=ia32-rpi2``` is invalid. Invalid combinations of fields may fail to compile or even damage your device.
+For example, ```./tmake target=ia32-pc-bios``` will build Toddler for a BIOS-based IA32 PC system; ```./tmake target=armv7-rpi2``` will build Toddler for Raspberry Pi 2.
+
+Also note that you may not arbitrarily mix *arch* and *machine* fields. For example, ```target=ia32-rpi2``` is invalid.  
+Invalid combinations of fields may fail to compile or even damage your device.
 
 ## Architecture
 

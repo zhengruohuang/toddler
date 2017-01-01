@@ -960,7 +960,7 @@ for argv in sys.argv:
     if 'arch' in argv:
         parts = split(argv, '=')
         target_arch = parts[1]
-    elif 'platform' in argv:
+    elif 'machine' in argv:
         parts = split(argv, '=')
         target_platform = parts[1]
     elif 'suffix' in argv:
@@ -969,7 +969,7 @@ for argv in sys.argv:
 
 # Host and target info
 print_info('host', 'Architecture: {0}, OS: {1}'.format(host_arch, host_os))
-print_info('target', 'Architecture: {0}, platform: {1}, suffix: {2}'.format(
+print_info('target', 'Architecture: {0}, machine: {1}, suffix: {2}'.format(
     target_arch, target_platform,
     'N/A' if target_suffix == '' else target_suffix)
 )

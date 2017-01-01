@@ -23,7 +23,8 @@ static void hal_entry(struct boot_parameters *boot_param)
     init_kalloc();
     init_tlb();
     
-    // Init MP support
+    // Init CPU
+    init_cpuid();
     init_topo();
     init_mp();
     
@@ -31,7 +32,9 @@ static void hal_entry(struct boot_parameters *boot_param)
     init_context();
     
     // Init interrupt
+    init_int_vector();
     init_int();
+    init_syscall();
     
     // Done
     kprintf("Initialization is done! Will start working!\n");

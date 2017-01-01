@@ -3,6 +3,7 @@
 
 
 #include "common/include/data.h"
+#include "hal/include/cpu.h"
 
 
 /*
@@ -86,9 +87,14 @@ struct tlb_entry {
     struct tlb_entry_lo lo1;
 } packedstruct;
 
+ext_per_cpu(struct page_frame *, cur_page_dir);
 
 extern int reserve_tlb_entry();
 extern void write_tlb_entry(int index, u32 hi, u32 pm, u32 lo0, u32 lo1);
+
+extern void tlb_refill_kernel(u32 addr);
+extern void tlb_refill_user(u32 addr);
+
 extern void init_tlb();
 
 

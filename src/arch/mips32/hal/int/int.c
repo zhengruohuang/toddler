@@ -6,9 +6,87 @@
 #include "hal/include/lib.h"
 #include "hal/include/cpu.h"
 #include "hal/include/task.h"
+#include "hal/include/kernel.h"
 #include "hal/include/int.h"
 
 
+static dec_per_cpu(int, interrupt_enabled);
+
+
+/*
+ * LOCAL interrupts
+ */
+int get_local_int_state()
+{
+    volatile int *ptr = get_per_cpu(int, interrupt_enabled);
+    int enabled = *ptr;
+    
+    return enabled;
+}
+
+void set_local_int_state(int enabled)
+{
+    volatile int *ptr = get_per_cpu(int, interrupt_enabled);
+    *ptr = enabled;
+}
+
+int disable_local_int()
+{
+    __asm__ __volatile__
+    (
+        "nop;"
+        :
+        :
+    );
+    
+    int enabled = get_local_int_state();
+    set_local_int_state(0);
+    
+    return enabled;
+}
+
+void enable_local_int()
+{
+    __asm__ __volatile__ (
+        "nop;"
+        :
+        :
+    );
+    
+    set_local_int_state(1);
+}
+
+void restore_local_int(int enabled)
+{
+    int cur_state = get_local_int_state();
+    
+    if (cur_state) {
+        assert(enabled);
+    }
+    
+    else if (enabled) {
+        enable_local_int();
+    }
+}
+
+
+/*
+ * Initialize interrupt state
+ */
+void init_int_state_mp()
+{
+    set_local_int_state(0);
+}
+
+void init_int_state()
+{
+    set_local_int_state(0);
+}
+
+
+/*
+ * Initialization
+ */
 void init_int()
 {
     u32 ebase = 0;
@@ -99,6 +177,23 @@ void init_int()
 //     kprintf("Bad value: %x\n", bad_value);
 }
 
+
+/*
+ * Default dummy handler: don't do anything
+ */
+static int int_handler_dummy(struct int_context *context, struct kernel_dispatch_info *kdi)
+{
+    kprintf("Interrupt, vector: %x, err_code: %x, pc: %x, sp: %x, delay slot: %x\n",
+            context->vector, context->error_code,
+            context->context->pc, context->context->sp, context->context->delay_slot);
+    
+    return 0;
+}
+
+
+/*
+ * General handlers
+ */
 void tlb_refill_handler(struct context *context)
 {
     kprintf("TLB Refill!\n");
@@ -114,5 +209,57 @@ void cache_error_handler(struct context *context)
 void general_except_handler(struct context *context)
 {
     kprintf("General exception!\n");
-    while (1);
+    
+    // Check who is causing this interrupt
+    u32 cause = 0;
+    __asm__ __volatile__ (
+        "mfc0   %0, $13;"
+        : "=r" (cause)
+        :
+    );
+    
+    u32 except_code = (cause >> 2) & 0x1F;
+    kprintf("Exception code: %d\n", except_code);
+    
+    // Figure out the internal vector number
+    u32 vector = INT_VECTOR_DUMMY;
+    
+    // Exception - vector number is except code
+    if (except_code) {
+        vector = except_code;
+    }
+    
+    // Interrupt
+    else {
+        if (cause & 0x40000000) {
+            vector = INT_VECTOR_LOCAL_TIMER;
+        }
+    }
+    
+    // Get the actual interrupt handler
+    int_handler handler = handler = int_handler_list[vector];
+    if (NULL == (void *)handler) {
+        handler = int_handler_dummy;
+    }
+    
+    // Call the real handler, the return value indicates if we need to call kernel
+    struct int_context intc;
+    intc.vector = vector;
+    intc.error_code = except_code;
+    intc.context = context;
+    
+    struct kernel_dispatch_info kdispatch;
+    kdispatch.context = context;
+    kdispatch.dispatch_type = kdisp_unknown;
+    kdispatch.syscall.num = 0;
+    
+    // Call the handler!
+    int call_kernel = handler(&intc, &kdispatch);
+    
+    // Note that if kernel is invoked, it will call sched, then never goes back to this int handler
+    if (call_kernel) {
+        kernel_dispatch(&kdispatch);
+    }
+    
+    panic("Need to implement lazy scheduling!");
 }

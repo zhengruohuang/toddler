@@ -6,6 +6,12 @@
 
 
 /*
+ * CPU ID
+ */
+extern void init_cpuid();
+
+
+/*
  * Topo
  */
 extern int num_cpus;

@@ -9,7 +9,6 @@
  * Context
  */
 struct context {
-    // Unsaved registers
     u32 zero;
     u32 at;
     u32 v0, v1;
@@ -21,6 +20,9 @@ struct context {
     u32 sp;
     u32 fp;
     u32 ra;
+    
+    u32 pc;
+    u32 delay_slot;
 } packedstruct;
 
 

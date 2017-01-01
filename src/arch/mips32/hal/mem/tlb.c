@@ -2,11 +2,14 @@
 #include "common/include/memory.h"
 #include "hal/include/print.h"
 #include "hal/include/lib.h"
+#include "hal/include/cpu.h"
 #include "hal/include/mem.h"
 
 
 static int tlb_entry_count = 0;
 static int reserved_tlb_entry_count = 0;
+
+dec_per_cpu(struct page_frame *, cur_page_dir);
 
 
 int reserve_tlb_entry()
@@ -64,7 +67,7 @@ void map_tlb_entry(int index, u32 vaddr, u32 pfn0, u32 pfn1, int write)
     tlb.pm.mask = 0;
     
     tlb.lo0.valid = 0;
-        tlb.lo0.pfn = pfn0;
+    tlb.lo0.pfn = pfn0;
     tlb.lo0.valid = 1;
     tlb.lo0.dirty = write;
     tlb.lo0.coherent = 0x3;
@@ -78,7 +81,7 @@ void map_tlb_entry(int index, u32 vaddr, u32 pfn0, u32 pfn1, int write)
     write_tlb_entry(index, tlb.hi.value, tlb.pm.value, tlb.lo0.value, tlb.lo1.value);
 }
 
-int tlb_probe(u32 addr)
+static int tlb_probe(u32 addr)
 {
     int index = -1;
     struct tlb_entry_hi hi;
@@ -127,7 +130,7 @@ void tlb_refill_kernel(u32 addr)
 void tlb_refill_user(u32 addr)
 {
     struct page_frame *page = NULL;
-    u32 page_addr = 0;
+    u32 page_addr = (u32)page;
     struct tlb_entry tlb;
     
     // First map page dir

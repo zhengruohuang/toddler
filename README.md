@@ -80,13 +80,14 @@ The driver process provides several essential device drivers, including keyboard
 |mips32|32|QEMU Malta, Creator CI20|Active|
 |ppc32|32|QEMU PREP, Mac Mini G4, PowerMac G4|Initial|
 |sparcv8|32|SuperSPARC II|Planned|
+|riscv32|32|QEMU Spike|Planned|
 |m68k|32|M68K|No Plan|
 |amd64|64|Skylake-based PC|Planned|
 |armv8|64|Raspberry Pi 3|Planned|
 |ppc64|64|PowerMac G5|Planned|
 |mips64|64|Loongson 3 Desktop|Planned|
 |sparcv9|64|Sun UltraSPARC II Workstation|Planned|
-|riscv|64|RISC V QEMU Emulator|Planned|
+|riscv64|64|QEMU Spike|Planned|
 |ia64|64|Itaium 2|No Plan|
 |alpha|64|ES40|No Plan|
 |hppa|64|HP 9000 PA-RISC Workstation|No Plan|

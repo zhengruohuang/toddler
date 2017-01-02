@@ -12,6 +12,8 @@ void kernel_dispatch(struct kernel_dispatch_info *kdi)
     // Save user mode flag
     int user_mode_save = *user_mode;
     
+    // FIXME: Save and set ASID
+    
     // Put us in kernel, so the TLB miss handler can correctly refill the entry
     *user_mode = 0;
     

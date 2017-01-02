@@ -33,6 +33,9 @@
 #define ALIGN_DEFAULT   4
 #endif
 
+/*
+ * Addr <--> PFN
+ */
 #ifndef PFN_TO_ADDR
 #define PFN_TO_ADDR(pfn)        ((pfn) << 12)
 #endif
@@ -41,6 +44,9 @@
 #define ADDR_TO_PFN(addr)       ((addr) >> 12)
 #endif
 
+/*
+ * Page table entry
+ */
 #ifndef GET_PDE_INDEX
 #define GET_PDE_INDEX(addr)     ((addr) >> 22)
 #endif
@@ -53,8 +59,26 @@
 #define GET_PAGE_OFFSET(addr)   (((addr) << 20) >> 20)
 #endif
 
-#ifndef PHYS_TO_HAL
-#define PHYS_TO_HAL(addr)       (SEG_LOW_CACHED | addr)
+/*
+ * Physical addr <--> HAL/Kernel code addr (KCODE)
+ */
+#ifndef PHYS_TO_KCODE
+#define PHYS_TO_KCODE(addr)     ((addr) | SEG_LOW_CACHED)
+#endif
+
+#ifndef KCODE_TO_PHYS
+#define KCODE_TO_PHYS(addr)     ((addr) & ~SEG_LOW_CACHED)
+#endif
+
+/*
+ * Physical addr <--> Kernel 1 to 1 mapping data addr (KDATA)
+ */
+#ifndef PHYS_TO_KDATA
+#define PHYS_TO_KDATA(addr)     ((addr) & 0x80000000 ? (addr) + 0x40000000 : (addr))
+#endif
+
+#ifndef KDATA_TO_PHYS
+#define KDATA_TO_PHYS(addr)     (addr)
 #endif
 
 

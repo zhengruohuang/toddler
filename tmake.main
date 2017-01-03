@@ -49,15 +49,24 @@ def build_main():
     # Build kernel
     print_info('kernel', 'Building kernel')
     
-    kernel_entry = '0xFFF01000'
-    if 'kernel_entry' in arch_vars:
-        kernel_entry = arch_vars['kernel_entry']
-    
-    build_dir(
-        src_dir + 'kernel/', [ '.c' ],
-        bin_dir + 'tdlrkrnl.bin',
-        ext_flags = { 'ld/ext' : '-Ttext ' + kernel_entry },
-    )
+    if 'kernel_link_script' in arch_vars:
+        ld_script = arch_vars['kernel_link_script']
+        build_dir(
+            src_dir + 'kernel/', [ '.c' ],
+            bin_dir + 'tdlrkrnl.bin',
+            ext_dep = [ ld_script ],
+            ext_flags = { 'ld/script' : ld_script },
+        )
+    else:
+        kernel_entry = '0xFFF01000'
+        if 'kernel_entry' in arch_vars:
+            kernel_entry = arch_vars['kernel_entry']
+        
+        build_dir(
+            src_dir + 'kernel/', [ '.c' ],
+            bin_dir + 'tdlrkrnl.bin',
+            ext_flags = { 'ld/ext' : '-Ttext ' + kernel_entry },
+        )
     
     # Build driver
     print_info('driver', 'Building driver')

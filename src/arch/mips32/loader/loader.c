@@ -345,7 +345,7 @@ void main(u32 kargc, u32 karg_addr, u32 env_addr, u32 ram_size)
     
     init_coreimage();
     find_and_layout("tdlrhal.bin", 1);
-//     find_and_layout("tdlrkrnl.bin", 2);
+    find_and_layout("tdlrkrnl.bin", 2);
     
     jump_to_hal();
     

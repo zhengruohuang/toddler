@@ -7,7 +7,7 @@
 
 
 /*
- * Page map
+ * Page
  */
 struct pde {
     u32     present         : 1;
@@ -36,6 +36,15 @@ struct page_frame {
         struct pte value_pte[1024];
     };
 } packedstruct;
+
+extern void init_user_page_dir(ulong page_dir_pfn);
+
+extern ulong get_paddr(ulong page_dir_pfn, ulong vaddr);
+
+extern int user_indirect_map_array(
+    ulong page_dir_pfn, ulong vaddr, ulong paddr, size_t length,
+    int exec, int write, int cacheable, int overwrite);
+extern int user_indirect_unmap_array(ulong page_dir_pfn, ulong vaddr, ulong paddr, size_t length);
 
 
 /*
@@ -92,8 +101,10 @@ ext_per_cpu(struct page_frame *, cur_page_dir);
 extern int reserve_tlb_entry();
 extern void write_tlb_entry(int index, u32 hi, u32 pm, u32 lo0, u32 lo1);
 
-extern void tlb_refill_kernel(u32 addr);
-extern void tlb_refill_user(u32 addr);
+extern int tlb_refill_kernel(u32 addr);
+extern int tlb_refill_user(u32 addr);
+
+extern void invalidate_tlb_array(ulong asid, ulong vaddr, size_t size);
 
 extern void init_tlb();
 

@@ -7,6 +7,7 @@
 #include "hal/include/cpu.h"
 #include "hal/include/task.h"
 #include "hal/include/kernel.h"
+#include "hal/include/mem.h"
 #include "hal/include/int.h"
 
 
@@ -32,11 +33,21 @@ void set_local_int_state(int enabled)
 
 int disable_local_int()
 {
-    __asm__ __volatile__
-    (
-        "nop;"
+    u32 sr = 0;
+    
+    __asm__ __volatile__ (
+        "mfc0   %0, $12;"
+        : "=r" (sr)
         :
+    );
+    
+    // Clear global interrupt enable bit
+    sr &= ~0x1;
+    
+    __asm__ __volatile__ (
+        "mtc0   %0, $12;"
         :
+        : "r" (sr)
     );
     
     int enabled = get_local_int_state();
@@ -47,13 +58,24 @@ int disable_local_int()
 
 void enable_local_int()
 {
+    u32 sr = 0;
+    
+    set_local_int_state(1);
+    
     __asm__ __volatile__ (
-        "nop;"
-        :
+        "mfc0   %0, $12;"
+        : "=r" (sr)
         :
     );
     
-    set_local_int_state(1);
+    // Set global interrupt enable bit
+    sr |= 0x1;
+    
+    __asm__ __volatile__ (
+        "mtc0   %0, $12;"
+        :
+        : "r" (sr)
+    );
 }
 
 void restore_local_int(int enabled)
@@ -196,9 +218,33 @@ static int int_handler_dummy(struct int_context *context, struct kernel_dispatch
  */
 void tlb_refill_handler(struct context *context)
 {
-    // FIXME
     kprintf("TLB Refill!\n");
-    while (1);
+    
+    // Get the bad address
+    u32 bad_addr = 0;
+    __asm__ __volatile__ (
+        "mfc0   %0, $8;"
+        : "=r" (bad_addr)
+        :
+    );
+    
+    kprintf("\tBad address: %x\n", bad_addr);
+    
+    // Get kernel/user mode
+    int user_mode = *get_per_cpu(int, cur_in_user_mode);
+    
+    // Try refilling TLB
+    int invalid = 0;
+    if (user_mode) {
+        invalid = tlb_refill_user(bad_addr);
+    } else {
+        invalid = tlb_refill_kernel(bad_addr);
+    }
+    
+    // Invalid addr
+    if (!invalid) {
+        panic("Invalid TLB miss addr @ %x, is user mode: %d\n", bad_addr, user_mode);
+    }
 }
 
 void cache_error_handler(struct context *context)
@@ -220,7 +266,7 @@ void general_except_handler(struct context *context)
     );
     
     u32 except_code = (cause >> 2) & 0x1F;
-    kprintf("Exception code: %d\n", except_code);
+    kprintf("\tException code: %d\n", except_code);
     
     // Figure out the internal vector number
     u32 vector = INT_VECTOR_DUMMY;
@@ -236,6 +282,8 @@ void general_except_handler(struct context *context)
             vector = INT_VECTOR_LOCAL_TIMER;
         }
     }
+    
+    kprintf("\tVector: %d\n", vector);
     
     // Get the actual interrupt handler
     int_handler handler = handler = int_handler_list[vector];

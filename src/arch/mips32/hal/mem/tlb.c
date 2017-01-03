@@ -102,7 +102,7 @@ static int tlb_probe(u32 addr)
     return index;
 }
 
-void tlb_refill_kernel(u32 addr)
+int tlb_refill_kernel(u32 addr)
 {
     struct tlb_entry tlb;
     
@@ -125,9 +125,11 @@ void tlb_refill_kernel(u32 addr)
     tlb.lo1.coherent = 0x3;
     
     write_tlb_entry(-1, tlb.hi.value, tlb.pm.value, tlb.lo0.value, tlb.lo1.value);
+    
+    return 0;
 }
 
-void tlb_refill_user(u32 addr)
+int tlb_refill_user(u32 addr)
 {
     struct page_frame *page = NULL;
     u32 page_addr = (u32)page;
@@ -159,7 +161,31 @@ void tlb_refill_user(u32 addr)
     // Finally map the actual page
     map_tlb_entry(dir_index, addr, ADDR_TO_PFN(page_addr) & ~0x1, ADDR_TO_PFN(page_addr) | 0x1, 0);
     assert(tlb_probe(page_addr) == dir_index);
+    
+    return 0;
 }
+
+static no_opt void invalidate_tlb(ulong vaddr)
+{
+}
+
+void invalidate_tlb_array(ulong asid, ulong vaddr, size_t size)
+{
+    ulong vstart = (vaddr / PAGE_SIZE) * PAGE_SIZE;
+    
+    ulong page_count = size / PAGE_SIZE;
+    if (size % PAGE_SIZE) {
+        page_count++;
+    }
+    
+    ulong i;
+    ulong vcur = vstart;
+    for (i = 0; i < page_count; i++) {
+        invalidate_tlb(vcur);
+        vcur += PAGE_SIZE;
+    }
+}
+
 
 void init_tlb()
 {

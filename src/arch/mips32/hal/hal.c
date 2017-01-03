@@ -7,6 +7,8 @@
 #include "hal/include/task.h"
 #include "hal/include/int.h"
 #include "hal/include/cpu.h"
+#include "hal/include/pic.h"
+#include "hal/include/kernel.h"
 
 
 static void hal_entry(struct boot_parameters *boot_param)
@@ -36,8 +38,21 @@ static void hal_entry(struct boot_parameters *boot_param)
     init_int();
     init_syscall();
     
+    // Init interrupt controller
+    init_local_timer();
+    
+    // Init kernel
+    init_kernel();
+    
     // Done
     kprintf("Initialization is done! Will start working!\n");
+    
+    // OK, start working!
+    start_working();
+    
+    while (1) {
+//         kprintf(".");
+    }
 }
 
 
@@ -56,11 +71,6 @@ void asmlinkage no_opt _start(struct boot_parameters *boot_param)
 //     case 1:
 //         ap_entry();
 //         break;
-//         
-//     // Return from BIOS invoker
-//     case 2:
-//         bios_return();
-//         break;
         
     // Undefined
     default:
@@ -70,6 +80,6 @@ void asmlinkage no_opt _start(struct boot_parameters *boot_param)
     }
     
     // Should never reach here
-    //panic("Should never reach here!");
+    panic("Should never reach here!");
     halt();
 }

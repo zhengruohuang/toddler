@@ -6,6 +6,29 @@
 #include "hal/include/mem.h"
 
 
+/*
+ * Initialize user page directory
+ */
+void init_user_page_dir(ulong page_dir_pfn)
+{
+    volatile struct page_frame *page = (struct page_frame *)PFN_TO_ADDR(page_dir_pfn);
+
+    int i;
+    for (i = 0; i < 1024; i++) {
+        page->value_u32[i] = 0;
+    }
+    
+//     page->value_pde[0].pfn = KERNEL_PTE_LO4_PFN;
+//     page->value_pde[0].present = 1;
+//     page->value_pde[0].rw = 1;
+//     page->value_pde[0].user = 0;
+//     page->value_pde[0].cache_disabled = 0;
+}
+
+
+/*
+ * Get physical address of a user virtual address
+ */
 ulong get_paddr(ulong page_dir_pfn, ulong vaddr)
 {
     // PDE
@@ -31,6 +54,10 @@ ulong get_paddr(ulong page_dir_pfn, ulong vaddr)
     return paddr;
 }
 
+
+/*
+ * User memory mapping
+ */
 static int user_indirect_map(
     ulong page_dir_pfn, ulong vaddr, ulong paddr,
     int exec, int write, int cacheable, int override)

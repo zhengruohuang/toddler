@@ -12,7 +12,21 @@ void kernel_dispatch(struct kernel_dispatch_info *kdi)
     // Save user mode flag
     int user_mode_save = *user_mode;
     
-    // FIXME: Save and set ASID
+    // Save ASID in TLB EntryHi
+    u32 hi = 0;
+    u32 asid = 0;
+    __asm__ __volatile__ (
+        "mfc0   %0, $10;"
+        : "=r" (hi)
+        :
+    );
+    asid = hi & 0xff;
+    hi &= ~0xff;
+    __asm__ __volatile__ (
+        "mtc0   %0, $10;"
+        :
+        : "r" (hi)
+    );
     
     // Put us in kernel, so the TLB miss handler can correctly refill the entry
     *user_mode = 0;
@@ -22,4 +36,12 @@ void kernel_dispatch(struct kernel_dispatch_info *kdi)
     
     // Restore user mode flag
     *user_mode = user_mode_save;
+    
+    // Restore ASID
+    hi |= asid & 0xff;
+    __asm__ __volatile__ (
+        "mtc0   %0, $10;"
+        :
+        : "r" (hi)
+    );
 }

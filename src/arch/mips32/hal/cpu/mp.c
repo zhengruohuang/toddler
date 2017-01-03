@@ -25,7 +25,7 @@ int get_cpu_id()
         "rdhwr  %0, $0;"
         :
         : "r" (cpu_num)
-    );
+        );
     
     return (int)cpu_num;
 }
@@ -70,7 +70,7 @@ void init_mp()
     
     // Reserve pages
     ulong per_cpu_are_start_pfn = palloc(PER_CPU_AREA_PAGE_COUNT * num_cpus);
-    per_cpu_area_start_vaddr = PHYS_TO_HAL(PFN_TO_ADDR(per_cpu_are_start_pfn));
+    per_cpu_area_start_vaddr = PHYS_TO_KCODE(PFN_TO_ADDR(per_cpu_are_start_pfn));
     
     // Map per CPU private area
     int i;
@@ -101,7 +101,7 @@ void init_mp()
     ulong tcb_page_count = tcb_area_size / PAGE_SIZE;
     
     ulong tcb_start_pfn = palloc(tcb_page_count);
-    tcb_area_start_vaddr = PHYS_TO_HAL(PFN_TO_ADDR(tcb_start_pfn));
+    tcb_area_start_vaddr = PHYS_TO_KCODE(PFN_TO_ADDR(tcb_start_pfn));
     
     // Initialize the TCBs
     for (i = 0; i < num_cpus; i++) {

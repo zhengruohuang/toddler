@@ -22,7 +22,7 @@ ulong palloc(int count)
 //     assert(result >= KERNEL_INIT_PTE_START_PFN);
     
     // Zero the page
-    memzero((void *)PHYS_TO_HAL(PFN_TO_ADDR(result)), PAGE_SIZE * count);
+    memzero((void *)PHYS_TO_KCODE(PFN_TO_ADDR(result)), PAGE_SIZE * count);
     
 //     kprintf("PAlloc: %p, count: %d\n", result, count);
     
@@ -42,8 +42,8 @@ void *kalloc(size_t size)
     void *result = (void *)mempool_limit;
     mempool_limit += size;
     
-    kprintf("\tMempool range: %p to %p, allocatable size: %d KB\n",
-            mempool_limit, get_bootparam()->hal_vspace_end,
+    kprintf("\tMempool alloced @ %x, avail range @ %p to %p, allocatable size @ %d KB\n",
+            result, mempool_limit, get_bootparam()->hal_vspace_end,
             (int)(get_bootparam()->hal_vspace_end - mempool_limit) / 1024
     );
     

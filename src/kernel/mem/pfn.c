@@ -65,6 +65,8 @@ void init_pfndb()
     ulong total_entries = hal->paddr_space_end / PAGE_SIZE;
     
     while (hal->get_next_mem_zone(&cur)) {
+        kprintf("Zone!\n");
+        
         // Fill in the hole between two zones (is there is a hole)
         for (i = prev_end; i < cur.start; i += PAGE_SIZE) {
             entry = get_pfn_entry_by_paddr(i);

@@ -51,8 +51,8 @@ void init_kernel()
     
     // Physical memory info
     hexp->free_mem_start_addr = PFN_TO_ADDR(get_bootparam()->free_pfn_start);
-    hexp->paddr_space_end = (void *)NULL;
-    hexp->get_next_mem_zone = (void *)NULL;
+    hexp->paddr_space_end = paddr_space_end;
+    hexp->get_next_mem_zone = get_next_mem_zone;
     
     // IO Ports
     hexp->io_in = wrap_io_in;

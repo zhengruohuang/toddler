@@ -35,6 +35,15 @@ extern int wrap_ksyscall(unsigned long num, unsigned long param1, unsigned long 
 
 
 /*
+ * Memory zone
+ */
+extern ulong paddr_space_end;
+
+extern int get_next_mem_zone(struct kernel_mem_zone *cur);
+extern void init_kmem_zone();
+
+
+/*
  * General kernel
  */
 extern struct kernel_exports *kernel;

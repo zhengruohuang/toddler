@@ -218,7 +218,7 @@ static void build_bootparam()
     boot_param.mem_zones[zone_count].type = 0;
     zone_count++;
     
-    // Usable memory (2MB to 256MB)
+    // Usable memory (2MB to 128MB)
     boot_param.mem_zones[zone_count].start_paddr = 0x200000;
     boot_param.mem_zones[zone_count].len = memory_size - 0x200000;
     boot_param.mem_zones[zone_count].type = 1;

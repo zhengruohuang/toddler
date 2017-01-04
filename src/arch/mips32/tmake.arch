@@ -119,7 +119,7 @@ def qemu8():
     
     # Compose the cmd
     cmd = 'qemu-system-mipsel' + \
-        ' -m 256' + \
+        ' -m 128' + \
         ' -nographic -serial mon:stdio' + \
         ' -smp cores=2,threads=2,sockets=2' + \
         ' -kernel ' + loader_name + \
@@ -137,7 +137,7 @@ def qemu():
     
     # Compose the cmd
     cmd = 'qemu-system-mipsel' + \
-        ' -cpu 24Kf -M malta -m 256' + \
+        ' -cpu 24Kf -M malta -m 128' + \
         ' -nographic -serial mon:stdio' + \
         ' -kernel ' + loader_name + \
         ' -initrd ' + coreimg_name

@@ -10,24 +10,22 @@
  */
 static inline int atomic_cas(volatile void *target, ulong old_value, ulong new_value)
 {
-    __asm__ __volatile__ (
-        "sw %1, 0(%0);"
-        :
-        : "r" ((unsigned long)target), "r" (new_value)
-    );
-    
-    return 1;
+    if (*(ulong *)target == old_value) {
+        *(ulong *)target = new_value;
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 static inline int atomic_cas_uint(volatile void *target, unsigned int old_value, unsigned int new_value)
 {
-    __asm__ __volatile__ (
-        "sw %1, 0(%0);"
-        :
-        : "r" ((unsigned long)target), "r" (new_value)
-    );
-    
-    return 1;
+    if (*(unsigned int *)target == old_value) {
+        *(unsigned int *)target = new_value;
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 
@@ -36,11 +34,7 @@ static inline int atomic_cas_uint(volatile void *target, unsigned int old_value,
  */
 static inline void atomic_write(volatile void *target, unsigned long value)
 {
-    __asm__ __volatile__ (
-        "sw %1, 0(%0);"
-        :
-        : "r" ((unsigned long)target), "r" (value)
-    );
+    *(unsigned long *)target = value;
 }
 
 

@@ -42,6 +42,7 @@ static void hal_entry(struct boot_parameters *boot_param)
     init_local_timer();
     
     // Init kernel
+    init_kmem_zone();
     init_kernel();
     
     // Done
@@ -50,9 +51,9 @@ static void hal_entry(struct boot_parameters *boot_param)
     // OK, start working!
     start_working();
     
-    while (1) {
+//     while (1) {
 //         kprintf(".");
-    }
+//     }
 }
 
 

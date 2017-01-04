@@ -19,7 +19,7 @@ LEAF(_start)
     mtc0    t0, CP0_CONFIG
     
     // Set up stack
-    li      sp, SEG_LOW_DIRECT + LOADER_STACK_TOP - 0x10
+    li      sp, SEG_LOW_CACHED + LOADER_STACK_TOP - 0x10
     
     // Jump to main
     jal     main

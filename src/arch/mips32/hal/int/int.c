@@ -107,6 +107,149 @@ void init_int_state()
 
 
 /*
+ * Default dummy handler: don't do anything
+ */
+static int int_handler_dummy(struct int_context *context, struct kernel_dispatch_info *kdi)
+{
+    kprintf("Interrupt, vector: %x, err_code: %x, pc: %x, sp: %x, delay slot: %x\n",
+            context->vector, context->error_code,
+            context->context->pc, context->context->sp, context->context->delay_slot);
+    
+    return 0;
+}
+
+
+/*
+ * TLB refill handlers
+ */
+void tlb_refill_handler(struct context *context)
+{
+    kprintf("TLB Refill!\n");
+    
+    // Get the bad address
+    u32 bad_addr = 0;
+    __asm__ __volatile__ (
+        "mfc0   %0, $8;"
+        : "=r" (bad_addr)
+        :
+    );
+    
+    kprintf("\tBad address: %x\n", bad_addr);
+    
+    // Get kernel/user mode
+    int user_mode = *get_per_cpu(int, cur_in_user_mode);
+    
+    // Try refilling TLB
+    int invalid = 0;
+    if (user_mode) {
+        invalid = tlb_refill_user(bad_addr);
+    } else {
+        invalid = tlb_refill_kernel(bad_addr);
+    }
+    
+    // Invalid addr
+    if (invalid) {
+        panic("Invalid TLB miss addr @ %x, is user mode: %d\n", bad_addr, user_mode);
+    }
+}
+
+static int int_handler_tlb_refill(struct int_context *context, struct kernel_dispatch_info *kdi)
+{
+    tlb_refill_handler(context->context);
+    return 0;
+}
+
+
+/*
+ * Cache error handler
+ */
+void cache_error_handler(struct context *context)
+{
+    panic("Toddler doesn't support cache error handling!!\n");
+    while (1);
+}
+
+
+/*
+ * General handler
+ */
+void general_except_handler(struct context *context)
+{
+    kprintf("General exception!\n");
+    
+    // Check who is causing this interrupt
+    u32 cause = 0;
+    __asm__ __volatile__ (
+        "mfc0   %0, $13;"
+        : "=r" (cause)
+        :
+    );
+    
+    u32 except_code = (cause >> 2) & 0x1F;
+    kprintf("\tException code: %d\n", except_code);
+    
+    // Figure out the internal vector number
+    u32 vector = INT_VECTOR_DUMMY;
+    
+    if (except_code) {
+        // Exception - vector number is except code
+        vector = except_code;
+    } else {
+        // Interrupt
+        if (cause & 0x40000000) {
+            vector = INT_VECTOR_LOCAL_TIMER;
+        }
+    }
+    kprintf("\tVector: %d\n", vector);
+    
+    // Get the bad address
+    u32 bad_addr = 0;
+    __asm__ __volatile__ (
+        "mfc0   %0, $8;"
+        : "=r" (bad_addr)
+        :
+    );
+    kprintf("\tBad address: %x\n", bad_addr);
+    
+    // Get the bad pc
+    u32 epc = 0;
+    __asm__ __volatile__ (
+        "mfc0   %0, $14;"
+        : "=r" (epc)
+        :
+    );
+    kprintf("\tBad PC: %x\n", epc);
+    
+    // Get the actual interrupt handler
+    int_handler handler = handler = int_handler_list[vector];
+    if (NULL == (void *)handler) {
+        handler = int_handler_dummy;
+    }
+    
+    // Call the real handler, the return value indicates if we need to call kernel
+    struct int_context intc;
+    intc.vector = vector;
+    intc.error_code = except_code;
+    intc.context = context;
+    
+    struct kernel_dispatch_info kdispatch;
+    kdispatch.context = context;
+    kdispatch.dispatch_type = kdisp_unknown;
+    kdispatch.syscall.num = 0;
+    
+    // Call the handler!
+    int call_kernel = handler(&intc, &kdispatch);
+    
+    // Note that if kernel is invoked, it will call sched, then never goes back to this int handler
+    if (call_kernel) {
+        kernel_dispatch(&kdispatch);
+    }
+    
+    panic("Need to implement lazy scheduling!");
+}
+
+
+/*
  * Initialization
  */
 void init_int()
@@ -114,7 +257,7 @@ void init_int()
     u32 ebase = 0;
     u32 sr = 0;
     struct context *ctxt = get_per_cpu(struct context, cur_context);
-    u32 stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_STACK_TOP_OFFSET;
+    u32 stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_STACK_TOP_OFFSET - 0x10;
     
 //     u32 srsctl = 0;
     
@@ -165,6 +308,10 @@ void init_int()
         : "r" ((u32)ctxt), "r" (stack_top)
     );
     
+    // Register TLB refill general handlers
+    set_int_vector(INT_VECTOR_TLB_MISS_READ, int_handler_tlb_refill);
+    set_int_vector(INT_VECTOR_TLB_MISS_WRITE, int_handler_tlb_refill);
+    
 //     // QEMU doesn't support shadow register... so we can't use it right now
 //     // Obtain old SRSCtl
 //     __asm__ __volatile__ (
@@ -197,118 +344,4 @@ void init_int()
 //     volatile u32 *bad_addr = (u32 *)0x4096;
 //     u32 bad_value = *bad_addr;
 //     kprintf("Bad value: %x\n", bad_value);
-}
-
-
-/*
- * Default dummy handler: don't do anything
- */
-static int int_handler_dummy(struct int_context *context, struct kernel_dispatch_info *kdi)
-{
-    kprintf("Interrupt, vector: %x, err_code: %x, pc: %x, sp: %x, delay slot: %x\n",
-            context->vector, context->error_code,
-            context->context->pc, context->context->sp, context->context->delay_slot);
-    
-    return 0;
-}
-
-
-/*
- * General handlers
- */
-void tlb_refill_handler(struct context *context)
-{
-    kprintf("TLB Refill!\n");
-    
-    // Get the bad address
-    u32 bad_addr = 0;
-    __asm__ __volatile__ (
-        "mfc0   %0, $8;"
-        : "=r" (bad_addr)
-        :
-    );
-    
-    kprintf("\tBad address: %x\n", bad_addr);
-    
-    // Get kernel/user mode
-    int user_mode = *get_per_cpu(int, cur_in_user_mode);
-    
-    // Try refilling TLB
-    int invalid = 0;
-    if (user_mode) {
-        invalid = tlb_refill_user(bad_addr);
-    } else {
-        invalid = tlb_refill_kernel(bad_addr);
-    }
-    
-    // Invalid addr
-    if (!invalid) {
-        panic("Invalid TLB miss addr @ %x, is user mode: %d\n", bad_addr, user_mode);
-    }
-}
-
-void cache_error_handler(struct context *context)
-{
-    panic("Toddler doesn't support cache error handling!!\n");
-    while (1);
-}
-
-void general_except_handler(struct context *context)
-{
-    kprintf("General exception!\n");
-    
-    // Check who is causing this interrupt
-    u32 cause = 0;
-    __asm__ __volatile__ (
-        "mfc0   %0, $13;"
-        : "=r" (cause)
-        :
-    );
-    
-    u32 except_code = (cause >> 2) & 0x1F;
-    kprintf("\tException code: %d\n", except_code);
-    
-    // Figure out the internal vector number
-    u32 vector = INT_VECTOR_DUMMY;
-    
-    // Exception - vector number is except code
-    if (except_code) {
-        vector = except_code;
-    }
-    
-    // Interrupt
-    else {
-        if (cause & 0x40000000) {
-            vector = INT_VECTOR_LOCAL_TIMER;
-        }
-    }
-    
-    kprintf("\tVector: %d\n", vector);
-    
-    // Get the actual interrupt handler
-    int_handler handler = handler = int_handler_list[vector];
-    if (NULL == (void *)handler) {
-        handler = int_handler_dummy;
-    }
-    
-    // Call the real handler, the return value indicates if we need to call kernel
-    struct int_context intc;
-    intc.vector = vector;
-    intc.error_code = except_code;
-    intc.context = context;
-    
-    struct kernel_dispatch_info kdispatch;
-    kdispatch.context = context;
-    kdispatch.dispatch_type = kdisp_unknown;
-    kdispatch.syscall.num = 0;
-    
-    // Call the handler!
-    int call_kernel = handler(&intc, &kdispatch);
-    
-    // Note that if kernel is invoked, it will call sched, then never goes back to this int handler
-    if (call_kernel) {
-        kernel_dispatch(&kdispatch);
-    }
-    
-    panic("Need to implement lazy scheduling!");
 }

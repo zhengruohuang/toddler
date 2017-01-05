@@ -66,13 +66,13 @@ void map_tlb_entry(int index, u32 vaddr, u32 pfn0, u32 pfn1, int write)
     tlb.pm.value = 0;
     tlb.pm.mask = 0;
     
-    tlb.lo0.valid = 0;
+    tlb.lo0.value = 0;
     tlb.lo0.pfn = pfn0;
     tlb.lo0.valid = 1;
     tlb.lo0.dirty = write;
     tlb.lo0.coherent = 0x3;
     
-    tlb.lo1.valid = 0;
+    tlb.lo1.value = 0;
     tlb.lo1.pfn = pfn1;
     tlb.lo1.valid = 1;
     tlb.lo1.dirty = write;
@@ -104,25 +104,29 @@ static int tlb_probe(u32 addr)
 
 int tlb_refill_kernel(u32 addr)
 {
+    // Use 256MB mask
+    u32 mask = 0xffff;
+    u32 physical_pfn = ADDR_TO_PFN(addr) & ~mask;
+    
     struct tlb_entry tlb;
     
     tlb.hi.value = 0;
     tlb.hi.vpn2 = addr >> (PAGE_BITS + 1);
     
     tlb.pm.value = 0;
-    tlb.pm.mask = 0xfff;
+    tlb.pm.mask = mask;
     
-    tlb.lo0.valid = 0;
-    tlb.lo0.pfn = ADDR_TO_PFN(addr) & ~0x1;
+    tlb.lo0.value = 0;
+    tlb.lo0.pfn = physical_pfn;
     tlb.lo0.valid = 1;
     tlb.lo0.dirty = 1;
-    tlb.lo0.coherent = 0x3;
+    tlb.lo0.coherent = 0;
     
-    tlb.lo1.valid = 0;
-    tlb.lo1.pfn = ADDR_TO_PFN(addr) | 0x1;
+    tlb.lo1.value = 0;
+    tlb.lo1.pfn = physical_pfn | 0x1;
     tlb.lo1.valid = 1;
     tlb.lo1.dirty = 1;
-    tlb.lo1.coherent = 0x3;
+    tlb.lo1.coherent = 0;
     
     write_tlb_entry(-1, tlb.hi.value, tlb.pm.value, tlb.lo0.value, tlb.lo1.value);
     
@@ -131,6 +135,8 @@ int tlb_refill_kernel(u32 addr)
 
 int tlb_refill_user(u32 addr)
 {
+    panic("shoudln't be here!\n");
+    
     struct page_frame *page = NULL;
     u32 page_addr = (u32)page;
     struct tlb_entry tlb;

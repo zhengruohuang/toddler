@@ -29,6 +29,8 @@ static struct thread *worker = NULL;
 
 static unsigned long create_startup_process(char *name, char *url, enum process_type type)
 {
+    kprintf("To create: %s @ %s, type: %d\n", name, url, type);
+    
     // Create a process
     struct process *p = create_process(0, name, url, type, 0);
     

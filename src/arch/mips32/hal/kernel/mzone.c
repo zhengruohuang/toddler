@@ -92,24 +92,39 @@ void init_kmem_zone()
     mem_zones[0].swappable = 0;
     mem_zone_count++;
     
+    // Optional Zone 2: 2MB ~ free start: usable, mapped, inuse
+    u32 hal_free_addr_start = PFN_TO_ADDR(get_bootparam()->free_pfn_start);
+    if (hal_free_addr_start > 0x200000) {
+        mem_zones[2].start = 0x200000;
+        mem_zones[2].len = hal_free_addr_start - 0x200000;
+        mem_zones[2].usable = 1;
+        mem_zones[2].mapped = 1;
+        mem_zones[2].tag = 0;
+        mem_zones[2].inuse = 1;
+        mem_zones[0].kernel = 0;
+        mem_zones[0].swappable = 1;
+        mem_zone_count++;
+    }
+    
     // Other zones: go through BIOS mem zones, usable, unmapped
+    u32 free_boundary = hal_free_addr_start;
     for (i = 0; i < get_bootparam()->mem_zone_count; i++) {
         struct boot_mem_zone *cur_zone = &get_bootparam()->mem_zones[i];
         u32 start = (u32)cur_zone->start_paddr;
         u32 len = (u32)cur_zone->len;
         
-        // Below 4MB: skip it
-        if (start + len <= 0x200000) {
+        // Below Free Boundary: skip it
+        if (start + len <= free_boundary) {
             continue;
         }
         
-        // This zone goes across 4MB: split it
-        else if (start < 0x200000 && start + len > 0x200000) {
-            len = start + len - 0x200000;
-            start = 0x200000;
+        // This zone goes across Free Boundary: split it
+        else if (start < hal_free_addr_start && start + len > free_boundary) {
+            len = start + len - free_boundary;
+            start = free_boundary;
         }
         
-        // This zone is above 4MB
+        // This zone is above Free Boundary
         else {
             // simply use it, don't do anything
         }

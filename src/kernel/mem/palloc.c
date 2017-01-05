@@ -268,6 +268,7 @@ void init_palloc()
             recording &&
             (!entry->usable || entry->inuse || cur_tag != entry->tag)
         ) {
+//             kprintf("cur bucket start: %x, i: %x\n", cur_bucket_start, i);
             init_bucket(cur_bucket_start, i - cur_bucket_start, cur_tag);
             recording = 0;
         }
@@ -285,6 +286,7 @@ void init_palloc()
     
     // Take care of the last bucket
     if (recording) {
+//         kprintf("cur bucket start: %x, i: %x\n", cur_bucket_start, hal->paddr_space_end);
         init_bucket(cur_bucket_start, hal->paddr_space_end - cur_bucket_start, cur_tag);
     }
     

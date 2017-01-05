@@ -28,6 +28,9 @@ struct boot_parameters {
     ulong ap_page_table_ptr;
     ulong ap_stack_top_ptr;
     
+    // Core image
+    ulong coreimg_load_addr;
+    
     // HAL
     u32 hal_start_flag;
     ulong hal_entry_addr;

@@ -40,10 +40,10 @@ void init_kernel()
     hexp->halt = wrap_halt;
     
     // Kernel info
-    hexp->kernel_page_dir_pfn = 0;
+    hexp->kernel_page_dir_pfn = 0xbeef;
     
     // Core image info
-    hexp->coreimg_load_addr = 0;
+    hexp->coreimg_load_addr = KCODE_TO_PHYS(get_bootparam()->coreimg_load_addr);
     
     // MP
     hexp->num_cpus = num_cpus;

@@ -77,7 +77,7 @@ static void no_opt switch_to(struct context *context, int user_mode, ulong asid)
     u32 sr = 0;
     __asm__ __volatile__ (
         "mfc0   %0, $12;"
-        : "=r" (cause)
+        : "=r" (sr)
         :
     );
     sr &= ~0x18;
@@ -116,6 +116,8 @@ void no_opt switch_context(ulong sched_id, struct context *context,
                                       ulong page_dir_pfn, int user_mode, ulong asid,
                                       struct thread_control_block *tcb)
 {
+    kprintf("To switch context!\n");
+    
     // Set local interrupt state to enabled
     set_local_int_state(1);
     

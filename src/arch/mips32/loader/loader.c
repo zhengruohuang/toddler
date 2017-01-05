@@ -185,6 +185,9 @@ static void build_bootparam()
     boot_param.ap_page_table_ptr = 0;
     boot_param.ap_stack_top_ptr = 0;
     
+    // Core image
+    boot_param.coreimg_load_addr = coreimg_start_addr;
+    
     // HAL & kernel
     boot_param.hal_start_flag = 0;
     boot_param.hal_entry_addr = 0;
@@ -337,7 +340,6 @@ void main(u32 kargc, u32 karg_addr, u32 env_addr, u32 ram_size)
     init_periph();
     
     lprintf("Args: %x, %x, %x, %x\n", kargc, karg_addr, env_addr, ram_size);
-    
     lprintf("Welcome to Toddler!\n");
     
     parse_bootloader_args(kargc, karg_addr, env_addr, ram_size);

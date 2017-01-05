@@ -51,6 +51,8 @@ static void hal_entry(struct boot_parameters *boot_param)
     // OK, start working!
     start_working();
     
+    while (1);
+    
 //     while (1) {
 //         kprintf(".");
 //     }

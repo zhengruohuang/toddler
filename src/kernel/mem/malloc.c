@@ -93,10 +93,10 @@ void test_malloc()
             size_t size = MALLOC_TEST_STEP * (i + 1);
             
             for (j = 0; j < MALLOC_TEST_PER_SIZE; j++) {
-                //kprintf("\tAllocating size: %d, index: %d", size, j);
+//                 kprintf("\tAllocating size: %d, index: %d", size, j);
                 ulong result = (ulong)malloc(size);
                 results[i][j] = result;
-                //kprintf(", Addr: %p\n", result);
+//                 kprintf(", Addr: %p\n", result);
             }
         }
         
@@ -104,10 +104,10 @@ void test_malloc()
             for (j = 0; j < MALLOC_TEST_PER_SIZE; j++) {
                 ulong result = results[i][j];
                 if (result) {
-                    //int size = MALLOC_TEST_STEP * (i + 1);
-                    //kprintf("\tFreeing size: %d, index: %d, addr: %p", size, j, result);
+//                     int size = MALLOC_TEST_STEP * (i + 1);
+//                     kprintf("\tFreeing size: %d, index: %d, addr: %p", size, j, result);
                     free((void *)result);
-                    //kprintf(" Done\n");
+//                     kprintf(" Done\n");
                 }
             }
         }

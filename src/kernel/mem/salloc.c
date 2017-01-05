@@ -340,6 +340,7 @@ void *salloc(int obj_id)
     
     // Setup the block
     block->bucket = bucket;
+//     kprintf("bucket @ %x, obj: %x\n", bucket, obj);
     
     // Change the bucket state and remove it from the partial list if necessary
     if (!bucket->avail_count) {
@@ -372,6 +373,9 @@ void sfree(void *ptr)
     // Obtain the bucket and obj
     struct salloc_bucket *bucket = block->bucket;
     struct salloc_obj *obj = bucket->obj;
+    
+//     kprintf("bucket @ %x, obj: %x\n", bucket, obj);
+//     return;
     
     // Call the destructor
     if (obj->destructor) {

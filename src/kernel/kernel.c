@@ -50,8 +50,6 @@ static void dispatch(ulong sched_id, struct kernel_dispatch_info *disp_info)
         disp_info->thread = s->thread;
         disp_info->sched = s;
         
-        
-        
         switch (disp_info->dispatch_type) {
         case kdisp_syscall:
             dispatch_syscall(disp_info);

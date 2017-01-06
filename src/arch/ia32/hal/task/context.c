@@ -16,7 +16,7 @@ dec_per_cpu(int, cur_in_user_mode);
 dec_per_cpu(struct context, cur_context);
 
 
-void init_thread_context(struct context *context, ulong entry, ulong stack_top, int user_mode)
+void init_thread_context(struct context *context, ulong entry, ulong param, ulong stack_top, int user_mode)
 {
     // Segmentation registers
     if (user_mode) {

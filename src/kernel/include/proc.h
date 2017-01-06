@@ -326,9 +326,9 @@ extern void terminate_thread_self(struct thread *t);
 extern void terminate_thread(struct thread *t);
 extern void clean_thread(struct thread *t);
 
-extern void kernel_idle_thread(ulong param);
-extern void kernel_demo_thread(ulong param);
-extern void kernel_tclean_thread(ulong param);
+extern asmlinkage void kernel_idle_thread(ulong param);
+extern asmlinkage void kernel_demo_thread(ulong param);
+extern asmlinkage void kernel_tclean_thread(ulong param);
 
 
 /*

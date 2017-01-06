@@ -17,10 +17,13 @@ dec_per_cpu(int, cur_in_user_mode);
 dec_per_cpu(struct context, cur_context);
 
 
-void init_thread_context(struct context *context, ulong entry, ulong stack_top, int user_mode)
+void init_thread_context(struct context *context, ulong entry, ulong param, ulong stack_top, int user_mode)
 {
     // Set GPRs
     memzero(context, sizeof(struct context));
+    
+    // Set param
+    context->a0 = param;
     
     // Set other states
     context->sp = stack_top;
@@ -31,7 +34,7 @@ void init_thread_context(struct context *context, ulong entry, ulong stack_top, 
 u32 asmlinkage save_context(struct context *context)
 {
     // Set local interrupt state to disabled
-    set_local_int_state(0);
+    disable_local_int();
     
     // Save PC and branch delay slot state
     u32 cause = 0;
@@ -116,10 +119,10 @@ void no_opt switch_context(ulong sched_id, struct context *context,
                                       ulong page_dir_pfn, int user_mode, ulong asid,
                                       struct thread_control_block *tcb)
 {
-    kprintf("To switch context!\n");
+    kprintf("To switch context, PC: %x\n", context->pc);
     
     // Set local interrupt state to enabled
-    set_local_int_state(1);
+    enable_local_int();
     
     // Set sched id
     *get_per_cpu(ulong, cur_running_sched_id) = sched_id;

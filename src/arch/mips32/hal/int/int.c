@@ -242,6 +242,7 @@ void general_except_handler(struct context *context)
     
     // Note that if kernel is invoked, it will call sched, then never goes back to this int handler
     if (call_kernel) {
+        save_context(context);
         kernel_dispatch(&kdispatch);
     }
     

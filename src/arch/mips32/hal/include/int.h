@@ -45,6 +45,7 @@
  * Vector numbers for internal interrupts
  */
 #define INT_VECTOR_LOCAL_TIMER      32
+#define INT_VECTOR_PAGE_FAULT       33
 
 
 /*

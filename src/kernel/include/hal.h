@@ -82,7 +82,7 @@ struct hal_exports {
     
     // Task
     void (*init_addr_space)(ulong page_dir_pfn);
-    void (*init_context)(struct context *context, ulong entry, ulong stack_top, int user_mode);
+    void (*init_context)(struct context *context, ulong entry, ulong param, ulong stack_top, int user_mode);
     void (*switch_context)(ulong sched_id, struct context *context,
                                       ulong page_dir_pfn, int user_mode, ulong asid,
                                       struct thread_control_block *tcb);

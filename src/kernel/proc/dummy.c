@@ -11,7 +11,7 @@
 #include "kernel/include/proc.h"
 
 
-void kernel_idle_thread(ulong param)
+asmlinkage void kernel_idle_thread(ulong param)
 {
     do {
 //         spin_lock_int(&dummy_thread_lock);
@@ -22,22 +22,22 @@ void kernel_idle_thread(ulong param)
     } while (1);
 }
 
-void kernel_demo_thread(ulong param)
+asmlinkage void kernel_demo_thread(ulong param)
 {
     do {
         int index = param;
         int cpu_id = hal->get_cur_cpu_id();
-        //kprintf("Kernel demo thread #%d on CPU #%d%s!\n", index, cpu_id , index == cpu_id ? ", Thread ID == CPU ID" : "");
+//         kprintf("Kernel demo thread #%d on CPU #%d%s!\n", index, cpu_id , index == cpu_id ? ", Thread ID == CPU ID" : "");
         hal->yield();
     } while (1);
 }
 
-void kernel_tclean_thread(ulong param)
+asmlinkage void kernel_tclean_thread(ulong param)
 {
     struct process *p = (struct process *)param;
     
     do {
-        //kprintf("Cleaning thrads\n");
+//         kprintf("Cleaning thrads\n");
         destroy_absent_threads(p);
         //buddy_print();
         hal->yield();

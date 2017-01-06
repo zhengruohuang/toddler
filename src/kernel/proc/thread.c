@@ -234,7 +234,7 @@ struct thread *create_thread(
     *param_ptr = param;
     
     // Context
-    hal->init_context(&t->context, entry_point,
+    hal->init_context(&t->context, entry_point, param,
                       t->memory.block_base + t->memory.stack_top_offset - sizeof(ulong) * 2,
                       p->user_mode);
     
@@ -281,7 +281,7 @@ void change_thread_control(struct thread *t, ulong entry_point, ulong param)
     // Context
     p = t->proc;
     assert(entry_point);
-    hal->init_context(&t->context, entry_point,
+    hal->init_context(&t->context, entry_point, param,
                       t->memory.block_base + t->memory.stack_top_offset - sizeof(ulong) * 2,
                       p->user_mode);
     

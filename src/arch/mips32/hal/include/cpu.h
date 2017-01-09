@@ -39,6 +39,10 @@ extern void *access_per_cpu_var(int *id, size_t size);
 /*
  * MP
  */
+extern ulong tcb_padded_size;
+extern ulong tcb_area_start_vaddr;
+extern ulong tcb_area_size;
+
 extern int get_cpu_id();
 
 extern ulong get_per_cpu_area_start_vaddr(int cpu_id);

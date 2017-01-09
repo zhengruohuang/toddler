@@ -124,8 +124,6 @@ static int int_handler_dummy(struct int_context *context, struct kernel_dispatch
  */
 void tlb_refill_handler(struct context *context)
 {
-    kprintf("TLB Refill!\n");
-    
     // Get the bad address
     u32 bad_addr = 0;
     __asm__ __volatile__ (
@@ -134,10 +132,12 @@ void tlb_refill_handler(struct context *context)
         :
     );
     
-    kprintf("\tBad address: %x\n", bad_addr);
+    kprintf("TLB refill @ %x ... ", bad_addr);
     
     // Get kernel/user mode
     int user_mode = *get_per_cpu(int, cur_in_user_mode);
+    
+    kprintf("%s ... ", user_mode ? "user" : "kernel");
     
     // Try refilling TLB
     int invalid = 0;
@@ -146,6 +146,8 @@ void tlb_refill_handler(struct context *context)
     } else {
         invalid = tlb_refill_kernel(bad_addr);
     }
+    
+    kprintf("done\n");
     
     // Invalid addr
     if (invalid) {
@@ -175,7 +177,7 @@ void cache_error_handler(struct context *context)
  */
 void general_except_handler(struct context *context)
 {
-    kprintf("General exception!\n");
+//     kprintf("General exception!\n");
     
     // Check who is causing this interrupt
     u32 cause = 0;
@@ -186,7 +188,7 @@ void general_except_handler(struct context *context)
     );
     
     u32 except_code = (cause >> 2) & 0x1F;
-    kprintf("\tException code: %d\n", except_code);
+//     kprintf("\tException code: %d\n", except_code);
     
     // Figure out the internal vector number
     u32 vector = INT_VECTOR_DUMMY;
@@ -200,25 +202,33 @@ void general_except_handler(struct context *context)
             vector = INT_VECTOR_LOCAL_TIMER;
         }
     }
-    kprintf("\tVector: %d\n", vector);
     
-    // Get the bad address
-    u32 bad_addr = 0;
-    __asm__ __volatile__ (
-        "mfc0   %0, $8;"
-        : "=r" (bad_addr)
-        :
-    );
-    kprintf("\tBad address: %x\n", bad_addr);
-    
-    // Get the bad pc
-    u32 epc = 0;
-    __asm__ __volatile__ (
-        "mfc0   %0, $14;"
-        : "=r" (epc)
-        :
-    );
-    kprintf("\tBad PC: %x\n", epc);
+    // Tell the user
+    if (vector != INT_VECTOR_LOCAL_TIMER && vector != INT_VECTOR_SYSCALL) {
+        // Get the bad address
+        u32 bad_addr = 0;
+        __asm__ __volatile__ (
+            "mfc0   %0, $8;"
+            : "=r" (bad_addr)
+            :
+        );
+        
+        // Get the bad pc
+        u32 epc = 0;
+        __asm__ __volatile__ (
+            "mfc0   %0, $14;"
+            : "=r" (epc)
+            :
+        );
+        u32 bad_instr_prev = *(u32 *)(epc - 4);
+        u32 bad_instr = *(u32 *)epc;
+        u32 bad_instr_next = *(u32 *)(epc + 4);
+        
+        // Delay slot
+        u32 delay_slot = cause >> 31;
+        
+        kprintf("General exception: %d, Vector: %d, Bad PC @ %x (%x %x %x), SP @ %x, Addr @ %x, Delay slot: %x\n", except_code, vector, epc, bad_instr_prev, bad_instr, bad_instr_next, context->sp, bad_addr, delay_slot);
+    }
     
     // Get the actual interrupt handler
     int_handler handler = handler = int_handler_list[vector];
@@ -237,12 +247,52 @@ void general_except_handler(struct context *context)
     kdispatch.dispatch_type = kdisp_unknown;
     kdispatch.syscall.num = 0;
     
+    // Save extra context
+    save_context(context);
+    
     // Call the handler!
     int call_kernel = handler(&intc, &kdispatch);
     
+//     kprintf("PC: %x, SP: %x\n", context->pc, context->sp);
+    
+//     kprintf("call kernel: %d\n", call_kernel);
+    
     // Note that if kernel is invoked, it will call sched, then never goes back to this int handler
     if (call_kernel) {
-        save_context(context);
+        // First of all duplicate context since it may get overwritten by a TLB miss handler
+//         kprintf("duplicate context\n");
+        struct context dup_ctxt = *context;
+        kdispatch.context = &dup_ctxt;
+//         kprintf("duplicate context done, dispatch: %x, num: %x\n", kdispatch.dispatch_type, kdispatch.syscall.num);
+        
+        // Set ASID to 0 - kernel
+        __asm__ __volatile__ (
+            "mtc0   $0, $10;"   // hi
+            :
+            :
+        );
+        
+        // Clear EXL bit - so we'll get primariy correct TLB misses
+        u32 sr = 0;
+        __asm__ __volatile__ (
+            "mfc0   %0, $12;"   // hi
+            : "=r" (sr)
+            :
+        );
+        sr &= ~0x18;    // kernel mode
+        sr &= ~0x2;
+        __asm__ __volatile__ (
+            "mtc0   %0, $12;"   // hi
+            :
+            : "r" (sr)
+        );
+        
+//         kprintf("here\n");
+        
+        // Tell HAL we are in kernel
+        *get_per_cpu(int, cur_in_user_mode) = 0;
+        
+        // Go to kernel!
         kernel_dispatch(&kdispatch);
     }
     
@@ -257,8 +307,9 @@ void init_int()
 {
     u32 ebase = 0;
     u32 sr = 0;
-    struct context *ctxt = get_per_cpu(struct context, cur_context);
-    u32 stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_STACK_TOP_OFFSET - 0x10;
+    struct saved_context *ctxt = get_per_cpu(struct saved_context, cur_context);
+    u32 tlb_refill_stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_TLB_REFILL_STACK_TOP_OFFSET;
+    u32 kernel_stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_STACK_TOP_OFFSET;
     
 //     u32 srsctl = 0;
     
@@ -301,13 +352,15 @@ void init_int()
     
     // Set
     //  k0 - base addr of current context
-    //  k1 - kernel stack top
+    //  ctxt->kernel_sp - kernel stack top
     __asm__ __volatile__ (
-        "or $26, %0, $0;"   // k0 ($26) <= ctxt | zero ($0)
-        "or $27, %1, $0;"   // k1 ($27) <= stack_top | zero ($0)
+        "move $26, %0;"   // k0 ($26) <= ctxt
         :
-        : "r" ((u32)ctxt), "r" (stack_top)
+        : "r" ((u32)ctxt)
     );
+    ctxt->tlb_refill_sp = tlb_refill_stack_top;
+    ctxt->kernel_sp = kernel_stack_top;
+    
     
     // Register TLB refill general handlers
     set_int_vector(INT_VECTOR_TLB_MISS_READ, int_handler_tlb_refill);
@@ -339,7 +392,7 @@ void init_int()
 //     );
     
     kprintf("Interrupt base updated, Wrapper @ %x, SR: %x, EBase: %x, Context @ %x, Kernel stack @ %x\n",
-            (u32)&int_entry_wrapper_begin, sr, ebase, ctxt, stack_top);
+            (u32)&int_entry_wrapper_begin, sr, ebase, ctxt, kernel_stack_top);
     
 //     // Test our handler
 //     volatile u32 *bad_addr = (u32 *)0x4096;

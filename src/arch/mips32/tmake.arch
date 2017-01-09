@@ -168,6 +168,3 @@ arch_funcs['build_hal'] = build_hal
 arch_funcs['qemu'] = qemu
 arch_funcs['qemu8'] = qemu8
 arch_funcs['start_emu'] = start_emu
-
-# Custom kernel entry point
-arch_vars['kernel_link_script'] = arch_dir + 'link/kernel.ld'

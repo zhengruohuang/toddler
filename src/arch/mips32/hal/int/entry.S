@@ -28,12 +28,13 @@ tlb_refill_entry:
     nop
     
     // Prepare C arguments
-    ori a0, k0, 0
+    move a0, k0
     
     // Go to C to handle this!
     //  & switch stack!
+    lw sp, 136(k0)
     jal tlb_refill_handler
-    ori sp, k1, 0
+    nop
     
     // Restore context
     jal restore_registers_except_ra
@@ -49,12 +50,13 @@ tlb_refill_entry:
 .align 8
 cache_error_entry:
     // Prepare C arguments
-    ori a0, k0, 0
+    move a0, k0
     
     // Go to C to handle this!
     //  & switch stack!
+    lw sp, 140(k0)
     jal cache_error_handler
-    ori sp, k1, 0
+    nop
     
     // Stop here!
     j .
@@ -71,12 +73,13 @@ general_except_entry:
     nop
     
     // Prepare C arguments
-    ori a0, k0, 0
+    move a0, k0
     
     // Go to C to handle this!
     //  & switch stack!
+    lw sp, 140(k0)
     jal general_except_handler
-    ori sp, k1, 0
+    nop
     
     // It seems like we can return directly... restore context
     jal restore_registers_except_ra

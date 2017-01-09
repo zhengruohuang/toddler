@@ -264,6 +264,8 @@ void set_thread_arg(struct thread *t, ulong arg)
     param_ptr = (ulong *)(t->memory.stack_top_paddr - sizeof(ulong));
     *param_ptr = arg;
     
+    hal->set_context_param(&t->context, arg);
+    
     spin_unlock_int(&t->lock);
 }
 
@@ -452,14 +454,14 @@ void init_thread()
         kprintf("\tKernel idle thread for CPU #%d created, thread ID: %p, thraed block base: %p\n", i, t->thread_id, t->memory.block_base);
     }
     
-    // Create kernel demo threads
-    for (i = 0; i < 2; i++) {
-        ulong param = i;
-        struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, param, -1, 0, 0);
-        run_thread(t);
-        
-        kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.block_base);
-    }
+//     // Create kernel demo threads
+//     for (i = 0; i < 2; i++) {
+//         ulong param = i;
+//         struct thread *t = create_thread(kernel_proc, (ulong)&kernel_demo_thread, param, -1, 0, 0);
+//         run_thread(t);
+//         
+//         kprintf("\tKernel demo thread created, thread ID: %p, thraed block base: %p\n", t->thread_id, t->memory.block_base);
+//     }
     
     // Create kernel thread cleaner
     struct thread *t = create_thread(kernel_proc, (ulong)&kernel_tclean_thread, (ulong)kernel_proc, -1, 0, 0);

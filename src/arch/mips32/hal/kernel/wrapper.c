@@ -6,6 +6,7 @@
 #include "hal/include/cpu.h"
 #include "hal/include/mem.h"
 #include "hal/include/int.h"
+#include "hal/include/exec.h"
 #include "hal/include/kernel.h"
 
 
@@ -27,8 +28,7 @@ ulong wrap_get_paddr(ulong page_dir_pfn, ulong vaddr)
 int wrap_load_exe(ulong image_start, ulong dest_page_dir_pfn,
                              ulong *entry_out, ulong *vaddr_start_out, ulong *vaddr_end_out)
 {
-    return 0;
-//     return load_exe(image_start, dest_page_dir_pfn, entry_out, vaddr_start_out, vaddr_end_out);
+    return load_exe(image_start, dest_page_dir_pfn, entry_out, vaddr_start_out, vaddr_end_out);
 }
 
 void wrap_init_addr_space(ulong page_dir_pfn)
@@ -63,48 +63,66 @@ void wrap_halt()
 
 void wrap_sleep()
 {
-    while (1);
+    do {
+        __asm__ __volatile__ (
+            "nop;"
+            "wait;"
+            "nop;"
+        );
+    } while (1);
 }
 
 // #define GEN_INT_INSTR(vec) "int $" #vec ";"
 
 void wrap_yield()
 {
-//     unsigned long num = SYSCALL_YIELD;
-//     
-//     int succeed = 0;
-//     unsigned long param1 = 0, param2 = 0;
-//     unsigned long value1 = 0, value2 = 0;
-//     
-//     __asm__ __volatile__
-//     (
-//         GEN_INT_INSTR(0x7f)
-//         : "=a" (succeed), "=S" (value1), "=D" (value2)
-//         : "S"(num), "D" (param1), "a" (param2)
-//         : "memory"
-//     );
+    unsigned long num = SYSCALL_YIELD;
+    
+    int succeed = 0;
+    unsigned long param1 = 0, param2 = 0;
+    unsigned long value1 = 0, value2 = 0;
+    
+    __asm__ __volatile__ (
+        "move $2, %3;"
+        "move $4, %4;"
+        "move $5, %5;"
+        "syscall;"
+        "move %0, $2;"
+        "move %1, $4;"
+        "move %2, $5;"
+        : "=r" (succeed), "=r" (value1), "=r" (value2)
+        : "r" (num), "r" (param1), "r" (param2)
+        : "$2", "$4", "$5", "$6"
+    );
 }
 
 int wrap_ksyscall(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2)
 {
     int succeed = 0;
-//     unsigned long value1 = 0, value2 = 0;
-//     
-//     __asm__ __volatile__
-//     (
-//         GEN_INT_INSTR(0x7f)
-//         : "=a" (succeed), "=S" (value1), "=D" (value2)
-//         : "S"(num), "D" (param1), "a" (param2)
-//         : "memory"
-//     );
-//     
-//     if (out1) {
-//         *out1 = value1;
-//     }
-//     
-//     if (out2) {
-//         *out2 = value2;
-//     }
+    unsigned long value1 = 0, value2 = 0;
     
-    return succeed;
+    //    v0 -> $2
+    // a0-a3 -> $4-$7
+    __asm__ __volatile__ (
+        "move $2, %3;"
+        "move $4, %4;"
+        "move $5, %5;"
+        "syscall;"
+        "move %0, $2;"
+        "move %1, $4;"
+        "move %2, $5;"
+        : "=r" (succeed), "=r" (value1), "=r" (value2)
+        : "r" (num), "r" (param1), "r" (param2)
+        : "$2", "$4", "$5", "$6"
+    );
+    
+    if (out1) {
+        *out1 = value1;
+    }
+    
+    if (out2) {
+        *out2 = value2;
+    }
+    
+    return 1;
 }

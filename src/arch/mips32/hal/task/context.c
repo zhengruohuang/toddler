@@ -14,9 +14,12 @@
 dec_per_cpu(ulong, cur_running_sched_id);
 
 dec_per_cpu(int, cur_in_user_mode);
-dec_per_cpu(struct context, cur_context);
+dec_per_cpu(struct saved_context, cur_context);
 
 
+/*
+ * Initialize context for a newly created thread
+ */
 void init_thread_context(struct context *context, ulong entry, ulong param, ulong stack_top, int user_mode)
 {
     // Set GPRs
@@ -31,6 +34,15 @@ void init_thread_context(struct context *context, ulong entry, ulong param, ulon
     context->delay_slot = 0;
 }
 
+void set_thread_context_param(struct context *context, ulong param)
+{
+    context->a0 = param;
+}
+
+
+/*
+ * Save context for interrupt handling
+ */
 u32 asmlinkage save_context(struct context *context)
 {
     // Set local interrupt state to disabled
@@ -47,6 +59,10 @@ u32 asmlinkage save_context(struct context *context)
     context->delay_slot = cause & 0x80000000;
 }
 
+
+/*
+ * Context switch
+ */
 static void no_opt switch_page_dir(ulong page_dir_pfn)
 {
     struct page_frame **page = get_per_cpu(struct page_frame *, cur_page_dir);
@@ -77,16 +93,18 @@ static void no_opt switch_to(struct context *context, int user_mode, ulong asid)
     );
     
     // Set SR based on user/kernel mode
+    // Also set EXL bit - switching is enabled
     u32 sr = 0;
     __asm__ __volatile__ (
         "mfc0   %0, $12;"
         : "=r" (sr)
         :
     );
-    sr &= ~0x18;
+    sr &= ~0x18;    // kernel
     if (user_mode) {
-        sr |= 0x10;
+        sr |= 0x10; // user
     }
+    sr |= 0x2;      // EXL
     __asm__ __volatile__ (
         "mtc0   %0, $12;"
         :
@@ -108,10 +126,10 @@ static void no_opt switch_to(struct context *context, int user_mode, ulong asid)
         : "r" (hi)
     );
     
-    // Restore GPRs
-    struct context *per_cpu_context = get_per_cpu(struct context, cur_context);
-    memcpy(per_cpu_context, context, sizeof(struct context));
+    // Set local interrupt state to enabled
+    enable_local_int();
     
+    // Restore GPRs
     restore_context_gpr();
 }
 
@@ -119,10 +137,11 @@ void no_opt switch_context(ulong sched_id, struct context *context,
                                       ulong page_dir_pfn, int user_mode, ulong asid,
                                       struct thread_control_block *tcb)
 {
-    kprintf("To switch context, PC: %x\n", context->pc);
+//     kprintf("To switch context, PC: %x, SP: %x, ASID: %x, user: %d\n", context->pc, context->sp, asid, user_mode);
     
-    // Set local interrupt state to enabled
-    enable_local_int();
+    // Copy the context to local, thus prevent TLB miss
+    struct saved_context *per_cpu_context = get_per_cpu(struct saved_context, cur_context);
+    memcpy(&per_cpu_context->context, context, sizeof(struct context));
     
     // Set sched id
     *get_per_cpu(ulong, cur_running_sched_id) = sched_id;
@@ -150,6 +169,14 @@ void init_context_mp()
     
     int *user_mode = get_per_cpu(int, cur_in_user_mode);
     *user_mode = 0;
+    
+    // Initialize TCB - write TCB addr to k1
+    ulong tcb = get_my_cpu_tcb_start_vaddr();
+    __asm__ __volatile__ (
+        "move   $27, %0;"
+        :
+        : "r" (KCODE_TO_PHYS(tcb))
+    );
 }
 
 void init_context()
@@ -159,4 +186,12 @@ void init_context()
     
     int *user_mode = get_per_cpu(int, cur_in_user_mode);
     *user_mode = 0;
+    
+    // Initialize TCB - write TCB addr to k1
+    ulong tcb = get_my_cpu_tcb_start_vaddr();
+    __asm__ __volatile__ (
+        "move   $27, %0;"
+        :
+        : "r" (KCODE_TO_PHYS(tcb))
+    );
 }

@@ -20,7 +20,7 @@ void kputs_worker_thread(ulong param)
     ulong vaddr = disp_info->syscall.param0;
     ulong paddr = 0;
     
-    //kprintf("Proc: %s, Vaddr: %p\n", p->name, vaddr);
+//     kprintf("Proc: %s, Vaddr: %p\n", p->name, vaddr);
     
     // Buffer
     char buf[KPUTS_BUF_SIZE + 1];

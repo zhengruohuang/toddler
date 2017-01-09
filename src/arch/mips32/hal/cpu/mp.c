@@ -8,10 +8,11 @@
 #include "hal/include/cpu.h"
 
 
-ulong per_cpu_area_start_vaddr = 0;
+static ulong per_cpu_area_start_vaddr = 0;
 
 ulong tcb_padded_size = 0;
 ulong tcb_area_start_vaddr = 0;
+ulong tcb_area_size = 0;
 
 
 /*
@@ -92,7 +93,7 @@ void init_mp()
         tcb_padded_size *= THREAD_CTRL_BLOCK_ALIGNMENT;
     }
     
-    ulong tcb_area_size = tcb_padded_size * num_cpus;
+    tcb_area_size = tcb_padded_size * num_cpus;
     if (tcb_area_size % PAGE_SIZE) {
         tcb_area_size /= PAGE_SIZE;
         tcb_area_size++;

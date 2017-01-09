@@ -39,34 +39,42 @@ def build_coreimg():
 
 
 def build_main():
+    # Build kernel
+    print_info('kernel', 'Building kernel')
+    kernel_ld_script = arch_dir + 'kernel/kernel.ld'
+    kernel_ext_dep = []
+    kernel_ext_flags = {}
+    if os.path.exists(kernel_ld_script):
+        kernel_ext_dep.append(kernel_ld_script)
+        kernel_ext_flags['ld/script'] = kernel_ld_script
+    else:
+        kernel_ext_flags['ld/ext'] = '-Ttext 0xFFF01000'
+    
+    build_dir(
+        src_dir + 'kernel/', [ '.c' ],
+        bin_dir + 'tdlrkrnl.bin',
+        ext_dep = kernel_ext_dep,
+        ext_flags = kernel_ext_flags,
+    )
+    
     # Build klibc
     print_info('klibc', 'Building klibc')
-    lib_dir(
-        src_dir + 'klibc/', [ '.c', '.asm' ],
+    lib_generic_files = get_all_files(src_dir + 'klibc/', [ '.c', '.asm', '.s', '.S' ])
+    lib_arch_files = get_all_files(arch_dir + 'klibc/', [ '.c', '.asm', '.s', '.S' ])
+    lib_files(
+        lib_generic_files + lib_arch_files,
         bin_dir + 'tdlrklibc.a'
     )
     
-    # Build kernel
-    print_info('kernel', 'Building kernel')
-    
-    if 'kernel_link_script' in arch_vars:
-        ld_script = arch_vars['kernel_link_script']
-        build_dir(
-            src_dir + 'kernel/', [ '.c' ],
-            bin_dir + 'tdlrkrnl.bin',
-            ext_dep = [ ld_script ],
-            ext_flags = { 'ld/script' : ld_script },
-        )
+    # External flags for generic processes
+    user_ld_script = arch_dir + 'klibc/klibc.ld'
+    user_ext_dep = []
+    user_ext_flags = {}
+    if os.path.exists(user_ld_script):
+        user_ext_dep.append(user_ld_script)
+        user_ext_flags['ld/script'] = user_ld_script
     else:
-        kernel_entry = '0xFFF01000'
-        if 'kernel_entry' in arch_vars:
-            kernel_entry = arch_vars['kernel_entry']
-        
-        build_dir(
-            src_dir + 'kernel/', [ '.c' ],
-            bin_dir + 'tdlrkrnl.bin',
-            ext_flags = { 'ld/ext' : '-Ttext ' + kernel_entry },
-        )
+        user_ext_flags['ld/ext'] = '-e _start'
     
     # Build driver
     print_info('driver', 'Building driver')
@@ -74,7 +82,8 @@ def build_main():
         src_dir + 'driver/', [ '.c' ],
         bin_dir + 'tdlrdrv.bin',
         ext_libs = [ bin_dir + 'tdlrklibc.a' ],
-        ext_flags = { 'ld/ext' : '-e _start' },
+        ext_dep = user_ext_dep,
+        ext_flags = user_ext_flags,
     )
 
     # Build system
@@ -83,7 +92,8 @@ def build_main():
         src_dir + 'system/', [ '.c' ],
         bin_dir + 'tdlrsys.bin',
         ext_libs = [ bin_dir + 'tdlrklibc.a' ],
-        ext_flags = { 'ld/ext' : '-e _start' },
+        ext_dep = user_ext_dep,
+        ext_flags = user_ext_flags,
     )
     
     # Build shell
@@ -92,7 +102,8 @@ def build_main():
         src_dir + 'shell/', [ '.c' ],
         bin_dir + 'tdlrshell.bin',
         ext_libs = [ bin_dir + 'tdlrklibc.a' ],
-        ext_flags = { 'ld/ext' : '-e _start' },
+        ext_dep = user_ext_dep,
+        ext_flags = user_ext_flags,
     )
 
 

@@ -7,10 +7,12 @@
 
 static int int_handler_syscall(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
-    ulong num = context->context->a0;
-    ulong param0 = context->context->a1;
-    ulong param1 = context->context->a2;
-    ulong param2 = context->context->a3;
+//     kprintf("Syscall!\n");
+    
+    ulong num = context->context->v0;
+    ulong param0 = context->context->a0;
+    ulong param1 = context->context->a1;
+    ulong param2 = context->context->a2;
     
     ulong ret_addr = 0;
     ulong ret_size = 0;
@@ -27,15 +29,13 @@ static int int_handler_syscall(struct int_context *context, struct kernel_dispat
     
     // Prepare to call kernel
     if (call_kernel) {
-        struct kernel_dispatch_info kdispatch;
-        kdispatch.context = context->context;
-        kdispatch.dispatch_type = kdisp_syscall;
-        kdispatch.syscall.num = num;
-        kdispatch.syscall.param0 = param0;
-        kdispatch.syscall.param1 = param1;
-        kdispatch.syscall.param2 = param2;
+        kdi->dispatch_type = kdisp_syscall;
+        kdi->syscall.num = num;
+        kdi->syscall.param0 = param0;
+        kdi->syscall.param1 = param1;
+        kdi->syscall.param2 = param2;
         
-        //kprintf("Syscall from user!\n");
+//         kprintf("Syscall from user!\n");
     }
     
     // Prepare return value
@@ -44,6 +44,8 @@ static int int_handler_syscall(struct int_context *context, struct kernel_dispat
         context->context->a0 = ret_addr;
         context->context->a1 = ret_size;
     }
+    
+    context->context->pc += 4;
     
     return call_kernel;
 }

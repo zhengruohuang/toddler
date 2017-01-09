@@ -28,8 +28,11 @@ void create_dalloc(struct process *p)
     if (p->type == process_kernel) {
         p->dynamic.cur_top = 0;
     } else {
+#ifdef __i386__
         p->dynamic.cur_top = 0xf0000000;
-        
+#else
+        p->dynamic.cur_top = 0x7f000000;
+#endif
         p->dynamic.free.count = 0;
         p->dynamic.free.head = NULL;
         spin_init(&p->lock);

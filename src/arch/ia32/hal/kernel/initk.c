@@ -76,6 +76,7 @@ void init_kernel()
     // AS
     hexp->init_addr_space = wrap_init_addr_space;
     hexp->init_context = init_thread_context;
+    hexp->set_context_param = set_thread_context_param;
     hexp->switch_context = switch_context;
     hexp->set_syscall_return = set_syscall_return;
     hexp->sleep = wrap_sleep;

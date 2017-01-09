@@ -4,56 +4,6 @@
 #include "klibc/include/sys.h"
 
 
-no_opt struct thread_control_block *get_tcb()
-{
-    unsigned long addr = 0;
-    
-#ifdef __i386__
-    __asm__ __volatile__
-    (
-        "xorl   %%esi, %%esi;"
-        "movl   %%gs:(%%esi), %%edi;"
-        : "=D" (addr)
-        :
-        : "%esi"
-    );
-#endif
-    
-    return (struct thread_control_block *)addr;
-}
-
-no_opt int do_syscall(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2)
-{
-    int succeed = 0;
-    unsigned long value1 = 0, value2 = 0;
-    
-#ifdef __i386__
-    __asm__ __volatile__
-    (
-        "movl   %%esp, %%ecx;"
-        "lea   _sysenter_ret, %%edx;"
-        
-        "sysenter;"
-        
-        ".align 4;"
-        "_sysenter_ret:;"
-        : "=a" (succeed), "=S" (value1), "=D" (value2)
-        : "S"(num), "D" (param1), "a" (param2)
-        : "%ecx", "%edx"
-    );
-#endif
-    
-    if (out1) {
-        *out1 = value1;
-    }
-    
-    if (out2) {
-        *out2 = value2;
-    }
-    
-    return 1;
-}
-
 int syscall_ping(unsigned long ping, unsigned long *pong)
 {
     return do_syscall(SYSCALL_PING, ping, 0, pong, NULL);

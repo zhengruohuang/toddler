@@ -329,6 +329,8 @@ void recv_worker_thread(ulong param)
 
 void request_worker_thread(ulong param)
 {
+//     kprintf("Request worker thread!\n");
+    
     // Get the params
     struct kernel_dispatch_info *disp_info = (struct kernel_dispatch_info *)param;
     struct thread *worker = disp_info->worker;

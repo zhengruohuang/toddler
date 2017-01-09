@@ -45,6 +45,9 @@ static void dispatch(ulong sched_id, struct kernel_dispatch_info *disp_info)
     service_tlb_shootdown();
     
     if (need_dispatch) {
+        // Need a private stack for MIPS kernel dispatch as a TLB miss handler can overwrite the data in kernel stack
+//         kprintf("dispatch kernel @ %x, type: %x, syscall num: %x\n", disp_info, disp_info->dispatch_type, disp_info->syscall.num);
+        
         // Fill in the dispatch infio
         disp_info->proc = s->proc;
         disp_info->thread = s->thread;
@@ -52,6 +55,7 @@ static void dispatch(ulong sched_id, struct kernel_dispatch_info *disp_info)
         
         switch (disp_info->dispatch_type) {
         case kdisp_syscall:
+//             kprintf("dispatch syscall, num: %x\n", disp_info->syscall.num);
             dispatch_syscall(disp_info);
             break;
         case kdisp_interrupt:
@@ -106,6 +110,7 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     init_urs();
     
     // Init process mgr
+    init_asid();
     init_sched();
     init_process();
     init_thread();

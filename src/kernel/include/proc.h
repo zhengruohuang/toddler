@@ -235,6 +235,9 @@ struct process {
     ulong proc_id;
     ulong parent_id;
     
+    // ASID
+    ulong asid;
+    
     // Name and URL
     char *name;
     char *url;
@@ -365,6 +368,15 @@ extern ulong set_heap_end(struct process *p, ulong heap_end);
 extern ulong get_heap_end(struct process *p);
 extern ulong grow_heap(struct process *p, ulong amount);
 extern ulong shrink_heap(struct process *p, ulong amount);
+
+
+/*
+ * ASID management
+ */
+extern void init_asid();
+extern void asid_release();
+extern ulong asid_alloc();
+extern ulong asid_recycle();
 
 
 #endif

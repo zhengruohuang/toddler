@@ -388,7 +388,8 @@ void sched()
     tcb.thread_id = s->thread_id;
     
     // Then tell HAL to do a context switch
-    hal->switch_context(s->sched_id, &s->thread->context, s->proc->page_dir_pfn, s->proc->user_mode, 0, &tcb);
+    struct process *p = s->proc;
+    hal->switch_context(s->sched_id, &s->thread->context, p->page_dir_pfn, p->user_mode, p->asid, &tcb);
 }
 
 

@@ -87,6 +87,13 @@ struct process *create_process(
     // Msg handlers
     hashtable_create(&p->msg_handlers, 0, NULL, NULL);
     
+    // ASID
+    if (type == process_kernel) {
+        p->asid = 0;
+    } else {
+        p->asid = asid_alloc();
+    }
+    
     // Insert the process into process list
     p->prev = NULL;
     p->next = processes.next;

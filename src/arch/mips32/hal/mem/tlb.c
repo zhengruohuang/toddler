@@ -3,6 +3,7 @@
 #include "hal/include/print.h"
 #include "hal/include/lib.h"
 #include "hal/include/cpu.h"
+#include "hal/include/task.h"
 #include "hal/include/mem.h"
 
 
@@ -49,18 +50,24 @@ void write_tlb_entry(int index, u32 hi, u32 pm, u32 lo0, u32 lo1)
         "mtc0   %0, $0;"        // index
         "ehb;"                  // clear hazard barrier
         "tlbwi;"                // write indexed entry
-        "nop;"                  // have a rest
         :
         : "r" (entry_index), "r" (hi), "r" (pm), "r" (lo0), "r" (lo1)
         : "memory"
     );
 }
 
-void map_tlb_entry(int index, u32 vaddr, u32 pfn0, u32 pfn1, int write)
+void map_tlb_entry_user(int index, u32 asid, u32 vaddr, u32 pfn0, int write0, u32 pfn1, int write1)
 {
     struct tlb_entry tlb;
+    struct tlb_entry_hi hi;
     
-    tlb.hi.value = 0;
+    __asm__ __volatile__ (
+        "mfc0   %0, $10;"   // hi
+        : "=r" (hi.value)
+        :
+    );
+    
+    tlb.hi.asid = asid;
     tlb.hi.vpn2 = vaddr >> (PAGE_BITS + 1);
     
     tlb.pm.value = 0;
@@ -69,40 +76,26 @@ void map_tlb_entry(int index, u32 vaddr, u32 pfn0, u32 pfn1, int write)
     tlb.lo0.value = 0;
     tlb.lo0.pfn = pfn0;
     tlb.lo0.valid = 1;
-    tlb.lo0.dirty = write;
-    tlb.lo0.coherent = 0x3;
+    tlb.lo0.dirty = write0;
+    tlb.lo0.coherent = 0;
     
     tlb.lo1.value = 0;
     tlb.lo1.pfn = pfn1;
     tlb.lo1.valid = 1;
-    tlb.lo1.dirty = write;
-    tlb.lo1.coherent = 0x3;
+    tlb.lo1.dirty = write1;
+    tlb.lo1.coherent = 0;
     
     write_tlb_entry(index, tlb.hi.value, tlb.pm.value, tlb.lo0.value, tlb.lo1.value);
-}
-
-static int tlb_probe(u32 addr)
-{
-    int index = -1;
-    struct tlb_entry_hi hi;
     
-    hi.value = 0;
-    hi.vpn2 = addr >> (PAGE_BITS + 1);
-    
+    // Restore current ASID
     __asm__ __volatile__ (
-        "mtc0   %1, $10;"   // hi
-        "ehb;"
-        "tlbp;"
-        "mfc0   %0, $0;"    // index
-        "nop"
-        : "=r" (index)
+        "mtc0   %0, $10;"   // hi
+        :
         : "r" (hi.value)
     );
-    
-    return index;
 }
 
-int tlb_refill_kernel(u32 addr)
+static void map_tlb_entry_kernel(u32 addr)
 {
     // Use 256MB mask
     u32 mask = 0xffff;
@@ -123,29 +116,91 @@ int tlb_refill_kernel(u32 addr)
     tlb.lo0.coherent = 0;
     
     tlb.lo1.value = 0;
-    tlb.lo1.pfn = physical_pfn | 0x1;
+    tlb.lo1.pfn = physical_pfn | (mask + 0x1);
     tlb.lo1.valid = 1;
     tlb.lo1.dirty = 1;
     tlb.lo1.coherent = 0;
     
     write_tlb_entry(-1, tlb.hi.value, tlb.pm.value, tlb.lo0.value, tlb.lo1.value);
+}
+
+static int tlb_probe_kernel(u32 addr)
+{
+    int index = -1;
+    struct tlb_entry_hi hi;
     
+    hi.value = 0;
+    hi.vpn2 = addr >> (PAGE_BITS + 1);
+    
+    __asm__ __volatile__ (
+        "mtc0   %1, $10;"   // hi
+        "ehb;"
+        "tlbp;"
+        "mfc0   %0, $0;"    // index
+        : "=r" (index)
+        : "r" (hi.value)
+    );
+    
+    return index;
+}
+
+static u32 read_asid()
+{
+    struct tlb_entry_hi hi;
+    
+    __asm__ __volatile__ (
+        "mfc0   %0, $10;"   // hi
+        : "=r" (hi.value)
+        :
+    );
+    
+    return hi.asid;
+}
+
+static void set_asid(u32 asid)
+{
+    struct tlb_entry_hi hi;
+    
+    __asm__ __volatile__ (
+        "mfc0   %0, $10;"   // hi
+        : "=r" (hi.value)
+        :
+    );
+    
+    hi.asid = asid;
+    
+    __asm__ __volatile__ (
+        "mtc0   %0, $10;"   // hi
+        :
+        : "r" (hi.value)
+    );
+}
+
+int tlb_refill_kernel(u32 addr)
+{
+    map_tlb_entry_kernel(addr);
     return 0;
 }
 
+// Note that we are running this function in kernel mode, ASID is already set to be 0
 int tlb_refill_user(u32 addr)
 {
-    panic("shoudln't be here!\n");
+//     kprintf("User TLB refill @ %x ... ", addr);
     
-    struct page_frame *page = NULL;
+    u32 user_asid = read_asid();
+    set_asid(0);
+    
+    struct page_frame **cur_page_dir = get_per_cpu(struct page_frame *, cur_page_dir);
+    struct page_frame *page = *cur_page_dir;
     u32 page_addr = (u32)page;
     struct tlb_entry tlb;
     
     // First map page dir
-    int dir_index = tlb_probe(page_addr);
-    assert(dir_index < 0);
-    map_tlb_entry(-1, page_addr, ADDR_TO_PFN(page_addr) & ~0x1, ADDR_TO_PFN(page_addr) | 0x1, 0);
-    dir_index = tlb_probe(page_addr);
+    int dir_index = tlb_probe_kernel(page_addr);
+    if (dir_index < 0) {
+        map_tlb_entry_kernel(page_addr);
+    }
+    dir_index = tlb_probe_kernel(page_addr);
     assert(dir_index >= 0);
     
     // Access the page dir
@@ -154,19 +209,29 @@ int tlb_refill_user(u32 addr)
     page = (struct page_frame *)page_addr;
     
     // Next map page table
-    int table_index = tlb_probe(page_addr);
-    assert(table_index < 0);
-    map_tlb_entry(dir_index, page_addr, ADDR_TO_PFN(page_addr) & ~0x1, ADDR_TO_PFN(page_addr) | 0x1, 0);
-    table_index = tlb_probe(page_addr);
-    assert(table_index == dir_index);
+    int table_index = tlb_probe_kernel(page_addr);
+    if (table_index < 0) {
+        map_tlb_entry_kernel(page_addr);
+    }
+    dir_index = tlb_probe_kernel(page_addr);
+    assert(dir_index >= 0);
     
     // Access the page table
-    u32 page_pfn = page->value_pte[GET_PTE_INDEX(addr)].pfn;
-    page_addr = PFN_TO_ADDR(page_pfn);
+    u32 pte_index0 = GET_PTE_INDEX(addr) & ~0x1;
+    u32 page_pfn0 = page->value_pte[pte_index0].pfn;
+    int write0 = page->value_pte[pte_index0].write_allow;
+    
+    u32 pte_index1 = pte_index0 | 0x1;
+    u32 page_pfn1 = page->value_pte[pte_index1].pfn;
+    int write1 = page->value_pte[pte_index1].write_allow;
     
     // Finally map the actual page
-    map_tlb_entry(dir_index, addr, ADDR_TO_PFN(page_addr) & ~0x1, ADDR_TO_PFN(page_addr) | 0x1, 0);
-    assert(tlb_probe(page_addr) == dir_index);
+    map_tlb_entry_user(dir_index, user_asid, addr, page_pfn0, write0, page_pfn1, write1);
+    
+    // Restore ASID
+    set_asid(user_asid);
+    
+//     kprintf("done!\n");
     
     return 0;
 }

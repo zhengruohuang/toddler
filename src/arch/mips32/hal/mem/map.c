@@ -3,6 +3,7 @@
 #include "common/include/memory.h"
 #include "hal/include/lib.h"
 #include "hal/include/cpu.h"
+#include "hal/include/kernel.h"
 #include "hal/include/mem.h"
 
 
@@ -18,11 +19,9 @@ void init_user_page_dir(ulong page_dir_pfn)
         page->value_u32[i] = 0;
     }
     
-//     page->value_pde[0].pfn = KERNEL_PTE_LO4_PFN;
-//     page->value_pde[0].present = 1;
-//     page->value_pde[0].rw = 1;
-//     page->value_pde[0].user = 0;
-//     page->value_pde[0].cache_disabled = 0;
+    // Map TCB area
+    u32 tcb_start_paddr = KCODE_TO_PHYS(tcb_area_start_vaddr);
+    user_indirect_map_array(page_dir_pfn, tcb_start_paddr, tcb_start_paddr, tcb_area_size, 0, 0, 0, 0);
 }
 
 
@@ -67,7 +66,7 @@ static int user_indirect_map(
     int index = GET_PDE_INDEX(vaddr);
     
     if (!page->value_u32[index]) {
-        ulong alloc_pfn = 0;    // FIXME: kernel->palloc(1);;
+        ulong alloc_pfn = kernel->palloc(1);;
         if (!alloc_pfn) {
             return 0;
         }
@@ -180,7 +179,7 @@ static int user_indirect_unmap(ulong page_dir_pfn, ulong vaddr, ulong paddr)
     }
     
     if (need_free) {
-        // FIXME: assert(kernel->pfree(ADDR_TO_PFN((ulong)page)));
+        assert(kernel->pfree(ADDR_TO_PFN((ulong)page)));
     }
     
     return 1;

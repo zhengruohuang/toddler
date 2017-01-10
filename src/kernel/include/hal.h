@@ -80,8 +80,11 @@ struct hal_exports {
     int (*load_exe)(ulong image_start, ulong dest_page_dir_pfn,
                                ulong *entry_out, ulong *vaddr_start_out, ulong *vaddr_end_out);
     
-    // Task
+    // Address space
+    ulong vaddr_space_end;
     void (*init_addr_space)(ulong page_dir_pfn);
+    
+    // Context
     void (*init_context)(struct context *context, ulong entry, ulong param, ulong stack_top, int user_mode);
     void (*set_context_param)(struct context *context, ulong param);
     void (*switch_context)(ulong sched_id, struct context *context,
@@ -90,6 +93,9 @@ struct hal_exports {
     void (*set_syscall_return)(struct context *context, int succeed, ulong return0, ulong return1);
     void (*sleep)();
     void (*yield)();
+
+    // Kernel helpers
+    ulong (*kget_tcb)();
     int (*ksyscall)(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2);
     
     // TLB

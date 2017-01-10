@@ -35,4 +35,10 @@
 #define THREAD_CTRL_BLOCK_ALIGNMENT         (64)
 
 
+/*
+ * User address space
+ */
+#define USER_VADDR_SPACE_END    0x7f000000
+
+
 #endif

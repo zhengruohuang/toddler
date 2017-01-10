@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/syscall.h"
+#include "common/include/memory.h"
 #include "hal/include/print.h"
 #include "hal/include/mem.h"
 #include "hal/include/lib.h"
@@ -72,8 +73,6 @@ void wrap_sleep()
     } while (1);
 }
 
-// #define GEN_INT_INSTR(vec) "int $" #vec ";"
-
 void wrap_yield()
 {
     unsigned long num = SYSCALL_YIELD;
@@ -94,6 +93,23 @@ void wrap_yield()
         : "r" (num), "r" (param1), "r" (param2)
         : "$2", "$4", "$5", "$6"
     );
+}
+
+ulong wrap_kget_tcb()
+{
+    unsigned long k1 = 0;
+    
+    // k1 - $27
+    __asm__ __volatile__ (
+        "move   %0, $27;"
+        : "=r" (k1)
+        :
+    );
+    
+    // Convert k1 to unmapped address so we don't get TLB miss on this
+    k1 = PHYS_TO_KCODE(k1);
+    
+    return k1;
 }
 
 int wrap_ksyscall(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2)

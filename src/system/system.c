@@ -9,14 +9,12 @@
 
 static unsigned long thread_test(unsigned long arg)
 {
-#ifdef __i386__
-    __asm__ __volatile__
-    (
-        "xchgw %%bx, %%bx;"
-        :
-        :
-    );
-#endif
+//     __asm__ __volatile__
+//     (
+//         "xchgw %%bx, %%bx;"
+//         :
+//         :
+//     );
     
     kprintf("From thread test, arg: %lu\n", arg);
     return 0;

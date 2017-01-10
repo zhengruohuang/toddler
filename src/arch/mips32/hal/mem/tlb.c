@@ -77,13 +77,13 @@ void map_tlb_entry_user(int index, u32 asid, u32 vaddr, u32 pfn0, int write0, u3
     tlb.lo0.pfn = pfn0;
     tlb.lo0.valid = 1;
     tlb.lo0.dirty = write0;
-    tlb.lo0.coherent = 0;
+    tlb.lo0.coherent = 0x6;
     
     tlb.lo1.value = 0;
     tlb.lo1.pfn = pfn1;
     tlb.lo1.valid = 1;
     tlb.lo1.dirty = write1;
-    tlb.lo1.coherent = 0;
+    tlb.lo1.coherent = 0x6;
     
     write_tlb_entry(index, tlb.hi.value, tlb.pm.value, tlb.lo0.value, tlb.lo1.value);
     
@@ -113,13 +113,13 @@ static void map_tlb_entry_kernel(u32 addr)
     tlb.lo0.pfn = physical_pfn;
     tlb.lo0.valid = 1;
     tlb.lo0.dirty = 1;
-    tlb.lo0.coherent = 0;
+    tlb.lo0.coherent = 0x6;
     
     tlb.lo1.value = 0;
     tlb.lo1.pfn = physical_pfn | (mask + 0x1);
     tlb.lo1.valid = 1;
     tlb.lo1.dirty = 1;
-    tlb.lo1.coherent = 0;
+    tlb.lo1.coherent = 0x6;
     
     write_tlb_entry(-1, tlb.hi.value, tlb.pm.value, tlb.lo0.value, tlb.lo1.value);
 }

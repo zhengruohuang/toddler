@@ -31,6 +31,7 @@ extern void wrap_invalidate_tlb(ulong asid, ulong vaddr, size_t size);
 extern void wrap_halt();
 extern void wrap_sleep();
 extern void wrap_yield();
+extern ulong wrap_kget_tcb();
 extern int wrap_ksyscall(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2);
 
 

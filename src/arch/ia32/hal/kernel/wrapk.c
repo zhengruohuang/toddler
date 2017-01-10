@@ -91,6 +91,22 @@ void wrap_yield()
     );
 }
 
+ulong wrap_kget_tcb()
+{
+    unsigned long addr = 0;
+    
+    __asm__ __volatile__
+    (
+        "xorl   %%esi, %%esi;"
+        "movl   %%gs:(%%esi), %%edi;"
+        : "=D" (addr)
+        :
+        : "%esi"
+    );
+    
+    return addr;
+}
+
 int wrap_ksyscall(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2)
 {
     int succeed = 0;

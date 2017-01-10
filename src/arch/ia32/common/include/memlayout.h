@@ -6,6 +6,12 @@
 
 
 /*
+ * User address space
+ */
+#define USER_VADDR_SPACE_END            0xf0000000
+
+
+/*
  * HAL
  */
 #define POINTER_TO_EBDA_ADDR            (0x40e)

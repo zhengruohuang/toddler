@@ -73,14 +73,20 @@ void init_kernel()
     // Load image
     hexp->load_exe = wrap_load_exe;
     
-    // AS
+    // Address space
+    hexp->vaddr_space_end = USER_VADDR_SPACE_END;
     hexp->init_addr_space = wrap_init_addr_space;
+    
+    // Context
     hexp->init_context = init_thread_context;
     hexp->set_context_param = set_thread_context_param;
     hexp->switch_context = switch_context;
     hexp->set_syscall_return = set_syscall_return;
     hexp->sleep = wrap_sleep;
     hexp->yield = wrap_yield;
+    
+    // Kernel helpers
+    hexp->kget_tcb = wrap_kget_tcb;
     hexp->ksyscall = wrap_ksyscall;
     
     // TLB

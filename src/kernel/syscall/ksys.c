@@ -7,19 +7,7 @@
 
 no_opt struct thread_control_block *ksys_get_tcb()
 {
-    unsigned long addr = 0;
-    
-#ifdef __i386__
-    __asm__ __volatile__
-    (
-        "xorl   %%esi, %%esi;"
-        "movl   %%gs:(%%esi), %%edi;"
-        : "=D" (addr)
-        :
-        : "%esi"
-    );
-#endif
-    
+    unsigned long addr = hal->kget_tcb();
     return (struct thread_control_block *)addr;
 }
 

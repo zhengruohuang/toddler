@@ -73,13 +73,13 @@
 /*
  * Physical addr <--> Kernel 1 to 1 mapping data addr (KDATA)
  */
-#ifndef PHYS_TO_KDATA
-#define PHYS_TO_KDATA(addr)     ((addr) & 0x80000000 ? (addr) + 0x40000000 : (addr))
-#endif
-
-#ifndef KDATA_TO_PHYS
-#define KDATA_TO_PHYS(addr)     (addr)
-#endif
+// #ifndef PHYS_TO_KDATA
+// #define PHYS_TO_KDATA(addr)     ((addr) & 0x80000000 ? (addr) + 0x40000000 : (addr))
+// #endif
+// 
+// #ifndef KDATA_TO_PHYS
+// #define KDATA_TO_PHYS(addr)     (addr)
+// #endif
 
 
 #endif

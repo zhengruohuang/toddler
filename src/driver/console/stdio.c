@@ -45,6 +45,8 @@ static void print_out_buffer(char *buf, unsigned long count)
 static asmlinkage void kapi_stdin_read_handler(msg_t *msg)
 {
     unsigned long reply_mbox_id = msg->mailbox_id;
+   
+//     kprintf("stdin to reply to: %x through msg @ %x\n", reply_mbox_id, msg);
     
     unsigned long console_id = msg->params[0].value;
     struct console *con = get_console(console_id);
@@ -53,7 +55,6 @@ static asmlinkage void kapi_stdin_read_handler(msg_t *msg)
     
     // Setup the msg
     msg_t *s = syscall_msg();
-    s->mailbox_id = reply_mbox_id;
     
     if (con) {
         while (!con->stdin_buf.index) {
@@ -63,6 +64,7 @@ static asmlinkage void kapi_stdin_read_handler(msg_t *msg)
         
         kthread_mutex_lock(&con->stdin_mutex);
         
+        s->mailbox_id = reply_mbox_id;
         if (buf_size >= con->stdin_buf.index) {
             msg_param_buffer(s, con->stdin_buf.data, con->stdin_buf.index);
             msg_param_value(s, (unsigned long)con->stdin_buf.index);
@@ -93,6 +95,8 @@ static asmlinkage void kapi_stdout_write_handler(msg_t *msg)
     unsigned long printed_count = 0;
     msg_t *s = NULL;
     
+//     kprintf("stdout to reply to: %x through msg @ %x\n", reply_mbox_id, msg);
+    
     // Process the msg
     unsigned long console_id = (int)msg->params[0].value;
     char *buf = (char *)((unsigned long)msg + msg->params[1].offset);
@@ -121,6 +125,8 @@ static asmlinkage void kapi_stderr_write_handler(msg_t *msg)
     unsigned long reply_mbox_id = msg->mailbox_id;
     unsigned long printed_count = 0;
     msg_t *s = NULL;
+    
+//     kprintf("stderr to reply to: %x through msg @ %x\n", reply_mbox_id, msg);
     
     // Process the msg
     unsigned long console_id = (int)msg->params[0].value;

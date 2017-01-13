@@ -41,6 +41,7 @@ def build_coreimg():
 def build_main():
     # Build kernel
     print_info('kernel', 'Building kernel')
+    
     kernel_ld_script = arch_dir + 'kernel/kernel.ld'
     kernel_ext_dep = []
     kernel_ext_flags = {}
@@ -50,8 +51,10 @@ def build_main():
     else:
         kernel_ext_flags['ld/ext'] = '-Ttext 0xFFF01000'
     
-    build_dir(
-        src_dir + 'kernel/', [ '.c' ],
+    kernel_generic_files = get_all_files(src_dir + 'kernel/', [ '.c' ])
+    kernel_arch_files = get_all_files(arch_dir + 'kernel/', [ '.c', '.asm', '.s', '.S' ])
+    build_files(
+        kernel_generic_files + kernel_arch_files,
         bin_dir + 'tdlrkrnl.bin',
         ext_dep = kernel_ext_dep,
         ext_flags = kernel_ext_flags,
@@ -59,7 +62,7 @@ def build_main():
     
     # Build klibc
     print_info('klibc', 'Building klibc')
-    lib_generic_files = get_all_files(src_dir + 'klibc/', [ '.c', '.asm', '.s', '.S' ])
+    lib_generic_files = get_all_files(src_dir + 'klibc/', [ '.c' ])
     lib_arch_files = get_all_files(arch_dir + 'klibc/', [ '.c', '.asm', '.s', '.S' ])
     lib_files(
         lib_generic_files + lib_arch_files,

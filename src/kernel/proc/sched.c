@@ -195,6 +195,10 @@ struct sched *enter_sched(struct thread *t)
 void ready_sched(struct sched *s)
 {
     // Before transitioning to ready, the thread must be in enter state
+    if (s->state != sched_enter && s->state != sched_stall) {
+        kprintf("Thread state: %d\n", s->state);
+    }
+    
     assert(s->state == sched_enter || s->state == sched_stall);
     
     // Remove the entry from its current list

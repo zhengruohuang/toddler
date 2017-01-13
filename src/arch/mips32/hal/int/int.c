@@ -8,6 +8,7 @@
 #include "hal/include/task.h"
 #include "hal/include/kernel.h"
 #include "hal/include/mem.h"
+#include "hal/include/periph.h"
 #include "hal/include/int.h"
 
 
@@ -132,12 +133,12 @@ void tlb_refill_handler(struct context *context)
         :
     );
     
-    kprintf("TLB refill @ %x ... ", bad_addr);
+//     kprintf("TLB refill @ %x ... ", bad_addr);
     
     // Get kernel/user mode
     int user_mode = *get_per_cpu(int, cur_in_user_mode);
     
-    kprintf("%s ... ", user_mode ? "user" : "kernel");
+//     kprintf("%s ... ", user_mode ? "user" : "kernel");
     
     // Try refilling TLB
     int invalid = 0;
@@ -147,7 +148,7 @@ void tlb_refill_handler(struct context *context)
         invalid = tlb_refill_kernel(bad_addr);
     }
     
-    kprintf("done\n");
+//     kprintf("done\n");
     
     // Invalid addr
     if (invalid) {
@@ -201,10 +202,15 @@ void general_except_handler(struct context *context)
         if (cause & 0x40000000) {
             vector = INT_VECTOR_LOCAL_TIMER;
         }
+        
+        // External
+        else if (cause & 0x400) {
+            vector = INT_VECTOR_EXTERNAL_BASE + i8259_read_irq();
+        }
     }
     
     // Tell the user
-    if (vector != INT_VECTOR_LOCAL_TIMER && vector != INT_VECTOR_SYSCALL) {
+    if (vector != INT_VECTOR_LOCAL_TIMER && vector != INT_VECTOR_SYSCALL && vector != 36) {
         // Get the bad address
         u32 bad_addr = 0;
         __asm__ __volatile__ (

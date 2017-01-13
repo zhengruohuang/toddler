@@ -261,9 +261,15 @@ void reply_worker(struct kernel_dispatch_info *disp_info)
     msg_t *s = (msg_t *)src_t->memory.msg_send_paddr;
     assert(s);
     
+    ulong vaddr = src_t->memory.block_base + src_t->memory.msg_send_offset;
+//     kprintf("Msg vaddr: %x, paddr: %x, mapped: %x\n", vaddr, src_t->memory.msg_send_paddr, hal->get_paddr(src_p->page_dir_pfn, vaddr));
+//     kprintf("Src: %s, msg @ %x, func num: %x, opcode: %x, size: %x\n", src_p->name, s, s->func_num, s->opcode, s->msg_size);
+    
     // Get dest info
     struct thread *dest_t = get_thread_by_mailbox_id(s->mailbox_id); //n->dest.thread;
     struct process *dest_p = dest_t->proc; //n->dest.proc;
+    
+//     kprintf("Dest @ %x\n", dest_t);
     
 //     kprintf("dest t: %p, dest p: %p\n", dest_t, dest_p);
     
@@ -280,6 +286,7 @@ void reply_worker(struct kernel_dispatch_info *disp_info)
     copy_msg_to_recv(s, dest_t);
     
     // Wake up the thread
+//     kprintf("To wake up receiver thread @ %x!\n", dest_t);
     run_thread(dest_t);
 }
 

@@ -87,7 +87,7 @@ static void hal_entry()
     // Bringup APs
     bringup_mp();
     
-    // Init time, init this as late as possible since we need the pit interrupt
+    // Init time, init this as late as possible since we need the PIT interrupt
     init_time();
     init_tick();
     

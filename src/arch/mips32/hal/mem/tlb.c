@@ -236,8 +236,63 @@ int tlb_refill_user(u32 addr)
     return 0;
 }
 
-static no_opt void invalidate_tlb(ulong vaddr)
+static no_opt void invalidate_tlb(ulong asid, ulong vaddr)
 {
+//     kprintf("TLB shootdown @ %x, ASID: %x ...", vaddr, asid);
+    
+    int index = -1;
+    struct tlb_entry_hi hi;
+    ulong hi_old = 0;
+    
+    // Read the old value of HI
+    __asm__ __volatile__ (
+        "mfc0   %0, $10;"   // hi
+        : "=r" (hi.value)
+        :
+    );
+    hi_old = hi.value;
+    
+    // Set ASID and Vaddr
+    hi.asid = asid;
+    hi.vpn2 = vaddr >> (PAGE_BITS + 1);
+    
+    // Write HI and do a TLB probe
+    __asm__ __volatile__ (
+        "mtc0   %1, $10;"   // hi
+        "ehb;"
+        "tlbp;"
+        "mfc0   %0, $0;"    // index
+        : "=r" (index)
+        : "r" (hi.value)
+    );
+    
+//     kprintf(" index @ %x ...", index);
+    
+    // If there's no match then there's no need to do an invalidation
+    if (index >= 0) {
+        // Write to TLB to do an invalidation
+        __asm__ __volatile__ (
+            "mtc0   $0, $10;"       // hi
+            "mtc0   $0, $5;"        // pm
+            "mtc0   $0, $2;"        // lo0
+            "mtc0   $0, $3;"        // lo1
+            "mtc0   %0, $0;"        // index
+            "ehb;"                  // clear hazard barrier
+            "tlbwi;"                // write indexed entry
+            :
+            : "r" (index)
+            : "memory"
+        );
+    }
+    
+    // Restore old HI
+    __asm__ __volatile__ (
+        "mtc0   %0, $10;"   // hi
+        :
+        : "r" (hi_old)
+    );
+    
+//     kprintf(" done");
 }
 
 void invalidate_tlb_array(ulong asid, ulong vaddr, size_t size)
@@ -252,7 +307,7 @@ void invalidate_tlb_array(ulong asid, ulong vaddr, size_t size)
     ulong i;
     ulong vcur = vstart;
     for (i = 0; i < page_count; i++) {
-        invalidate_tlb(vcur);
+        invalidate_tlb(asid, vcur);
         vcur += PAGE_SIZE;
     }
 }

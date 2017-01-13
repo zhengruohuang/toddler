@@ -93,10 +93,6 @@ struct hal_exports {
     void (*set_syscall_return)(struct context *context, int succeed, ulong return0, ulong return1);
     void (*sleep)();
     void (*yield)();
-
-    // Kernel helpers
-    ulong (*kget_tcb)();
-    int (*ksyscall)(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2);
     
     // TLB
     void (*invalidate_tlb)(ulong asid, ulong vaddr, size_t size);

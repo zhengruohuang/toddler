@@ -357,7 +357,7 @@ extern void sched();
  * TLB management
  */
 extern void init_tlb_mgmt();
-extern void trigger_tlb_shootdown(ulong addr, size_t size);
+extern void trigger_tlb_shootdown(ulong asid, ulong addr, size_t size);
 extern void service_tlb_shootdown();
 
 

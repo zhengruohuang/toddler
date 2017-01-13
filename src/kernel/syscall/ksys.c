@@ -5,18 +5,6 @@
 #include "kernel/include/syscall.h"
 
 
-no_opt struct thread_control_block *ksys_get_tcb()
-{
-    unsigned long addr = hal->kget_tcb();
-    return (struct thread_control_block *)addr;
-}
-
-int ksys_syscall(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2)
-{
-//     kprintf("To invoke syscall @ %p\n", hal->ksyscall);
-    return hal->ksyscall(num, param1, param2, out1, out2);
-}
-
 msg_t *ksys_msg()
 {
     struct thread_control_block *tcb = ksys_get_tcb();

@@ -110,7 +110,7 @@ void init_mp()
         tcb->cpu_id = i;
         tcb->self = tcb;
         
-//         kprintf("TCB: %p\n", tcb);
+        kprintf("\tTCB: %p\n", tcb);
         
         tcb->proc_id = 0;
         tcb->thread_id = 0;

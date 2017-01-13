@@ -311,7 +311,7 @@ static void destroy_thread(struct process *p, struct thread *t)
         ulong paddr = 0;
         
         // TLB shootdown first
-        trigger_tlb_shootdown(t->memory.block_base, t->memory.block_size);
+        trigger_tlb_shootdown(p->asid, t->memory.block_base, t->memory.block_size);
         
         // Msg send
         vaddr = t->memory.block_base + t->memory.msg_send_offset;
@@ -364,6 +364,8 @@ void run_thread(struct thread *t)
     spin_lock_int(&t->lock);
     
     assert(t->state == thread_enter || t->state == thread_wait || t->state == thread_stall || t->state == thread_sched);
+    
+//     kprintf("To run thread @ %x: %s\n", t, t->proc->name);
     
     t->state = thread_normal;
     ready_sched(t->sched);

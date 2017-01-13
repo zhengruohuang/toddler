@@ -84,10 +84,6 @@ void init_kernel()
     hexp->sleep = wrap_sleep;
     hexp->yield = wrap_yield;
     
-    // Kernel helpers
-    hexp->kget_tcb = wrap_kget_tcb;
-    hexp->ksyscall = wrap_ksyscall;
-    
     // TLB
     hexp->invalidate_tlb = wrap_invalidate_tlb;
     

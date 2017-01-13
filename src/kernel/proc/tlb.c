@@ -9,6 +9,7 @@
 struct tlb_shootdown_record {
     int valid;
     
+    ulong asid;
     ulong addr;
     size_t size;
     
@@ -41,7 +42,7 @@ void init_tlb_mgmt()
     atomic_membar();
 }
 
-void trigger_tlb_shootdown(ulong addr, size_t size)
+void trigger_tlb_shootdown(ulong asid, ulong addr, size_t size)
 {
     int i;
     int cpu_count = hal->num_cpus;
@@ -54,9 +55,10 @@ void trigger_tlb_shootdown(ulong addr, size_t size)
     cur_cpu_id = hal->get_cur_cpu_id();
     
     // Invalidate myself
-    hal->invalidate_tlb(0, addr, size);
+    hal->invalidate_tlb(asid, addr, size);
     
     // Prepare to invalidate others
+    records[cur_cpu_id].asid = asid;
     records[cur_cpu_id].addr = addr;
     records[cur_cpu_id].size = size;
     records[cur_cpu_id].response_count = 1;
@@ -103,7 +105,7 @@ void service_tlb_shootdown()
             continue;
         }
         
-        hal->invalidate_tlb(0, records[i].addr, records[i].size);
+        hal->invalidate_tlb(records[i].asid, records[i].addr, records[i].size);
         records[i].response_records[cur_cpu_id] = 1;
         atomic_membar();
         atomic_inc(&records[i].response_count);

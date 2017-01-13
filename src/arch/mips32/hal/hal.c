@@ -8,6 +8,7 @@
 #include "hal/include/int.h"
 #include "hal/include/cpu.h"
 #include "hal/include/pic.h"
+#include "hal/include/time.h"
 #include "hal/include/kernel.h"
 
 
@@ -37,6 +38,10 @@ static void hal_entry(struct boot_parameters *boot_param)
     init_int_vector();
     init_int();
     init_syscall();
+    init_i8259a();
+    
+    // Blcoked delay
+    init_blocked_delay();
     
     // Init interrupt controller
     init_local_timer();
@@ -44,6 +49,10 @@ static void hal_entry(struct boot_parameters *boot_param)
     // Init kernel
     init_kmem_zone();
     init_kernel();
+    
+    // Init time
+    init_time();
+    init_tick();
     
     // Done
     kprintf("Initialization is done! Will start working!\n");

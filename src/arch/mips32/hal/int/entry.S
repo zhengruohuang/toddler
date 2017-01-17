@@ -8,6 +8,8 @@
 .extern cache_error_handler
 .extern general_except_handler
 
+.extern per_cpu_context_ptr_base
+
 .global int_entry_wrapper_begin
 .global int_entry_wrapper_end
 
@@ -22,6 +24,15 @@ int_entry_wrapper_begin:
  * TLB refill
  */
 tlb_refill_entry:
+    // Figure out addr of the context struct of this cpu
+    la k0, per_cpu_context_ptr_base
+    lw k0, 0(k0)
+    mfc0 k1, $15, 1     // Read EBbase - CP0 reg 15 sel 1
+    andi k1, k1, 0x3ff  // Get CPU ID
+    sll k1, k1, 3       // Calculate offset - cpu_id * 8
+    addu k0, k0, k1     // Addr of context - base + offset
+    lw k0, 0(k0)
+    
     // First of all, save current context (addr in $k0)
     sw ra, 124(k0)
     jal save_registers_except_ra
@@ -49,6 +60,15 @@ tlb_refill_entry:
  */
 .align 8
 cache_error_entry:
+    // Figure out addr of the context struct of this cpu
+    la k0, per_cpu_context_ptr_base
+    lw k0, 0(k0)
+    mfc0 k1, $15, 1     // Read EBbase - CP0 reg 15 sel 1
+    andi k1, k1, 0x3ff  // Get CPU ID
+    sll k1, k1, 3       // Calculate offset - cpu_id * 8
+    addu k0, k0, k1     // Addr of context - base + offset
+    lw k0, 0(k0)
+    
     // Prepare C arguments
     move a0, k0
     
@@ -67,6 +87,15 @@ cache_error_entry:
  */
 .align 7
 general_except_entry:
+    // Figure out addr of the context struct of this cpu
+    la k0, per_cpu_context_ptr_base
+    lw k0, 0(k0)
+    mfc0 k1, $15, 1     // Read EBbase - CP0 reg 15 sel 1
+    andi k1, k1, 0x3ff  // Get CPU ID
+    sll k1, k1, 3       // Calculate offset - cpu_id * 8
+    addu k0, k0, k1     // Addr of context - base + offset
+    lw k0, 0(k0)
+    
     // First of all, save current context (addr in $k0)
     sw ra, 124(k0)
     jal save_registers_except_ra

@@ -16,6 +16,8 @@ dec_per_cpu(ulong, cur_running_sched_id);
 dec_per_cpu(int, cur_in_user_mode);
 dec_per_cpu(struct saved_context, cur_context);
 
+dec_per_cpu(ulong, cur_tcb_vaddr);
+
 
 /*
  * Initialize context for a newly created thread
@@ -161,6 +163,8 @@ void no_opt switch_context(ulong sched_id, struct context *context,
         : "r" (tcb)
     );
     
+    *(ulong *)get_per_cpu(ulong, cur_tcb_vaddr) = tcb;
+    
     // Switch page dir
     switch_page_dir(page_dir_pfn);
     
@@ -175,6 +179,9 @@ void init_context_mp()
     
     int *user_mode = get_per_cpu(int, cur_in_user_mode);
     *user_mode = 0;
+    
+    ulong *cur_tcb = get_per_cpu(ulong, cur_tcb_vaddr);
+    *cur_tcb = 0;
 }
 
 void init_context()
@@ -184,4 +191,7 @@ void init_context()
     
     int *user_mode = get_per_cpu(int, cur_in_user_mode);
     *user_mode = 0;
+    
+    ulong *cur_tcb = get_per_cpu(ulong, cur_tcb_vaddr);
+    *cur_tcb = 0;
 }

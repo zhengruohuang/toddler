@@ -22,6 +22,8 @@ ext_per_cpu(ulong, cur_running_sched_id);
 ext_per_cpu(int, cur_in_user_mode);
 ext_per_cpu(struct saved_context, cur_context);
 
+ext_per_cpu(ulong, cur_tcb_vaddr);
+
 extern void init_thread_context(struct context *context, ulong entry, ulong param, ulong stack_top, int user_mode);
 extern void set_thread_context_param(struct context *context, ulong param);
 extern u32 asmlinkage save_context(struct context *context);

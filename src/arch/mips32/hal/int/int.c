@@ -12,6 +12,8 @@
 #include "hal/include/int.h"
 
 
+ulong per_cpu_context_ptr_base = 0;
+
 static dec_per_cpu(int, interrupt_enabled);
 
 
@@ -149,6 +151,14 @@ void tlb_refill_handler(struct context *context)
         invalid = tlb_refill_kernel(bad_addr);
     }
     
+    // Reload TCB to k1
+    ulong tcb = *(ulong *)get_per_cpu(ulong, cur_tcb_vaddr);
+    __asm__ __volatile__ (
+        "move   $27, %0;"
+        :
+        : "r" (tcb)
+    );
+    
 //     kprintf("done\n");
     
     // Invalid addr
@@ -159,6 +169,7 @@ void tlb_refill_handler(struct context *context)
 
 static int int_handler_tlb_refill(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
+    panic("Should not get a secondary TLB miss!\n");
     tlb_refill_handler(context->context);
     return 0;
 }
@@ -385,16 +396,33 @@ void init_int()
         : "r" (ebase)
     );
     
-    // Set
-    //  k0 - base addr of current context
-    //  ctxt->kernel_sp - kernel stack top
-    __asm__ __volatile__ (
-        "move $26, %0;"   // k0 ($26) <= ctxt
-        :
-        : "r" ((u32)ctxt)
-    );
+    // Initialize context poniter for the assembly handler entry
+    int page_count = 8 * num_cpus / PAGE_SIZE;
+    if (!page_count) {
+        page_count = 1;
+    }
+    per_cpu_context_ptr_base = palloc(page_count);
+    per_cpu_context_ptr_base = PHYS_TO_KCODE(PFN_TO_ADDR(per_cpu_context_ptr_base));
+    
+    // Initizalize my save context
     ctxt->tlb_refill_sp = tlb_refill_stack_top;
     ctxt->kernel_sp = kernel_stack_top;
+    
+    // Set my context pointer
+    struct saved_context **my_ctxt_ptr = (struct saved_context **)(ulong)(per_cpu_context_ptr_base + 8 * get_cpu_id());
+    *my_ctxt_ptr = ctxt;
+    
+    kprintf("Per cpu ctxt ptr base @ %x, my ctxt ptr @ %x, ctxt @ %x\n", per_cpu_context_ptr_base, my_ctxt_ptr, ctxt);
+    
+//     // Set
+//     // k0 - base addr of current context
+//     // ctxt->kernel_sp - kernel stack top
+//     __asm__ __volatile__ (
+//         "move $26, %0;"   // k0 ($26) <= ctxt
+//         :
+//         : "r" ((u32)ctxt)
+//     );
+    
     
     
     // Register TLB refill general handlers

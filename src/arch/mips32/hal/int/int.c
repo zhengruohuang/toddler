@@ -116,7 +116,8 @@ static int int_handler_dummy(struct int_context *context, struct kernel_dispatch
             context->vector, context->error_code,
             context->context->pc, context->context->sp, context->context->delay_slot);
     
-    return 0;
+    panic("Unregistered interrupt @ %x", context->vector);
+    return INT_HANDLE_TYPE_HAL;
 }
 
 
@@ -179,6 +180,8 @@ void cache_error_handler(struct context *context)
 void general_except_handler(struct context *context)
 {
 //     kprintf("General exception!\n");
+    int pit_takeover = 0;
+    int pit_pending_irq = 0;
     
     // Check who is causing this interrupt
     u32 cause = 0;
@@ -200,6 +203,7 @@ void general_except_handler(struct context *context)
     } else {
         // Interrupt
         if (cause & 0x40000000) {
+            // We do a polling for 8259 to see if there's any pending interrupts
             vector = INT_VECTOR_LOCAL_TIMER;
         }
         
@@ -209,32 +213,32 @@ void general_except_handler(struct context *context)
         }
     }
     
-    // Tell the user
-    if (vector != INT_VECTOR_LOCAL_TIMER && vector != INT_VECTOR_SYSCALL && vector != 36) {
-        // Get the bad address
-        u32 bad_addr = 0;
-        __asm__ __volatile__ (
-            "mfc0   %0, $8;"
-            : "=r" (bad_addr)
-            :
-        );
-        
-        // Get the bad pc
-        u32 epc = 0;
-        __asm__ __volatile__ (
-            "mfc0   %0, $14;"
-            : "=r" (epc)
-            :
-        );
-        u32 bad_instr_prev = *(u32 *)(epc - 4);
-        u32 bad_instr = *(u32 *)epc;
-        u32 bad_instr_next = *(u32 *)(epc + 4);
-        
-        // Delay slot
-        u32 delay_slot = cause >> 31;
-        
-        kprintf("General exception: %d, Vector: %d, Bad PC @ %x (%x %x %x), SP @ %x, Addr @ %x, Delay slot: %x\n", except_code, vector, epc, bad_instr_prev, bad_instr, bad_instr_next, context->sp, bad_addr, delay_slot);
-    }
+//     // Tell the user
+//     if (vector != INT_VECTOR_LOCAL_TIMER && vector != INT_VECTOR_SYSCALL && vector != 36) {
+//         // Get the bad address
+//         u32 bad_addr = 0;
+//         __asm__ __volatile__ (
+//             "mfc0   %0, $8;"
+//             : "=r" (bad_addr)
+//             :
+//         );
+//         
+//         // Get the bad pc
+//         u32 epc = 0;
+//         __asm__ __volatile__ (
+//             "mfc0   %0, $14;"
+//             : "=r" (epc)
+//             :
+//         );
+//         u32 bad_instr_prev = *(u32 *)(epc - 4);
+//         u32 bad_instr = *(u32 *)epc;
+//         u32 bad_instr_next = *(u32 *)(epc + 4);
+//         
+//         // Delay slot
+//         u32 delay_slot = cause >> 31;
+//         
+//         kprintf("General exception: %d, Vector: %d, Bad PC @ %x (%x %x %x), SP @ %x, Addr @ %x, Delay slot: %x\n", except_code, vector, epc, bad_instr_prev, bad_instr, bad_instr_next, context->sp, bad_addr, delay_slot);
+//     }
     
     // Get the actual interrupt handler
     int_handler handler = handler = int_handler_list[vector];
@@ -256,15 +260,40 @@ void general_except_handler(struct context *context)
     // Save extra context
     save_context(context);
     
-    // Call the handler!
-    int call_kernel = handler(&intc, &kdispatch);
+    // Call the handler
+    int handle_type = handler(&intc, &kdispatch);
+    
+    // See if there's any pending IRQs when we don't need to switch to kernel
+    if (handle_type == INT_HANDLE_TYPE_TAKEOVER) {
+//         kprintf("Check pending IRQs\n");
+        int pending_irq = i8259_read_irq();
+        if (pending_irq != -1) {
+            vector = INT_VECTOR_EXTERNAL_BASE + pending_irq;
+            
+            handler = handler = int_handler_list[vector];
+            if (NULL == (void *)handler) {
+                handler = int_handler_dummy;
+            }
+            
+            intc.vector = vector;
+            intc.error_code = 0;
+            intc.context = context;
+            
+            kdispatch.context = context;
+            kdispatch.dispatch_type = kdisp_unknown;
+            kdispatch.syscall.num = 0;
+            
+            handle_type = handler(&intc, &kdispatch);
+        }
+    }
     
 //     kprintf("PC: %x, SP: %x\n", context->pc, context->sp);
     
 //     kprintf("call kernel: %d\n", call_kernel);
     
     // Note that if kernel is invoked, it will call sched, then never goes back to this int handler
-    if (call_kernel) {
+    handle_type = INT_HANDLE_TYPE_KERNEL;
+    if (handle_type == INT_HANDLE_TYPE_KERNEL) {
         // First of all duplicate context since it may get overwritten by a TLB miss handler
 //         kprintf("duplicate context\n");
         struct context dup_ctxt = *context;

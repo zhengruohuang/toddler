@@ -78,7 +78,7 @@ int time_interrupt_handler(struct int_context *context, struct kernel_dispatch_i
     
     i8259_eoi(0);
     
-    return 1;
+    return INT_HANDLE_TYPE_TAKEOVER;
 }
 
 void init_time()

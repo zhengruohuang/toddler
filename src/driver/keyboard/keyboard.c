@@ -322,13 +322,13 @@ static char process_key(unsigned int scan_code)
 
 static asmlinkage void keyboard_interrupt_handler(msg_t *msg)
 {
-    u8 buf[sizeof(ulong) * 2];
+    u8 buf[sizeof(ulong)];
     int buf_size = (int)msg->params[2].value;
-    ulong buf1 = msg->params[3].value;
-    ulong buf2 = msg->params[4].value;
+    ulong data = msg->params[3].value;
+    int trans = (int)msg->params[4].value;
     int cur = buf_size;
     
-    char print_buf[sizeof(ulong) * 2 + 1];
+    char print_buf[sizeof(ulong) + 1];
     int print_count = 0;
     int i;
     
@@ -336,20 +336,18 @@ static asmlinkage void keyboard_interrupt_handler(msg_t *msg)
     
 //     kprintf("buf_size: %d, buf1: %lu, buf2: %lu\n", buf_size, buf1, buf2);
     
-    while (cur >= sizeof(ulong)) {
-        buf[cur - 1] = (u8)(buf2 & 0xff);
-        buf2 >>= 8;
-        cur--;
-    }
-    
     while (cur) {
-        buf[cur - 1] = (u8)(buf1 & 0xff);
-        buf1 >>= 8;
+        buf[cur - 1] = (u8)(data & 0xff);
+        data >>= 8;
         cur--;
     }
     
     for (i = 0; i < buf_size; i++) {
-        char printable = process_key(buf[i]);
+        char printable = buf[i];
+        if (trans) {
+            printable = process_key(buf[i]);
+        }
+        
         print_buf[print_count] = printable;
         if (printable != '\0') {
             print_count++;
@@ -360,8 +358,6 @@ static asmlinkage void keyboard_interrupt_handler(msg_t *msg)
     if (print_count) {
         stdin_write(get_activated_console_id(), print_buf, print_count);
     }
-    
-    
     
 //     char printable = process_key(scan_code);
 //     if (printable != '\0') {

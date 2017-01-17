@@ -31,13 +31,6 @@ void init_user_hi4()
     // Setup user version specific content
     upage->value_pte[GET_PTE_INDEX(SYSCALL_PROXY_VADDR)].user = 1;
     upage->value_pte[GET_PTE_INDEX(SYSCALL_PROXY_VADDR)].rw = 0;
-    
-    for (i = 0; i < num_cpus; i++) {
-        ulong tcb_start = get_per_cpu_tcb_start_vaddr(i);
-        
-        upage->value_pte[GET_PTE_INDEX(tcb_start)].user = 1;
-        upage->value_pte[GET_PTE_INDEX(tcb_start)].rw = 0;
-    }
 }
 
 void init_user_page_dir(ulong page_dir_pfn)

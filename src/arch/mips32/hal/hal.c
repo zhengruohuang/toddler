@@ -50,6 +50,9 @@ static void hal_entry(struct boot_parameters *boot_param)
     init_kmem_zone();
     init_kernel();
     
+    // UART
+    uart_init();
+    
     // Init time
     init_time();
     init_tick();

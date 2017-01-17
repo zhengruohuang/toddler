@@ -24,7 +24,7 @@ struct thread_control_block {
     ulong proc_id;
     ulong thread_id;
     
-    int cpu_id;
+    ulong cpu_id;
     
     void *tls;
     void *msg_send;

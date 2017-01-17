@@ -103,11 +103,11 @@ void pit_gen_tick(int freq)
     cmd.bcd = 0;
     cmd.channel = 0;
     cmd.command = I8253_CMD_ALL;
-    cmd.mode = I8253_MODE_RATE;
+    cmd.mode = I8253_MODE_SQUARE;
     
-    int count = I8253_INPUT_FREQ / freq;
+    u16 count = 65535;
     
     io_write8(I8253_CMD_ADDR, cmd.value);
-    io_write8(I8253_CH0_ADDR, (u8)count);
+    io_write8(I8253_CH0_ADDR, (u8)(count & 0xff));
     io_write8(I8253_CH0_ADDR, (u8)(count >> 8));
 }

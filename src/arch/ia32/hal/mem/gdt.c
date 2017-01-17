@@ -79,11 +79,11 @@ static void construct_gdt()
         GDT_DA_DRW  | GDT_DA_32 | GDT_DA_DPL_KERNEL
     );
     
-    // Per-CPU area for USER
-    construct_entry(
-        GDT_INDEX_PER_CPU_U, (u32)get_my_cpu_tcb_start_vaddr(), tcb_padded_size,
-        GDT_DA_DR | GDT_DA_32 | GDT_DA_DPL_USER
-    );
+//     // Per-CPU area for USER
+//     construct_entry(
+//         GDT_INDEX_PER_CPU_U, (u32)get_my_cpu_tcb_start_vaddr(), tcb_padded_size,
+//         GDT_DA_DR | GDT_DA_32 | GDT_DA_DPL_USER
+//     );
     
     
     /*
@@ -127,6 +127,31 @@ static void construct_gdt()
         "movw   %%ax, %%ss;"
         :
         : "a" (GDT_SELECTOR_DATA_K), "b" (&cur_gdt->gdtr_value), "d" (GDT_SELECTOR_PER_CPU_K)
+    );
+}
+
+void gdt_reload_gs(ulong base, ulong size)
+{
+    // Get current GDT
+    struct gdt *cur_gdt = get_per_cpu(struct gdt, system_gdt);
+    
+    // Per-CPU area for USER
+    construct_entry(
+        GDT_INDEX_PER_CPU_U, (u32)base, size,
+        GDT_DA_DR | GDT_DA_32 | GDT_DA_DPL_USER
+    );
+    
+    __asm__ __volatile__
+    (
+        "lgdt   (%%ebx);"
+        "jmp    ReloadGDT_MP;"          // Force to use the new GDT
+        "ReloadGDT_MP:;"
+        "nop;"                          // Just to have a rest
+        
+        // Load segment registers
+        "movw   %%ax, %%gs;"
+        :
+        : "a" (GDT_INDEX_PER_CPU_U), "b" (&cur_gdt->gdtr_value)
     );
 }
 

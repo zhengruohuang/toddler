@@ -134,8 +134,7 @@ static void no_opt switch_to(struct context *context, int user_mode, ulong asid)
 }
 
 void no_opt switch_context(ulong sched_id, struct context *context,
-                                      ulong page_dir_pfn, int user_mode, ulong asid,
-                                      struct thread_control_block *tcb)
+                                      ulong page_dir_pfn, int user_mode, ulong asid, ulong tcb)
 {
 //     kprintf("To switch context, PC: %x, SP: %x, ASID: %x, user: %d\n", context->pc, context->sp, asid, user_mode);
     
@@ -147,13 +146,20 @@ void no_opt switch_context(ulong sched_id, struct context *context,
     *get_per_cpu(ulong, cur_running_sched_id) = sched_id;
     *get_per_cpu(int, cur_in_user_mode) = user_mode;
     
-    // Set TCB
-    struct thread_control_block *cur_tcb = (struct thread_control_block *)get_my_cpu_tcb_start_vaddr();
-    cur_tcb->msg_send = tcb->msg_send;
-    cur_tcb->msg_recv = tcb->msg_recv;
-    cur_tcb->tls = tcb->tls;
-    cur_tcb->proc_id = tcb->proc_id;
-    cur_tcb->thread_id = tcb->thread_id;
+//     // Set TCB
+//     struct thread_control_block *cur_tcb = (struct thread_control_block *)get_my_cpu_tcb_start_vaddr();
+//     cur_tcb->msg_send = tcb->msg_send;
+//     cur_tcb->msg_recv = tcb->msg_recv;
+//     cur_tcb->tls = tcb->tls;
+//     cur_tcb->proc_id = tcb->proc_id;
+//     cur_tcb->thread_id = tcb->thread_id;
+    
+    // Make k1 ponit to TCB
+    __asm__ __volatile__ (
+        "move   $27, %0;"
+        :
+        : "r" (tcb)
+    );
     
     // Switch page dir
     switch_page_dir(page_dir_pfn);
@@ -169,14 +175,6 @@ void init_context_mp()
     
     int *user_mode = get_per_cpu(int, cur_in_user_mode);
     *user_mode = 0;
-    
-    // Initialize TCB - write TCB addr to k1
-    ulong tcb = get_my_cpu_tcb_start_vaddr();
-    __asm__ __volatile__ (
-        "move   $27, %0;"
-        :
-        : "r" (KCODE_TO_PHYS(tcb))
-    );
 }
 
 void init_context()
@@ -186,12 +184,4 @@ void init_context()
     
     int *user_mode = get_per_cpu(int, cur_in_user_mode);
     *user_mode = 0;
-    
-    // Initialize TCB - write TCB addr to k1
-    ulong tcb = get_my_cpu_tcb_start_vaddr();
-    __asm__ __volatile__ (
-        "move   $27, %0;"
-        :
-        : "r" (KCODE_TO_PHYS(tcb))
-    );
 }

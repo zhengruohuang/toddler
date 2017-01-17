@@ -228,8 +228,7 @@ static void no_opt switch_to_kernel(struct context *context)
 }
 
 void no_opt switch_context(ulong sched_id, struct context *context,
-                                      ulong page_dir_pfn, int user_mode, ulong asid,
-                                      struct thread_control_block *tcb)
+                                      ulong page_dir_pfn, int user_mode, ulong asid, ulong tcb)
 {
     // Copy the context for user mode switch
     struct context copy_context;
@@ -248,13 +247,16 @@ void no_opt switch_context(ulong sched_id, struct context *context,
     *get_per_cpu(ulong, cur_running_sched_id) = sched_id;
     *get_per_cpu(int, cur_in_user_mode) = user_mode;
     
-    // Set TCB
-    struct thread_control_block *cur_tcb = (struct thread_control_block *)get_my_cpu_tcb_start_vaddr();
-    cur_tcb->msg_send = tcb->msg_send;
-    cur_tcb->msg_recv = tcb->msg_recv;
-    cur_tcb->tls = tcb->tls;
-    cur_tcb->proc_id = tcb->proc_id;
-    cur_tcb->thread_id = tcb->thread_id;
+//     // Set TCB
+//     struct thread_control_block *cur_tcb = (struct thread_control_block *)get_my_cpu_tcb_start_vaddr();
+//     cur_tcb->msg_send = tcb->msg_send;
+//     cur_tcb->msg_recv = tcb->msg_recv;
+//     cur_tcb->tls = tcb->tls;
+//     cur_tcb->proc_id = tcb->proc_id;
+//     cur_tcb->thread_id = tcb->thread_id;
+    
+    // Reload TCB addr to GS
+    gdt_reload_gs(tcb, sizeof(struct thread_control_block));
     
     // Switch page dir
     // Note that kprintf may not be useable after this

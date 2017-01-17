@@ -14,7 +14,7 @@ void i8259_enable_irq(int irq)
         slave_mask &= ~(0x1 << (irq - 8));
         io_write8(I8259_SLAVE_MASK_ADDR, slave_mask);
     } else {
-        master_mask = ~(0x1 << irq);
+        master_mask &= ~(0x1 << irq);
         io_write8(I8259_MASTER_MASK_ADDR, master_mask);
     }
 }
@@ -50,42 +50,75 @@ int i8259_read_irq()
 {
     int i;
     int isr = 0;
+    int irr = 0;
+    int int_bitmask = 0;
     int irq = -1;
+    
+//     io_write8(I8259_MASTER_CMD_ADDR, 0xa);
+//     irr = io_read8(I8259_MASTER_CMD_ADDR);
+//     kprintf("IRR: %d -> ", irr);
     
     // Enter poll mode, with the following read as INT ack
     io_write8(I8259_MASTER_CMD_ADDR, 0xc);
     io_read8(I8259_MASTER_CMD_ADDR);
     
     // Read master ISR
-    io_write8(I8259_MASTER_CMD_ADDR, 0x0b);
+    io_write8(I8259_MASTER_CMD_ADDR, 0xb);
     isr = io_read8(I8259_MASTER_CMD_ADDR);
     
+    // Slave ISR
     if (isr == 2) {
         // Read slave ISR
-        io_write8(I8259_SLAVE_CMD_ADDR, 0x0b);
-        isr = 8 + io_read8(I8259_SLAVE_CMD_ADDR);
+        io_write8(I8259_SLAVE_CMD_ADDR, 0xb);
+        isr = io_read8(I8259_SLAVE_CMD_ADDR);
+        isr <<= 3;
     }
     
-    // Get IRQ from ISR (ISR is a bit mask)
+    // Set bitmask
+    if (isr) {
+        int_bitmask = isr;
+    } else {
+        // Read master IRR
+        io_write8(I8259_MASTER_CMD_ADDR, 0xa);
+        irr = io_read8(I8259_MASTER_CMD_ADDR);
+        
+        // Slave ISR
+        if (irr == 2) {
+            // Read slave ISR
+            io_write8(I8259_SLAVE_CMD_ADDR, 0xa);
+            irr = io_read8(I8259_SLAVE_CMD_ADDR);
+            irr <<= 3;
+        }
+        
+        int_bitmask = irr;
+    }
+    
+    // Get IRQ from the bitmask
     for (i = 0; i < 16; i++) {
-        if (isr & (0x1 << i)) {
+        if (int_bitmask & (0x1 << i)) {
             irq = i;
             break;
         }
     }
 
-//     kprintf("IRQ: %d, ISR: %d", irq, isr);
+//     kprintf("ISR: %d, IRQ: %d -> ", isr, irq);
     
     // Exit poll mode
     io_write8(I8259_MASTER_CMD_ADDR, 0x8);
     io_read8(I8259_MASTER_CMD_ADDR);
+    
+//     io_write8(I8259_MASTER_CMD_ADDR, 0xa);
+//     irr = io_read8(I8259_MASTER_CMD_ADDR);
+//     kprintf("IRR: %d ", irr);
+    
+//     kprintf("\n");
     
     return irq;
 }
 
 void i8259_eoi(int irq)
 {
-//     i8259_disable_irq(irq);
+    i8259_disable_irq(irq);
     
     if (irq >= 8) {
         io_write8(I8259_SLAVE_CMD_ADDR, 0x60 + (irq - 8));
@@ -94,14 +127,17 @@ void i8259_eoi(int irq)
         io_write8(I8259_MASTER_CMD_ADDR, 0x60 + irq);
     }
     
-    io_write8(I8259_MASTER_CMD_ADDR, 0x20);
+//     io_write8(I8259_MASTER_CMD_ADDR, 0x20);
     
-//     i8259_enable_irq(irq);
+    i8259_enable_irq(irq);
 }
 
 
 void i8259_start()
 {
+    // UART 0
+//     i8259_enable_irq(0x4);
+
     // Interval timer
     i8259_enable_irq(0);
     

@@ -88,8 +88,7 @@ struct hal_exports {
     void (*init_context)(struct context *context, ulong entry, ulong param, ulong stack_top, int user_mode);
     void (*set_context_param)(struct context *context, ulong param);
     void (*switch_context)(ulong sched_id, struct context *context,
-                                      ulong page_dir_pfn, int user_mode, ulong asid,
-                                      struct thread_control_block *tcb);
+                                      ulong page_dir_pfn, int user_mode, ulong asid, ulong tcb);
     void (*set_syscall_return)(struct context *context, int succeed, ulong return0, ulong return1);
     void (*sleep)();
     void (*yield)();

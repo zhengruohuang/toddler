@@ -48,21 +48,6 @@ ulong get_my_cpu_area_start_vaddr()
 
 
 /*
- * Per-CPU thread control block
- */
-ulong get_per_cpu_tcb_start_vaddr(int cpu_id)
-{
-    assert(cpu_id < num_cpus);
-    return tcb_area_start_vaddr + tcb_padded_size * cpu_id;
-}
-
-ulong get_my_cpu_tcb_start_vaddr()
-{
-    return get_per_cpu_tcb_start_vaddr(get_cpu_id());
-}
-
-
-/*
  * Init
  */
 void init_mp()
@@ -83,39 +68,5 @@ void init_mp()
         kprintf("\tCPU #%d, per-CPU area: %p (%dB)\n", i,
             cur_area_vstart, PER_CPU_AREA_SIZE
         );
-    }
-    
-    // Map per CPU thread control block
-    tcb_padded_size = sizeof(struct thread_control_block);
-    if (tcb_padded_size % THREAD_CTRL_BLOCK_ALIGNMENT) {
-        tcb_padded_size /= THREAD_CTRL_BLOCK_ALIGNMENT;
-        tcb_padded_size++;
-        tcb_padded_size *= THREAD_CTRL_BLOCK_ALIGNMENT;
-    }
-    
-    tcb_area_size = tcb_padded_size * num_cpus;
-    if (tcb_area_size % PAGE_SIZE) {
-        tcb_area_size /= PAGE_SIZE;
-        tcb_area_size++;
-        tcb_area_size *= PAGE_SIZE;
-    }
-    ulong tcb_page_count = tcb_area_size / PAGE_SIZE;
-    
-    ulong tcb_start_pfn = palloc(tcb_page_count);
-    tcb_area_start_vaddr = PHYS_TO_KCODE(PFN_TO_ADDR(tcb_start_pfn));
-    
-    // Initialize the TCBs
-    for (i = 0; i < num_cpus; i++) {
-        struct thread_control_block *tcb = (struct thread_control_block *)get_per_cpu_tcb_start_vaddr(i);
-        tcb->cpu_id = i;
-        tcb->self = tcb;
-        
-        kprintf("\tTCB: %p\n", tcb);
-        
-        tcb->proc_id = 0;
-        tcb->thread_id = 0;
-        tcb->tls = 0;
-        tcb->msg_send = 0;
-        tcb->msg_recv = 0;
     }
 }

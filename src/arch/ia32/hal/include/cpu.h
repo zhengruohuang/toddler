@@ -63,9 +63,6 @@ extern ulong tcb_area_start_vaddr;
 extern ulong get_per_cpu_area_start_vaddr(int cpu_id);
 extern ulong get_my_cpu_area_start_vaddr();
 
-extern ulong get_per_cpu_tcb_start_vaddr(int cpu_id);
-extern ulong get_my_cpu_tcb_start_vaddr();
-
 extern void init_mp();
 extern void bringup_mp();
 extern void release_mp_lock();

@@ -382,18 +382,19 @@ void sched()
 //            s->thread->context.ds
 //     );
     
-    // Construct the TCB template
-    struct thread_control_block tcb;
-    ulong base = s->thread->memory.block_base;
-    tcb.msg_send = (void *)(base + s->thread->memory.msg_send_offset);
-    tcb.msg_recv = (void *)(base + s->thread->memory.msg_recv_offset);
-    tcb.tls = (void *)(base + s->thread->memory.tls_start_offset);
-    tcb.proc_id = s->proc_id;
-    tcb.thread_id = s->thread_id;
+//     // Construct the TCB template
+//     struct thread_control_block tcb;
+//     ulong base = s->thread->memory.block_base;
+//     tcb.msg_send = (void *)(base + s->thread->memory.msg_send_offset);
+//     tcb.msg_recv = (void *)(base + s->thread->memory.msg_recv_offset);
+//     tcb.tls = (void *)(base + s->thread->memory.tls_start_offset);
+//     tcb.proc_id = s->proc_id;
+//     tcb.thread_id = s->thread_id;
     
     // Then tell HAL to do a context switch
     struct process *p = s->proc;
-    hal->switch_context(s->sched_id, &s->thread->context, p->page_dir_pfn, p->user_mode, p->asid, &tcb);
+    struct thread *t = s->thread;
+    hal->switch_context(s->sched_id, &s->thread->context, p->page_dir_pfn, p->user_mode, p->asid, t->memory.block_base + t->memory.tcb_start_offset);
 }
 
 

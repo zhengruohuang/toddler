@@ -34,8 +34,8 @@ int int_handler_local_timer(struct int_context *context, struct kernel_dispatch_
     // Set a new value for compare
     update_compare();
     
-    // Need to switch to kernel
-    return 1;
+    // Can be taken over
+    return INT_HANDLE_TYPE_TAKEOVER;
 }
 
 void enable_local_timer_interrupt()

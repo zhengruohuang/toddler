@@ -103,6 +103,7 @@ struct gdt {
     struct gdt_selectors    selectors;
 } packedstruct;
 
+extern void gdt_reload_gs(ulong base, ulong size);
 extern void init_gdt_mp();
 extern void init_gdt();
 

@@ -54,6 +54,14 @@
 
 
 /*
+ * Handle type
+ */
+#define INT_HANDLE_TYPE_TAKEOVER    0
+#define INT_HANDLE_TYPE_HAL         1
+#define INT_HANDLE_TYPE_KERNEL      2
+
+
+/*
  * Interrupt handler
  */
 struct int_context {

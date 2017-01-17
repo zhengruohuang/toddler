@@ -115,6 +115,11 @@ struct thread_memory {
     ulong stack_size;
     ulong stack_top_paddr;
     
+    // TCB
+    ulong tcb_start_offset;
+    ulong tcb_size;
+    ulong tcb_start_paddr;
+    
     // TLS
     ulong tls_start_offset;
     ulong tls_size;

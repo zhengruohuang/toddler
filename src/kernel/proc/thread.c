@@ -229,6 +229,23 @@ struct thread *create_thread(
         t->memory.stack_top_paddr = paddr + stack_size;
     }
     
+    // Insert TCB into TLS
+    t->memory.tcb_start_offset = t->memory.tls_start_offset;
+    t->memory.tcb_start_paddr = t->memory.tls_start_paddr;
+    t->memory.tcb_size = sizeof(struct thread_control_block);
+    
+    t->memory.tls_start_offset += t->memory.tcb_size;
+    t->memory.tls_start_paddr += t->memory.tcb_size;
+    
+    // Initialize TCB
+    struct thread_control_block *tcb = (struct thread_control_block *)t->memory.tcb_start_paddr;
+    tcb->self = (struct thread_control_block *)(t->memory.block_base + t->memory.tcb_start_offset);
+    tcb->msg_send = (void *)(t->memory.block_base + t->memory.msg_send_offset);
+    tcb->msg_recv = (void *)(t->memory.block_base + t->memory.msg_recv_offset);
+    tcb->tls = (void *)(t->memory.block_base + t->memory.tls_start_offset);
+    tcb->proc_id = p->proc_id;
+    tcb->thread_id = t->thread_id;
+    
     // Prepare the param
     ulong *param_ptr = (ulong *)(t->memory.stack_top_paddr - sizeof(ulong));
     *param_ptr = param;

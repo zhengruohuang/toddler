@@ -18,10 +18,6 @@ void init_user_page_dir(ulong page_dir_pfn)
     for (i = 0; i < 1024; i++) {
         page->value_u32[i] = 0;
     }
-    
-    // Map TCB area
-    u32 tcb_start_paddr = KCODE_TO_PHYS(tcb_area_start_vaddr);
-    user_indirect_map_array(page_dir_pfn, tcb_start_paddr, tcb_start_paddr, tcb_area_size, 0, 0, 0, 0);
 }
 
 

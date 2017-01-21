@@ -131,5 +131,10 @@ extern unsigned long kapi_stdin_read(unsigned long console_id, void *buf, unsign
 extern unsigned long kapi_stdout_write(unsigned long console_id, void *buf, unsigned long count);
 extern unsigned long kapi_stderr_write(unsigned long console_id, void *buf, unsigned long count);
 
+/*
+ * KMap
+ */
+extern void *kapi_kmap(enum kmap_region region);
+
 
 #endif

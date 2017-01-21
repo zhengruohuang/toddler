@@ -177,6 +177,10 @@ static void transfer_msg(msg_t *s, int sender_blocked, struct process *src_p, st
 //             (src_p->type == process_kernel) ? 1 : 0
 //            );
     
+    // Set sender info in the message
+    s->sender_proc_id = src_p->proc_id;
+    s->sender_thread_id = src_t->thread_id;
+    
     // Get dest info
     struct process *dest_p = get_process_by_mailbox_id(src_p, s->mailbox_id, s->opcode, s->func_num);
     if (!dest_p) {

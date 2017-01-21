@@ -56,22 +56,9 @@ extern asmlinkage void shrink_heap_handler(struct kernel_msg_handler_arg *arg);
 
 
 /*
- * URS
+ * KMap
  */
-extern asmlinkage void urs_reg_super_handler(struct kernel_msg_handler_arg *arg);
-extern asmlinkage void urs_reg_op_handler(struct kernel_msg_handler_arg *arg);
-
-extern asmlinkage void urs_open_handler(struct kernel_msg_handler_arg *arg);
-extern asmlinkage void urs_close_handler(struct kernel_msg_handler_arg *arg);
-extern asmlinkage void urs_read_handler(struct kernel_msg_handler_arg *arg);
-extern asmlinkage void urs_write_handler(struct kernel_msg_handler_arg *arg);
-extern asmlinkage void urs_list_handler(struct kernel_msg_handler_arg *arg);
-
-extern asmlinkage void urs_create_handler(struct kernel_msg_handler_arg *arg);
-extern asmlinkage void urs_remove_handler(struct kernel_msg_handler_arg *arg);
-extern asmlinkage void urs_rename_handler(struct kernel_msg_handler_arg *arg);
-
-extern asmlinkage void urs_stat_handler(struct kernel_msg_handler_arg *arg);
+extern asmlinkage void kmap_handler(struct kernel_msg_handler_arg *arg);
 
 
 #endif

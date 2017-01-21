@@ -6,7 +6,13 @@
 
 
 /*
- * RAM FS
+ * CoreimgFS
+ */
+extern void init_coreimgfs();
+
+
+/*
+ * RamFS
  */
 extern void init_ramfs();
 extern int register_ramfs(char *path);

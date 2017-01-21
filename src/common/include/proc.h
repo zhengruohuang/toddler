@@ -32,4 +32,13 @@ struct thread_control_block {
 } packedstruct;
 
 
+/*
+ * KMap
+ */
+enum kmap_region {
+    kmap_none,
+    kmap_coreimg,
+};
+
+
 #endif

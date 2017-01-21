@@ -9,6 +9,7 @@
 #include "klibc/include/sys.h"
 #include "klibc/include/time.h"
 #include "klibc/include/kthread.h"
+#include "system/include/urs.h"
 
 
 #define RAMFS_BLOCK_SIZE    128
@@ -317,7 +318,7 @@ static int lookup(unsigned long super_id, unsigned long node_id, const char *nam
 {
     struct ramfs_node *node = NULL, *next = NULL;
     
-    kprintf("Lookup received, super_id: %p, node_id: %lu, name: %s\n", super_id, node_id, name);
+//     kprintf("Lookup received, super_id: %p, node_id: %lu, name: %s\n", super_id, node_id, name);
     
     // Find out the next node
     if (node_id) {
@@ -404,7 +405,7 @@ static int open(unsigned long super_id, unsigned long node_id, unsigned long *op
     return EOK;
 }
 
-static int close(unsigned long open_id)
+static int close(unsigned long super_id, unsigned long open_id)
 {
     struct ramfs_open *open = get_open_by_id(open_id);
     if (!open) {
@@ -420,7 +421,7 @@ static int close(unsigned long open_id)
     return EOK;
 }
 
-static int read(unsigned long open_id, void *buf, unsigned long count, unsigned long *actual)
+static int read(unsigned long super_id, unsigned long open_id, void *buf, unsigned long count, unsigned long *actual)
 {
     unsigned long result = 0;
     
@@ -430,7 +431,7 @@ static int read(unsigned long open_id, void *buf, unsigned long count, unsigned 
     }
     
     result = read_data_block(&open->node->data, (unsigned long)open->data_pos, buf, count);
-    open->data_pos = result;
+    open->data_pos += result;
     
     if (actual) {
         *actual = result;
@@ -441,7 +442,7 @@ static int read(unsigned long open_id, void *buf, unsigned long count, unsigned 
     return 0;
 }
 
-static int write(unsigned long open_id, void *buf, unsigned long count, unsigned long *actual)
+static int write(unsigned long super_id, unsigned long open_id, void *buf, unsigned long count, unsigned long *actual)
 {
     unsigned long result = 0;
     
@@ -451,7 +452,7 @@ static int write(unsigned long open_id, void *buf, unsigned long count, unsigned
     }
     
     result = write_data_block(&open->node->data, (unsigned long)open->data_pos, buf, count);
-    open->data_pos = result;
+    open->data_pos += result;
     
     if (actual) {
         *actual = result;
@@ -462,7 +463,7 @@ static int write(unsigned long open_id, void *buf, unsigned long count, unsigned
     return 0;
 }
 
-static int truncate(unsigned long open_id)
+static int truncate(unsigned long super_id, unsigned long open_id)
 {
     int result = 0;
     
@@ -478,7 +479,7 @@ static int truncate(unsigned long open_id)
     return result;
 }
 
-static int seek_data(unsigned long open_id, u64 offset, enum urs_seek_from from, u64 *newpos)
+static int seek_data(unsigned long super_id, unsigned long open_id, u64 offset, enum urs_seek_from from, u64 *newpos)
 {
     unsigned long pos = 0;
     
@@ -534,7 +535,7 @@ static int seek_data(unsigned long open_id, u64 offset, enum urs_seek_from from,
     return 0;
 }
 
-static int list(unsigned long open_id, void *buf, unsigned long count, unsigned long *actual)
+static int list(unsigned long super_id, unsigned long open_id, void *buf, unsigned long count, unsigned long *actual)
 {
     struct ramfs_node *sub = NULL;
     unsigned long len = 0;
@@ -564,7 +565,7 @@ static int list(unsigned long open_id, void *buf, unsigned long count, unsigned 
     }
     
     // Obtain the sub entry
-//     kprintf("to obtain at pos: %p, entries: %p, count: %p\n", node->sub.pos, node->sub.entries, node->sub.count);
+//     kprintf("to obtain at pos: %p, entries: %p, count: %p\n", open->sub_pos, node->sub.entries, node->sub.count);
     sub = hash_obtain_at(node->sub.entries, open->sub_pos);
 //     kprintf("obtained: %p\n", sub);
     
@@ -589,7 +590,7 @@ static int list(unsigned long open_id, void *buf, unsigned long count, unsigned 
     return result;
 }
 
-static int seek_list(unsigned long open_id, u64 offset, enum urs_seek_from from, u64 *newpos)
+static int seek_list(unsigned long super_id, unsigned long open_id, u64 offset, enum urs_seek_from from, u64 *newpos)
 {
     unsigned long pos = 0;
     
@@ -645,7 +646,7 @@ static int seek_list(unsigned long open_id, u64 offset, enum urs_seek_from from,
     return 0;
 }
 
-static int create(unsigned long open_id, char *name, enum urs_create_type type, unsigned int flags, char *target, unsigned long target_open_id)
+static int create(unsigned long super_id, unsigned long open_id, char *name, enum urs_create_type type, unsigned int flags, char *target, unsigned long target_open_id)
 {
     struct ramfs_node *sub = NULL;
     
@@ -710,7 +711,7 @@ static int create(unsigned long open_id, char *name, enum urs_create_type type, 
     return 0;
 }
 
-static int remove(unsigned long open_id, int erase)
+static int remove(unsigned long super_id, unsigned long open_id, int erase)
 {
     struct ramfs_node *parent = NULL;
     struct ramfs_open *open = NULL;
@@ -767,7 +768,7 @@ static int remove(unsigned long open_id, int erase)
     return EOK;
 }
 
-static int rename(unsigned long open_id, char *name)
+static int rename(unsigned long super_id, unsigned long open_id, char *name)
 {
     struct ramfs_node *parent = NULL;
     
@@ -800,7 +801,7 @@ static int rename(unsigned long open_id, char *name)
     return EOK;
 }
 
-static int stat(unsigned long open_id, struct urs_stat *stat)
+static int stat(unsigned long super_id, unsigned long open_id, struct urs_stat *stat)
 {
     struct ramfs_open *open = NULL;
     struct ramfs_node *node = NULL;
@@ -837,220 +838,261 @@ static int stat(unsigned long open_id, struct urs_stat *stat)
 }
 
 
-/*
- * Message handler
- */
-asmlinkage void ramfs_msg_handler(msg_t *msg)
-{
-    int result = EOK;
-    unsigned long ret_mbox_id = msg->mailbox_id;
-    
-    // Get common data fields
-    // Note that we also discard the 0th field of the msg as it is the same as opcode
-    enum urs_op_type op = (enum urs_op_type)msg->opcode;
-    
-    // Setup the reply msg
-    msg_t *r = NULL;
-    
-    switch (op) {
-    // Look up
-    case uop_lookup: {
-        unsigned long super_id = msg->params[1].value;
-        unsigned long node_id = msg->params[2].value;
-        char *name = (char *)((unsigned long)msg + msg->params[3].offset);
-        int is_link = 0;
-        unsigned long next_id = 0;
-        
-        result = lookup(super_id, node_id, name, &is_link, &next_id, NULL, 0, NULL);
-        
-        kprintf("name: %s, node: %p, is link: %d, next: %p\n", name, node_id, is_link, next_id);
-        
-        r = syscall_msg();
-        msg_param_value(r, (unsigned long)is_link);
-        msg_param_value(r, next_id);
-        msg_param_buffer(r, NULL, 0);
-        msg_param_value(r, 0);
-        
-        break;
-    }
-    
-    case uop_open: {
-        unsigned long super_id = msg->params[1].value;
-        unsigned long node_id = msg->params[2].value;
-        unsigned long open_id = 0;
-        
-        result = open(super_id, node_id, &open_id);
-        
-        r = syscall_msg();
-        msg_param_value(r, open_id);
-        
-        break;
-    }
-    
-    case uop_release: {
-        unsigned long open_id = msg->params[2].value;
-        result = close(open_id);
-        break;
-    }
-    
-    // Data
-    case uop_read: {
-        unsigned long open_id = msg->params[2].value;
-        u8 buf[64];
-        unsigned long count = sizeof(buf);
-        unsigned long actual = 0;
-        if (msg->params[3].value < count) {
-            count = msg->params[3].value;
-        }
-        
-        result = read(open_id, buf, count, &actual);
-        
-        r = syscall_msg();
-        msg_param_buffer(r, buf, actual);
-        msg_param_value(r, actual);
-        
-        break;
-    }
-    
-    case uop_write: {
-        unsigned long open_id = msg->params[2].value;
-        void *buf = (void *)((unsigned long)msg + msg->params[3].offset);
-        unsigned long count = msg->params[4].value;
-        unsigned long actual = 0;
-        
-        result = write(open_id, buf, count, &actual);
-        
-        r = syscall_msg();
-        msg_param_value(r, actual);
-        
-        break;
-    }
-    
-    case uop_truncate: {
-        unsigned long open_id = msg->params[2].value;
-        result = truncate(open_id);
-        break;
-    }
-    
-    case uop_seek_data: {
-        unsigned long open_id = msg->params[2].value;
-        u64 offset = msg->params[3].value64;
-        enum urs_seek_from from = (enum urs_seek_from)msg->params[4].value;
-        u64 newpos = 0;
-        
-        result = seek_data(open_id, offset, from, &newpos);
-        
-        r = syscall_msg();
-        msg_param_value64(r, newpos);
-        
-        break;
-    }
-    
-    // List
-    case uop_list: {
-        unsigned long open_id = msg->params[2].value;
-        u8 buf[64];
-        unsigned long count = sizeof(buf);
-        unsigned long actual = 0;
-        
-        if (msg->params[3].value < count) {
-            count = msg->params[3].value;
-        }
-        
-        result = list(open_id, buf, count, &actual);
-        
-        r = syscall_msg();
-        msg_param_buffer(r, buf, actual);
-        msg_param_value(r, actual);
-        
-        break;
-    }
-    
-    case uop_seek_list: {
-        unsigned long open_id = msg->params[2].value;
-        u64 offset = msg->params[3].value64;
-        enum urs_seek_from from = (enum urs_seek_from)msg->params[4].value;
-        u64 newpos = 0;
-        
-        result = seek_list(open_id, offset, from, &newpos);
-        
-        r = syscall_msg();
-        msg_param_value64(r, newpos);
-        
-        break;
-    }
-    
-    // Create
-    case uop_create: {
-        unsigned long open_id = msg->params[2].value;
-        char *name = (void *)((unsigned long)msg + msg->params[3].offset);
-        enum urs_create_type type = (enum urs_create_type)msg->params[4].value;
-        unsigned int flags = (unsigned int)msg->params[5].value;
-        char *target = (void *)((unsigned long)msg + msg->params[6].offset);
-        unsigned long target_open_id = msg->params[7].value;
-        
-        result = create(open_id, name, type, flags, target, target_open_id);
-        break;
-    }
-    
-    case uop_remove: {
-        unsigned long open_id = msg->params[2].value;
-        int erase = (int)msg->params[3].value;
-        result = remove(open_id, erase);
-        break;
-    }
-    
-    case uop_rename: {
-        unsigned long open_id = msg->params[2].value;
-        char *name = (void *)((unsigned long)msg + msg->params[3].offset);
-        result = rename(open_id, name);
-        break;
-    }
-    
-    // Stat
-    case uop_stat: {
-        unsigned long open_id = msg->params[2].value;
-        struct urs_stat s;
-        
-        result = stat(open_id, &s);
-        
-        r = syscall_msg();
-        msg_param_buffer(r, &s, sizeof(struct urs_stat));
-        
-        break;
-    }
-    
-    default:
-        break;
-    }
-    
-    // Return value
-    if (!r) {
-        r = syscall_msg();
-    }
-    r->mailbox_id = ret_mbox_id;
-    msg_param_value(r, (unsigned long)result);
-    
-//     kprintf("To call syscall respond!\n");
-    
-    // Issue the KAPI and obtain the result
-    syscall_respond();
-    
-    // Should never reach here
-    sys_unreahable();
-}
+// /*
+//  * Message handler
+//  */
+// asmlinkage void ramfs_msg_handler(msg_t *msg)
+// {
+//     int result = EOK;
+//     unsigned long ret_mbox_id = msg->mailbox_id;
+//     
+//     // Get common data fields
+//     // Note that we also discard the 0th field of the msg as it is the same as opcode
+//     enum urs_op_type op = (enum urs_op_type)msg->opcode;
+//     
+//     // Setup the reply msg
+//     msg_t *r = NULL;
+//     
+//     switch (op) {
+//     // Look up
+//     case uop_lookup: {
+//         unsigned long super_id = msg->params[1].value;
+//         unsigned long node_id = msg->params[2].value;
+//         char *name = (char *)((unsigned long)msg + msg->params[3].offset);
+//         int is_link = 0;
+//         unsigned long next_id = 0;
+//         
+//         result = lookup(super_id, node_id, name, &is_link, &next_id, NULL, 0, NULL);
+//         
+//         kprintf("name: %s, node: %p, is link: %d, next: %p\n", name, node_id, is_link, next_id);
+//         
+//         r = syscall_msg();
+//         msg_param_value(r, (unsigned long)is_link);
+//         msg_param_value(r, next_id);
+//         msg_param_buffer(r, NULL, 0);
+//         msg_param_value(r, 0);
+//         
+//         break;
+//     }
+//     
+//     case uop_open: {
+//         unsigned long super_id = msg->params[1].value;
+//         unsigned long node_id = msg->params[2].value;
+//         unsigned long open_id = 0;
+//         
+//         result = open(super_id, node_id, &open_id);
+//         
+//         r = syscall_msg();
+//         msg_param_value(r, open_id);
+//         
+//         break;
+//     }
+//     
+//     case uop_release: {
+//         unsigned long open_id = msg->params[2].value;
+//         result = close(open_id);
+//         break;
+//     }
+//     
+//     // Data
+//     case uop_read: {
+//         unsigned long open_id = msg->params[2].value;
+//         u8 buf[64];
+//         unsigned long count = sizeof(buf);
+//         unsigned long actual = 0;
+//         if (msg->params[3].value < count) {
+//             count = msg->params[3].value;
+//         }
+//         
+//         result = read(open_id, buf, count, &actual);
+//         
+//         r = syscall_msg();
+//         msg_param_buffer(r, buf, actual);
+//         msg_param_value(r, actual);
+//         
+//         break;
+//     }
+//     
+//     case uop_write: {
+//         unsigned long open_id = msg->params[2].value;
+//         void *buf = (void *)((unsigned long)msg + msg->params[3].offset);
+//         unsigned long count = msg->params[4].value;
+//         unsigned long actual = 0;
+//         
+//         result = write(open_id, buf, count, &actual);
+//         
+//         r = syscall_msg();
+//         msg_param_value(r, actual);
+//         
+//         break;
+//     }
+//     
+//     case uop_truncate: {
+//         unsigned long open_id = msg->params[2].value;
+//         result = truncate(open_id);
+//         break;
+//     }
+//     
+//     case uop_seek_data: {
+//         unsigned long open_id = msg->params[2].value;
+//         u64 offset = msg->params[3].value64;
+//         enum urs_seek_from from = (enum urs_seek_from)msg->params[4].value;
+//         u64 newpos = 0;
+//         
+//         result = seek_data(open_id, offset, from, &newpos);
+//         
+//         r = syscall_msg();
+//         msg_param_value64(r, newpos);
+//         
+//         break;
+//     }
+//     
+//     // List
+//     case uop_list: {
+//         unsigned long open_id = msg->params[2].value;
+//         u8 buf[64];
+//         unsigned long count = sizeof(buf);
+//         unsigned long actual = 0;
+//         
+//         if (msg->params[3].value < count) {
+//             count = msg->params[3].value;
+//         }
+//         
+//         result = list(open_id, buf, count, &actual);
+//         
+//         r = syscall_msg();
+//         msg_param_buffer(r, buf, actual);
+//         msg_param_value(r, actual);
+//         
+//         break;
+//     }
+//     
+//     case uop_seek_list: {
+//         unsigned long open_id = msg->params[2].value;
+//         u64 offset = msg->params[3].value64;
+//         enum urs_seek_from from = (enum urs_seek_from)msg->params[4].value;
+//         u64 newpos = 0;
+//         
+//         result = seek_list(open_id, offset, from, &newpos);
+//         
+//         r = syscall_msg();
+//         msg_param_value64(r, newpos);
+//         
+//         break;
+//     }
+//     
+//     // Create
+//     case uop_create: {
+//         unsigned long open_id = msg->params[2].value;
+//         char *name = (void *)((unsigned long)msg + msg->params[3].offset);
+//         enum urs_create_type type = (enum urs_create_type)msg->params[4].value;
+//         unsigned int flags = (unsigned int)msg->params[5].value;
+//         char *target = (void *)((unsigned long)msg + msg->params[6].offset);
+//         unsigned long target_open_id = msg->params[7].value;
+//         
+//         result = create(open_id, name, type, flags, target, target_open_id);
+//         break;
+//     }
+//     
+//     case uop_remove: {
+//         unsigned long open_id = msg->params[2].value;
+//         int erase = (int)msg->params[3].value;
+//         result = remove(open_id, erase);
+//         break;
+//     }
+//     
+//     case uop_rename: {
+//         unsigned long open_id = msg->params[2].value;
+//         char *name = (void *)((unsigned long)msg + msg->params[3].offset);
+//         result = rename(open_id, name);
+//         break;
+//     }
+//     
+//     // Stat
+//     case uop_stat: {
+//         unsigned long open_id = msg->params[2].value;
+//         struct urs_stat s;
+//         
+//         result = stat(open_id, &s);
+//         
+//         r = syscall_msg();
+//         msg_param_buffer(r, &s, sizeof(struct urs_stat));
+//         
+//         break;
+//     }
+//     
+//     default:
+//         break;
+//     }
+//     
+//     // Return value
+//     if (!r) {
+//         r = syscall_msg();
+//     }
+//     r->mailbox_id = ret_mbox_id;
+//     msg_param_value(r, (unsigned long)result);
+//     
+//     // Issue the KAPI and obtain the result
+//     syscall_respond();
+//     
+//     // Should never reach here
+//     sys_unreahable();
+// }
+
+// #define REG_OP(op, handler) do {                                        \
+//     unsigned long func_num = alloc_msg_num();                           \
+//     ops.entries[op].type = ureg_msg;                                    \
+//     ops.entries[op].msg_opcode = (unsigned long)op;                     \
+//     ops.entries[op].msg_func_num = func_num;                            \
+//     syscall_reg_msg_handler(func_num, ramfs_msg_handler);               \
+// } while (0)
+// 
+// int register_ramfs(char *path)
+// {
+//     struct urs_reg_ops ops;
+//     struct ramfs_node *root = NULL;
+//     unsigned long super_id = 0;
+//     
+//     // Prepare operations
+//     REG_OP(uop_lookup, lookup);
+//     REG_OP(uop_open, open);
+//     REG_OP(uop_release, close);
+//     
+//     REG_OP(uop_read, read);
+//     REG_OP(uop_write, write);
+//     REG_OP(uop_truncate, truncate);
+//     REG_OP(uop_seek_data, seek_data);
+//     
+//     REG_OP(uop_list, list);
+//     REG_OP(uop_seek_list, seek_list);
+//     
+//     REG_OP(uop_create, create);
+//     REG_OP(uop_remove, remove);
+//     REG_OP(uop_rename, rename);
+//     
+//     REG_OP(uop_stat, stat);
+//     
+//     // Register the FS
+//     super_id = kapi_urs_reg_super(path, "ramfs", 0, &ops);
+//     if (!super_id) {
+//         return -2;
+//     }
+//     
+//     root = create_node("/", NULL);
+//     if (!root) {
+//         return -3;
+//     }
+//     
+//     hash_insert(ramfs_table, (void *)super_id, root);
+//     
+//     return 0;
+// }
 
 
 /*
  * Super
  */
-#define REG_OP(op, handler) do {                                        \
-    unsigned long func_num = alloc_msg_num();                           \
-    ops.entries[op].type = ureg_msg;                                    \
-    ops.entries[op].msg_opcode = (unsigned long)op;                     \
-    ops.entries[op].msg_func_num = func_num;                            \
-    syscall_reg_msg_handler(func_num, ramfs_msg_handler);               \
-} while (0)
+#define OP_FUNC(t, f)   ops.entries[t].type = ureg_func; ops.entries[t].func = f
 
 int register_ramfs(char *path)
 {
@@ -1058,27 +1100,26 @@ int register_ramfs(char *path)
     struct ramfs_node *root = NULL;
     unsigned long super_id = 0;
     
-    // Prepare operations
-    REG_OP(uop_lookup, lookup);
-    REG_OP(uop_open, open);
-    REG_OP(uop_release, release);
+    OP_FUNC(uop_lookup, lookup);
+    OP_FUNC(uop_open, open);
+    OP_FUNC(uop_release, close);
     
-    REG_OP(uop_read, read);
-    REG_OP(uop_write, write);
-    REG_OP(uop_truncate, truncate);
-    REG_OP(uop_seek_data, seek_data);
+    OP_FUNC(uop_read, read);
+    OP_FUNC(uop_write, write);
+    OP_FUNC(uop_truncate, truncate);
+    OP_FUNC(uop_seek_data, seek_data);
     
-    REG_OP(uop_list, list);
-    REG_OP(uop_seek_list, seek_list);
+    OP_FUNC(uop_list, list);
+    OP_FUNC(uop_seek_list, seek_list);
     
-    REG_OP(uop_create, create);
-    REG_OP(uop_remove, remove);
-    REG_OP(uop_rename, rename);
+    OP_FUNC(uop_create, create);
+    OP_FUNC(uop_remove, remove);
+    OP_FUNC(uop_rename, rename);
     
-    REG_OP(uop_stat, stat);
+    OP_FUNC(uop_stat, stat);
     
     // Register the FS
-    super_id = kapi_urs_reg_super(path, "ramfs", 0, &ops);
+    super_id = urs_register(path, "ramfs", 0, &ops);
     if (!super_id) {
         return -2;
     }

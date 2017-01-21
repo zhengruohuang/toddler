@@ -71,6 +71,11 @@ struct msg_param {
 };
 
 struct msg {
+    // Filled by kernel
+    unsigned long sender_proc_id;
+    unsigned long sender_thread_id;
+    
+    // Filled by user
     unsigned long mailbox_id;
     unsigned long opcode;
     unsigned long func_num;
@@ -132,6 +137,9 @@ typedef asmlinkage void (*msg_handler_t)(msg_t *msg);
 
 #define KAPI_URS_REG_SUPER      0x70
 #define KAPI_URS_REG_OP         0x71
+
+// KMap
+#define KAPI_KMAP               0x80
 
 // Temporary stdio KAPIs, they eventually should be implemented through URS
 #define KAPI_STDIN_READ         0x1000

@@ -3,7 +3,7 @@
 #include "klibc/include/sys.h"
 #include "klibc/include/kthread.h"
 #include "system/include/kapi.h"
-// #include "system/include/urs.h"
+#include "system/include/urs.h"
 #include "system/include/fs.h"
 
 
@@ -29,6 +29,8 @@ int main(int argc, char *argv[])
     
     // Initialize
     init_kapi();
+    init_urs();
+    init_coreimgfs();
     init_ramfs();
     
     // FS tests

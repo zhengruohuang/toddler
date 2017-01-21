@@ -122,20 +122,8 @@ void init_kapi()
     register_kapi(KAPI_HEAP_END_GROW, grow_heap_handler);
     register_kapi(KAPI_HEAP_END_SHRINK, shrink_heap_handler);
     
-    // URS
-    register_kapi(KAPI_URS_REG_SUPER, urs_reg_super_handler);
-    
-    register_kapi(KAPI_URS_OPEN, urs_open_handler);
-    register_kapi(KAPI_URS_CLOSE, urs_close_handler);
-    register_kapi(KAPI_URS_READ, urs_read_handler);
-    register_kapi(KAPI_URS_WRITE, urs_write_handler);
-    register_kapi(KAPI_URS_LIST, urs_list_handler);
-    
-    register_kapi(KAPI_URS_CREATE, urs_create_handler);
-    register_kapi(KAPI_URS_REMOVE, urs_remove_handler);
-    register_kapi(KAPI_URS_RENAME, urs_rename_handler);
-    
-    register_kapi(KAPI_URS_STAT, urs_stat_handler);
+    // KMap
+    register_kapi(KAPI_KMAP, kmap_handler);
     
     kprintf("KAPI Initialized\n");
 }

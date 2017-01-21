@@ -4,6 +4,7 @@
 
 #include "common/include/data.h"
 #include "common/include/task.h"
+#include "common/include/proc.h"
 #include "kernel/include/ds.h"
 #include "kernel/include/sync.h"
 #include "common/include/syscall.h"
@@ -382,6 +383,12 @@ extern void init_asid();
 extern void asid_release();
 extern ulong asid_alloc();
 extern ulong asid_recycle();
+
+
+/*
+ * KMap and mmap
+ */
+extern unsigned long kmap(struct process *p, enum kmap_region region);
 
 
 #endif

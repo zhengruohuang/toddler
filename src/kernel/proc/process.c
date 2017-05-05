@@ -4,6 +4,7 @@
 
 
 #include "common/include/data.h"
+#include "common/include/errno.h"
 #include "common/include/memory.h"
 #include "kernel/include/hal.h"
 #include "kernel/include/mem.h"
@@ -29,8 +30,15 @@ struct process *create_process(
     ulong parent_id, char *name, char *url,
     enum process_type type, int priority)
 {
+    int mon_err = EOK;
+    struct process *p = NULL;
+    
+    // Notify process monitor
+    mon_err = check_process_create_before(parent_id);
+    assert(mon_err == EOK);
+    
     // Allocate a process struct
-    struct process *p = (struct process *)salloc(proc_salloc_id);
+    p = (struct process *)salloc(proc_salloc_id);
     assert(p);
     
     // Assign a proc id
@@ -99,6 +107,10 @@ struct process *create_process(
     p->next = processes.next;
     processes.next = p;
     processes.count++;
+    
+    // Notify process monitor
+    mon_err = check_process_create_after(parent_id, p->proc_id);
+    assert(mon_err == EOK);
     
     // Create cleaning thread
     if (type != process_kernel) {

@@ -71,10 +71,10 @@ The system process implements universal resource manager (URS), user account man
 The driver process provides several essential device drivers, including keyboards, consoles, and disks.
 
 
-## Ports
+## Ports 
 
 |Architecture|Width|Target Machine|Status|
-|---|---|---|---|---|
+|---|---|---|---|
 |ia32|32|NetBurst-based PC|Active|
 |armv7|32|QEMU Integrator/CP, QEMU RealView MP, Raspberry Pi 2|Active|
 |mips32|32|QEMU Malta, Creator CI20|Active|

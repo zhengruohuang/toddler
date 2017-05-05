@@ -2,6 +2,8 @@
 #include "common/include/coreimg.h"
 #include "common/include/proc.h"
 #include "common/include/errno.h"
+#include "common/include/urs.h"
+#include "common/include/ua.h"
 #include "klibc/include/stdio.h"
 #include "klibc/include/stdlib.h"
 #include "klibc/include/string.h"
@@ -116,7 +118,7 @@ static struct coreimg_open *create_open(unsigned long super_id, unsigned long no
 /*
  * Node
  */
-static int lookup(unsigned long super_id, unsigned long node_id, const char *name, int *is_link,
+static int lookup(unsigned long super_id, unsigned long node_id, unsigned long proc_id, const char *name, int *is_link,
                   unsigned long *next_id, void *buf, unsigned long count, unsigned long *actual)
 {
     struct coreimg_node *node = NULL, *next = NULL;
@@ -162,7 +164,7 @@ static int lookup(unsigned long super_id, unsigned long node_id, const char *nam
     return 0;
 }
 
-static int open(unsigned long super_id, unsigned long node_id, unsigned long *open_id)
+static int open(unsigned long super_id, unsigned long node_id, unsigned long proc_id, unsigned long *open_id)
 {
     struct coreimg_node *node = get_node_by_id(super_id, node_id);
     if (!node) {
@@ -420,6 +422,10 @@ static int stat(unsigned long super_id, unsigned long open_id, struct urs_stat *
     if (stat) {
         stat->super_id = 0;
         stat->open_dispatch_id = open->id;
+        
+        stat->user_id = UA_USER_ID_SYSTEM;
+        stat->group_id = UA_GROUP_ID_SYSTEM;
+        stat->perm = UA_OWNER_PERM_ALL | UA_GROUP_PERM_ALL | UA_OTHER_PERM_NONE;
         
         stat->num_links = node->ref_count;
         stat->sub_count = node->sub.count;

@@ -386,6 +386,17 @@ extern ulong asid_recycle();
 
 
 /*
+ * Process monitor
+ */
+extern int check_process_create_before(unsigned long parent_proc_id);
+extern int check_process_create_after(unsigned long parent_proc_id, unsigned long proc_id);
+extern int check_process_terminate_before(unsigned long proc_id);
+extern int check_process_terminate_after(unsigned long proc_id);
+extern int register_process_monitor(enum proc_monitor_type type, unsigned long proc_id, unsigned long func_num, unsigned long opcode);
+extern void init_process_monitor();
+
+
+/*
  * KMap and mmap
  */
 extern unsigned long kmap(struct process *p, enum kmap_region region);

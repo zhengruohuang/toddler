@@ -39,6 +39,10 @@ struct ramfs_node {
     unsigned long id;
     char *name;
     
+    unsigned long user_id;
+    unsigned long group_id;
+    unsigned int perm;
+    
     unsigned long ref_count;
     unsigned long open_count;
     
@@ -313,7 +317,7 @@ static struct ramfs_open *create_open(unsigned long super_id, unsigned long node
 /*
  * Node
  */
-static int lookup(unsigned long super_id, unsigned long node_id, const char *name, int *is_link,
+static int lookup(unsigned long super_id, unsigned long node_id, unsigned long proc_id, const char *name, int *is_link,
                   unsigned long *next_id, void *buf, unsigned long count, unsigned long *actual)
 {
     struct ramfs_node *node = NULL, *next = NULL;
@@ -384,7 +388,7 @@ static int lookup(unsigned long super_id, unsigned long node_id, const char *nam
     return 0;
 }
 
-static int open(unsigned long super_id, unsigned long node_id, unsigned long *open_id)
+static int open(unsigned long super_id, unsigned long node_id, unsigned long proc_id, unsigned long *open_id)
 {
     struct ramfs_node *node = get_node_by_id(super_id, node_id);
     if (!node) {
@@ -817,10 +821,12 @@ static int stat(unsigned long super_id, unsigned long open_id, struct urs_stat *
     }
     
     if (stat) {
-        struct ramfs_node *n = open->node;
-        
         stat->super_id = 0;
         stat->open_dispatch_id = open->id;
+        
+        stat->user_id = node->user_id;
+        stat->group_id = node->group_id;
+        stat->perm = node->perm;
         
         stat->num_links = node->ref_count;
         stat->sub_count = node->sub.count;

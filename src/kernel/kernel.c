@@ -110,6 +110,7 @@ void asmlinkage _start(struct hal_exports *hal_exp)
     
     // Init process mgr
     init_asid();
+    init_process_monitor();
     init_sched();
     init_process();
     init_thread();

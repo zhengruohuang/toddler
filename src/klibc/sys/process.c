@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/syscall.h"
+#include "common/include/proc.h"
 #include "klibc/include/sys.h"
 
 
@@ -44,6 +45,25 @@ unsigned long kapi_process_id()
 {
     struct thread_control_block *tcb = get_tcb();
     return tcb->proc_id;
+}
+
+
+/*
+ * Process monitor
+ */
+int kapi_process_monitor(enum proc_monitor_type type, unsigned long func_num, unsigned long opcode)
+{
+    msg_t *s = kapi_msg(KAPI_PROCESS_MONITOR);
+    msg_t *r;
+    int result = -1;
+    
+    msg_param_value(s, (unsigned long)type);
+    msg_param_value(s, func_num);
+    msg_param_value(s, opcode);
+    r = syscall_request();
+    result = (int)kapi_return_value(r);
+    
+    return result;
 }
 
 

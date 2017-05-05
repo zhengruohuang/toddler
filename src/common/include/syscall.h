@@ -99,6 +99,7 @@ typedef asmlinkage void (*msg_handler_t)(msg_t *msg);
 #define KAPI_PROCESS_EXIT       0x12
 #define KAPI_PROCESS_KILL       0x13
 #define KAPI_PROCESS_ID         0x14
+#define KAPI_PROCESS_MONITOR    0x15
 
 // Thread
 #define KAPI_THREAD_CREATE      0x20

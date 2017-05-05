@@ -41,4 +41,17 @@ enum kmap_region {
 };
 
 
+/*
+ * Process monitor
+ */
+enum proc_monitor_type {
+    pm_none,
+    pm_create_before,
+    pm_create_after,
+    pm_terminate_before,
+    pm_terminate_after,
+    pm_type_count,
+};
+
+
 #endif

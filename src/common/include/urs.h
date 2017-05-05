@@ -91,6 +91,10 @@ struct urs_stat {
     unsigned long super_id;
     unsigned long open_dispatch_id;
     
+    unsigned long user_id;
+    unsigned long group_id;
+    unsigned int perm;
+    
     unsigned long num_links;
     unsigned long sub_count;
     u64 data_size;

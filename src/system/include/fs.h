@@ -21,6 +21,13 @@ extern void test_ramfs();
 
 
 /*
+ * ProcFS
+ */
+extern void init_procfs();
+extern void init_process_monitor();
+
+
+/*
  * FAT 12/16/32
  */
 

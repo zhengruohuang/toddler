@@ -115,6 +115,7 @@ void init_kapi()
     // Process
     register_kapi(KAPI_PROCESS_STARTED, process_started_handler);
     register_kapi(KAPI_PROCESS_EXIT, process_exit_handler);
+    register_kapi(KAPI_PROCESS_MONITOR, process_monitor_reg_handler);
     
     // Heap
     register_kapi(KAPI_HEAP_END_GET, get_heap_end_handler);

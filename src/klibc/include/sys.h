@@ -78,6 +78,7 @@ extern void kapi_process_exit(int err_code);
 extern int kpai_process_kill(unsigned long process_id);
 extern void kapi_process_started(unsigned long code);
 extern unsigned long kapi_process_id();
+extern int kapi_process_monitor(enum proc_monitor_type type, unsigned long func_num, unsigned long opcode);
 
 /*
  * Thread

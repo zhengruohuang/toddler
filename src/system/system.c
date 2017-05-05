@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
     init_urs();
     init_coreimgfs();
     init_ramfs();
+    init_procfs();
     
     // FS tests
     //test_ramfs();

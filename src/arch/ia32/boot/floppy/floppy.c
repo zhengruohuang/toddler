@@ -1,5 +1,5 @@
-asm (".code16gcc");
-asm ("jmp main");
+__asm__ (".code16gcc");
+__asm__ ("jmp main");
 
 
 #include "common/include/data.h"
@@ -22,19 +22,29 @@ asm ("jmp main");
 #define FAT_SLAVE           ((struct floppy_fat_slave *)FAT_SLAVE_BUFFER_OFFSET)
 
 
-static void real_mode print_char(char ch)
+static void real_mode print_char(const char ch)
 {
+    u32 eax = (0xe << 8) | (u32)ch;
+    
     __asm__ __volatile__
     (
-        "movb   $0xe, %%ah;"
-        "movb   $0, %%bh;"
         "int    $0x10"
         :
-        : "a" ((u32)ch)
+        : "a" (eax), "b" (0)
     );
+    
+//     __asm__ __volatile__
+//     (
+//         "movb   $0xe, %%ah;"
+//         "movb   $0, %%bh;"
+//         "int    $0x10"
+//         :
+//         : "a" ((u32)ch)
+//         : "ebx"
+//     );
 }
 
-static void real_mode print_string(char *str)
+static void real_mode print_string(const char *str)
 {
     while (*str) {
         print_char(*str);
@@ -42,14 +52,15 @@ static void real_mode print_string(char *str)
     }
 }
 
-static void real_mode print_hex(u32 n)
+static void real_mode print_hex(const u32 n)
 {
-    u32 i, value;
+    int i;
+    u32 value;
     
-    for (i = 0; i < sizeof(u32) * 8; i += 4) {
+    for (i = 0; i < 32; i += 4) {
         value = n;
         value = value << i;
-        value = value >> sizeof(u32) * 7;
+        value = value >> 28;
         
         print_char(value > 9 ? (u8)(value + 0x30 + 0x27) : (u8)(value + 0x30));
     }
@@ -59,20 +70,45 @@ static void real_mode print_hex(u32 n)
 
 static void real_mode print_new_line()
 {
+    u32 edx = 0;
+    
+    // Get current pos
     __asm__ __volatile__
     (
-        "movw   $0x300, %%ax;"
-        "movw   $0, %%bx;"
         "int    $0x10;"
-        
-        "movw   $0x200, %%ax;"
-        "addw   $0x100, %%dx;"
-        "movb   $0, %%dl;"
-        
-        "int    $0x10"
-        :
-        :
+        : "=d" (edx)
+        : "a" (0x300), "b" (0)
+        : "ecx"
     );
+    
+    // Calc new pos
+    edx >>= 8;
+    edx += 1;
+    edx <<= 8;
+    
+    // Set new pos
+    __asm__ __volatile__
+    (
+        "int    $0x10;"
+        :
+        : "a" (0x200), "b" (0), "d" (edx)
+    );
+    
+//     __asm__ __volatile__
+//     (
+//         "movw   $0x300, %%ax;"
+//         "movw   $0, %%bx;"
+//         "int    $0x10;"
+//         
+//         "movw   $0x200, %%ax;"
+//         "addw   $0x100, %%dx;"
+//         "movb   $0, %%dl;"
+//         
+//         "int    $0x10"
+//         :
+//         :
+//         : "eax", "ebx", "edx"
+//     );
 }
 
 /*
@@ -109,7 +145,7 @@ static void real_mode stop()
     } while (1);
 }
 
-static void real_mode read_sector(u32 lba, u16 segment, u16 offset)
+static void real_mode read_sector(u32 lba, u32 segment, u32 offset)
 {
     u32 sector = (lba % 18) + 1;
     u32 head = (lba / 18) % 2;
@@ -162,15 +198,16 @@ static void real_mode read_sector(u32 lba, u16 segment, u16 offset)
         "int    $0x13;"
         
         "jc     _try_again;"
-        :
-        : "a" (es), "b" (ebx), "c" (ecx), "d" (edx)
+        : "+a" (es)
+        : "b" (ebx), "c" (ecx), "d" (edx)
+        : "flags"
     );
 }
 
 #define load_to_fat_master_buffer(lba) read_sector(lba, FAT_MASTER_BUFFER_SEGMENT, FAT_MASTER_BUFFER_OFFSET);
 #define load_to_fat_slave_buffer(lba) read_sector(lba, FAT_SLAVE_BUFFER_SEGMENT, FAT_SLAVE_BUFFER_OFFSET);
 
-static void real_mode load_file(u16 start_sector, u16 sector_count, u16 segment, u16 offset)
+static void real_mode load_file(u32 start_sector, u32 sector_count, u32 segment, u32 offset)
 {
     u32 current_segment = segment;
     u32 current_offset = offset;

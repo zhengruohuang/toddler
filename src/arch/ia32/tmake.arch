@@ -83,7 +83,7 @@ def build_boot_fp():
     # Aseembly start section
     direct_build_files(
         files = [ arch_dir + 'boot/floppy/boot.asm' ],
-        target_name = obj_dir + 'boot/floopy/floppy.boot',
+        target_name = obj_dir + 'boot/floppy/floppy.boot',
         ext_dep = None,
         tools = arch_tools['boot_tools']
     )
@@ -104,7 +104,7 @@ def build_boot_fp():
     
     # Concatinate the sections
     cat_files(
-        files = [ obj_dir + 'boot/floopy/floppy.boot', obj_dir + 'boot/floppy/floppy.bin' ],
+        files = [ obj_dir + 'boot/floppy/floppy.boot', obj_dir + 'boot/floppy/floppy.bin' ],
         target_name = target_file,
         tools = arch_tools['boot_tools']
     )
@@ -129,7 +129,7 @@ def build_loader():
     # Assembly start section
     direct_build_files(
         files = [ arch_dir + 'loader/start.asm' ],
-        target_name = obj_dir + 'loader/loader.start',
+        target_name = obj_dir + 'loader/start.bin',
         ext_dep = None,
         tools = arch_tools['boot_tools']
     )
@@ -165,7 +165,7 @@ def build_loader():
     # Concatinate the sections
     cat_files(
         files = [ \
-            obj_dir + 'loader/loader.start',
+            obj_dir + 'loader/start.bin',
             obj_dir + 'loader/real.bin',
             obj_dir + 'loader/protected.bin',
         ],

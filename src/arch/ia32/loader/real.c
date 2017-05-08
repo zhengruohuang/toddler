@@ -1,5 +1,5 @@
-asm (".code16gcc");
-asm ("jmp main");
+__asm__ (".code16gcc");
+__asm__ ("jmp main");
 
 
 #include "loader/loader.h"
@@ -14,20 +14,43 @@ static struct boot_parameters *boot_param;
 
 static void real_mode set_cursor_pos(u32 row, u32 col)
 {
-    u32 edx = (row << 8) + col;
+    u32 edx = 0;
     
+    // Get current pos
     __asm__ __volatile__
     (
-        "push   %%edx;"
-        "movw   $0x300, %%ax;"
-        "movw   $0, %%bx;"
         "int    $0x10;"
-        "movw   $0x200, %%ax;"
-        "pop    %%edx;"
-        "int    $0x10"
-        :
-        : "d" (edx)
+        : "=d" (edx)
+        : "a" (0x300), "b" (0)
+        : "ecx"
     );
+    
+    // Calc new pos
+    edx = (row << 8) + col;
+    
+    // Set new pos
+    __asm__ __volatile__
+    (
+        "int    $0x10;"
+        :
+        : "a" (0x200), "b" (0), "d" (edx)
+    );
+    
+//     u32 edx = (row << 8) + col;
+//     
+//     __asm__ __volatile__
+//     (
+//         "push   %%edx;"
+//         "movw   $0x300, %%ax;"
+//         "movw   $0, %%bx;"
+//         "int    $0x10;"
+//         "movw   $0x200, %%ax;"
+//         "pop    %%edx;"
+//         "int    $0x10"
+//         :
+//         : "d" (edx)
+//         : "eax", "ebx"
+//     );
 }
 
 static void real_mode print_new_line()
@@ -44,14 +67,13 @@ static void real_mode print_new_line()
 
 static void real_mode print_char(char ch)
 {
+    u32 eax = (0x9 << 8) | (u32)ch;
+    
     __asm__ __volatile__
     (
-        "movb   $0x9, %%ah;"
-        "movw   $0x7, %%bx;"
-        "movw   $0x1, %%cx;"
         "int    $0x10"
         :
-        : "a" ((u32)ch)
+        : "a" (eax), "b" (0x7), "c" (0x1)
     );
     
     boot_param->cursor_col++;
@@ -132,14 +154,15 @@ static void real_mode print_dec(u32 n)
 
 static void real_mode print_hex(u32 n)
 {
-    u32 i, value;
+    int i;
+    u32 digit;
     
-    for (i = 0; i < sizeof(u32) * 8; i += 4) {
-        value = n;
-        value = value << i;
-        value = value >> sizeof(u32) * 7;
+    for (i = 0; i < 32; i += 4) {
+        digit = n;
+        digit <<= i;
+        digit >>= 28;
         
-        print_char(value > 9 ? (u8)(value + 0x30 + 0x27) : (u8)(value + 0x30));
+        print_char(digit > 9 ? (u8)(digit + 0x30 + 0x27) : (u8)(digit + 0x30));
     }
     
     print_char('h');
@@ -177,16 +200,15 @@ static void real_mode fail()
 
 static void real_mode init_cursor_pos()
 {
-    u32     edx;
+    u32 edx = 0;
     
     __asm__ __volatile__
     (
         "xorl   %%edx, %%edx;"
-        "movw   $0x300, %%ax;"
-        "movw   $0, %%bx;"
         "int    $0x10"
         : "=d" (edx)
-        :
+        : "a" (0x300), "b" (0)
+        : "ecx"
     );
     
     boot_param->cursor_row = ((edx << 16) >> 24);
@@ -258,6 +280,7 @@ static void real_mode init_vesa()
             "movw   %%bx, %%ds;"
             : "=a" (cur_mode)
             : "a" (mode_ds), "S" (mode_si)
+            : "ebx"
         );
         
         if (cur_mode == 0xFFFF) {
@@ -286,6 +309,7 @@ static void real_mode init_vesa()
             "int    $0x10;"
             :
             : "c" (modes[i]), "D" (&mode_info)
+            : "eax"
         );
         
 //         print_dec(modes[i]);
@@ -338,10 +362,9 @@ static void real_mode init_vesa()
     unsigned int bx = 0x4000 | best_num;
     __asm__ __volatile__
     (
-        "movw   $0x4f02, %%ax;"
         "int    $0x10;"
         :
-        : "b" (bx)
+        : "a" (0x4f02), "b" (bx)
     );
     print_done();
 }
@@ -509,6 +532,7 @@ static void real_mode enable_a20()
             "int    $0x15;"
             :
             :
+            : "eax", "ebx", "ecx", "edx"
         );
         
         if (check_a20_enabled()) {
@@ -566,7 +590,8 @@ succeed:
 
 static void real_mode enter_protected_mode()
 {
-    print_string("Entering Protected Mode ...");
+    print_string("Entering Protected Mode ... @ ");
+    print_hex(loader_var->return_addr);
     
     __asm__ __volatile__
     (

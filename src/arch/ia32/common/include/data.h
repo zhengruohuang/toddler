@@ -19,11 +19,19 @@
 #endif
 
 #ifndef real_mode
+#ifdef __clang__
+#define real_mode   __attribute__((noinline)) __attribute__((regparm(3))) __attribute__((optnone))
+#else
 #define real_mode   __attribute__((noinline)) __attribute__((regparm(3))) __attribute__((optimize("-O0")))
+#endif
 #endif
 
 #ifndef no_opt
+#ifdef __clang__
+#define no_opt  __attribute__((optnone))
+#else
 #define no_opt  __attribute__((optimize("-O0")))
+#endif
 #endif
 
 

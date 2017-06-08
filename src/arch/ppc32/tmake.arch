@@ -3,38 +3,44 @@
 
 global_tools = { \
     '.c' : { \
-        'exec'  : 'gcc',
-        'flags' : '-c -g -fno-builtin -fno-stack-protector -O3 -m32',
+        'exec'  : 'powerpc-linux-gnu-gcc',
+        'flags' : '-c -fno-builtin -fno-stack-protector -O2',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
         'dep'   : '-MM __src__ > __dep__',
     },
 
-    '.asm' : { \
-        'exec'  : 'nasm',
-        'flags' : '-f elf',
-        'inc'   : '-i__inc__',
+    '.S' : { \
+        'exec'  : 'powerpc-linux-gnu-gcc',
+        'flags' : '-c -fno-builtin -fno-stack-protector',
+        'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
-        'dep'   : '-M __src__ > __dep__',
+        'dep'   : '-MM __src__ > __dep__',
     },
     
     'ld' : { \
-        'exec'  : 'ld',
-        'flags' : '-m elf_i386',
+        'exec'  : 'powerpc-linux-gnu-ld',
+        'flags' : '-s',
         'script': '-T __script__',
         'obj'   : '-o __target__ __obj__',
     },
     
+    'ar' : { \
+        'exec'  : 'powerpc-linux-gnu-ar',
+        'flags' : 'crD',
+        'obj'   : '__target__ __obj__',
+    },
+    
     'strip' : { \
-        'exec'  : 'strip',
+        'exec'  : 'powerpc-linux-gnu-strip',
         'flags' : '',
         'obj'   : '__target__',
     },
     
     'gen_bin' : { \
-        'exec'  : 'objcopy',
+        'exec'  : 'powerpc-linux-gnu-objcopy',
         'flags' : '-O binary',
         'obj'   : '__src__ __target__',
     },
@@ -43,143 +49,57 @@ global_tools = { \
 boot_tools = { \
     '.c' : { \
         'exec'  : 'powerpc-linux-gnu-gcc',
-        'flags' : '-c -fno-builtin -fno-stack-protector -O0 -m32 -fno-tree-loop-optimize',
+        'flags' : '-c -fno-builtin -fno-stack-protector -O2',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
         'dep'   : '-MM __src__ > __dep__',
     },
 
-    '.asm' : { \
-        'exec'  : 'powerpc-linux-gnu-as',
-        'flags' : '',
-        'inc'   : '-i__inc__',
+    '.S' : { \
+        'exec'  : 'powerpc-linux-gnu-gcc',
+        'flags' : '-c -fno-builtin -fno-stack-protector',
+        'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
-        'dep'   : '-M __src__ > __dep__',
+        'dep'   : '-MM __src__ > __dep__',
     },
     
     'ld' : { \
         'exec'  : 'powerpc-linux-gnu-ld',
-        'flags' : '-m elf_i386 -s',
+        'flags' : '-s',
         'script': '-T __script__',
         'obj'   : '-o __target__ __obj__',
     },
 }
 
-def build_boot_fp():
-    print_info('boot.fp', 'Building floppy boot')
-    
-    # Get files involved
-    src_files = get_all_files(arch_dir + 'boot/floppy/', None)
-    target_file = bin_dir + 'boot/tdlrboot.fp'
-    
-    # Aseembly start section
-    direct_build_files(
-        files = [ arch_dir + 'boot/floppy/boot.asm' ],
-        target_name = obj_dir + 'boot/floopy/floppy.boot',
-        ext_dep = None,
-        tools = arch_tools['boot_tools']
-    )
-    
-    # Floppy boot section
-    build_files(
-        files = [ arch_dir + 'boot/floppy/floppy.c' ],
-        target_name = obj_dir + 'boot/floppy/floppy.elf',
-        ext_dep = [ arch_dir + 'boot/floppy/floppy.ld' ],
-        ext_flags = { 'ld/script' : arch_dir + 'boot/floppy/floppy.ld' },
-        tools = arch_tools['boot_tools']
-    )
-    gen_bin(
-        src_name = obj_dir + 'boot/floppy/floppy.elf',
-        target_name = obj_dir + 'boot/floppy/floppy.bin',
-        tools = arch_tools['boot_tools']
-    )
-    
-    # Concatinate the sections
-    cat_files(
-        files = [ obj_dir + 'boot/floopy/floppy.boot', obj_dir + 'boot/floppy/floppy.bin' ],
-        target_name = target_file,
-        tools = arch_tools['boot_tools']
-    )
-
-def build_boot():
-    if 'build_boot_fp' in arch_funcs:
-        arch_funcs['build_boot_fp']()
-        
-    if 'build_boot_hd' in arch_funcs:
-        arch_funcs['build_boot_hd']()
-        
-    if 'build_boot_cd' in arch_funcs:
-        arch_funcs['build_boot_cd']()
-
 def build_loader():
     print_info('loader', 'Building loader')
     
-    # Get files involved
-    src_files = get_all_files(arch_dir + 'loader/', None)
-    target_file = bin_dir + 'tdlrldr.bin'
-    
-    # Assembly start section
-    direct_build_files(
-        files = [ arch_dir + 'loader/start.asm' ],
-        target_name = obj_dir + 'loader/loader.start',
-        ext_dep = None,
-        tools = arch_tools['boot_tools']
-    )
-    
-    # Real mode section
     build_files(
-        files = [ arch_dir + 'loader/real.c' ],
-        target_name = obj_dir + 'loader/real.elf',
-        ext_dep = [ arch_dir + 'loader/real.ld' ],
-        ext_flags = { 'ld/script' : arch_dir + 'loader/real.ld' },
-        tools = arch_tools['boot_tools']
-    )
-    gen_bin(
-        src_name = obj_dir + 'loader/real.elf',
-        target_name = obj_dir + 'loader/real.bin',
+        files = get_all_files(arch_dir + 'loader/', [ '.S', '.c' ]),
+        target_name = obj_dir + 'loader/loader.elf',
+        ext_dep = [ arch_dir + 'loader/loader.ld' ],
+        ext_flags = { 'ld/script' : arch_dir + 'loader/loader.ld' },
         tools = arch_tools['boot_tools']
     )
     
-    # Protected mode section
-    build_files(
-        files = [ arch_dir + 'loader/protected.c' ],
-        target_name = obj_dir + 'loader/protected.elf',
-        ext_dep = [ arch_dir + 'loader/protected.ld' ],
-        ext_flags = { 'ld/script' : arch_dir + 'loader/protected.ld' },
-        tools = arch_tools['boot_tools']
-    )
     gen_bin(
-        src_name = obj_dir + 'loader/protected.elf',
-        target_name = obj_dir + 'loader/protected.bin',
-        tools = arch_tools['boot_tools']
-    )
-    
-    # Concatinate the sections
-    cat_files(
-        files = [ \
-            obj_dir + 'loader/loader.start',
-            obj_dir + 'loader/real.bin',
-            obj_dir + 'loader/protected.bin',
-        ],
-        target_name = target_file,
+        src_name = obj_dir + 'loader/loader.elf',
+        target_name = bin_dir + 'tdlrldr.bin',
         tools = arch_tools['boot_tools']
     )
     
 def build_hal():
     print_info('hal', 'Building HAL')
     build_dir(
-        arch_dir + 'hal/', [ '.c', '.asm' ],
+        arch_dir + 'hal/', [ '.c', '.S' ],
         bin_dir + 'tdlrhal.bin',
-        ext_flags = { 'ld/ext' : '-Ttext 0xFFF88000' },
+        ext_dep = [ arch_dir + 'hal/hal.ld' ],
+        ext_flags = { 'ld/script' : arch_dir + 'hal/hal.ld' },
     )
         
 def build_arch():
-    # Build boot
-    if 'build_boot' in arch_funcs:
-        arch_funcs['build_boot']()
-    
     # Build loader
     if 'build_loader' in arch_funcs:
         arch_funcs['build_loader']()
@@ -190,52 +110,46 @@ def build_arch():
     
 def build_disk():
     print_info('floppyimg', 'Building floppy image')
+
+def qemu8():
+    print_info('emulator', 'Starting SMP QEMU')
     
-    if not os.path.exists(img_dir):
-        os.makedirs(img_dir)
-    
-    # Files
-    src_files = [ \
-        bin_dir + 'boot/tdlrboot.fp',
-        bin_dir + 'tdlrldr.bin',
-        bin_dir + 'tdlrcore.img',
-    ]
-    target_name = img_dir + 'floppy.img'
-    
-    # Check if we need to rebuild the img
-    regenerate = False
-    for f in src_files:
-        if need_build(f, target_name):
-            regenerate = True
-            break
-        
-    if not regenerate:
-        return
+    loader_name = bin_dir + 'tdlrldr.bin'
+    coreimg_name = loader_name
     
     # Compose the cmd
-    cmd = tools_bin_dir + 'floppyimg ' + target_name
-    for f in src_files:
-        cmd += ' ' + f
-        
+    cmd = 'qemu-system-ppc' + \
+        ' -cpu G4 -M mac99 -m 512' + \
+        ' -nographic -serial mon:stdio' + \
+        ' -kernel ' + loader_name + \
+        ' -initrd ' + coreimg_name
+    cmd += ' -smp cores=2,threads=2,sockets=2'
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def qemu():
+    print_info('emulator', 'Starting QEMU')
+    
+    loader_name = bin_dir + 'tdlrldr.bin'
+    coreimg_name = loader_name#bin_dir + 'tdlrcore.img'
+    
+    # Compose the cmd
+    cmd = 'qemu-system-ppc' + \
+        ' -cpu G4 -M mac99 -m 512' + \
+        ' -nographic -serial mon:stdio' + \
+        ' -kernel ' + loader_name + \
+        ' -initrd ' + coreimg_name
+    
     # Execute the cmd
     code = exec_cmd(cmd)
     assert(code == 0)
     
 def start_emu():
-    print_info('emulator', 'Starting emulator')
-    
-    img_name = img_dir + 'floppy.img'
-    
-    # Compose the cmd
-    cmd = 'qemu-system-ppc' + \
-        ' -m 128' + \
-        ' -no-shutdown -no-reboot -no-kvm' + \
-        ' -smp cores=2,threads=2,sockets=2' + \
-        ' -fda ' + img_name
-        
-    # Execute the cmd
-    code = exec_cmd(cmd)
-    assert(code == 0)
+    emu_type = 'qemu'
+    if emu_type in arch_funcs:
+        arch_funcs[emu_type]()
     
 
 # Setup global tools
@@ -247,9 +161,10 @@ arch_tools['boot_tools'] = boot_tools
 # Setup callback functions
 arch_funcs['build_arch'] = build_arch
 arch_funcs['build_disk'] = build_disk
-arch_funcs['start_emu'] = start_emu
 
-arch_funcs['build_boot'] = build_boot
-arch_funcs['build_boot_fp'] = build_boot_fp
 arch_funcs['build_loader'] = build_loader
 arch_funcs['build_hal'] = build_hal
+
+arch_funcs['qemu'] = qemu
+arch_funcs['qemu8'] = qemu8
+arch_funcs['start_emu'] = start_emu

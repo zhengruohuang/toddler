@@ -212,3 +212,48 @@ void ofw_print_mem_zones()
         ret = ofw_get_mem_zone(idx++, &start, &size);
     } while (!ret);
 }
+
+
+/*
+ * Address translation
+ */
+void *ofw_translate(void *virt)
+{
+    ofw_arg_t results[4];
+    if (ofw_call("call-method", 4, 5, results, "translate", ofw_mmu, virt, 0)) {
+        putstr("Error: mmu method translate failed\n");
+        panic();
+    }
+
+    // If the translation failed then this address is probably directly mapped
+    if (!results[0]) {
+        return virt;
+        //putstr("Error: Unable to translate virtual address @ ");
+        //puthex((ulong)virt);
+        //panic();
+    }
+
+    if (sizeof(long) == sizeof(int)) {
+        // 32-bit
+        return (void *)(ulong)results[2];
+    } else {
+        // 64-bit
+        //return (void *)(((ulong)results[2] << 32) | (ulong)results[3]);
+        return NULL;
+    }
+}
+
+void ofw_test_translation()
+{
+    putstr("Virtual @ ");
+    puthex((ulong)ofw_translate);
+    putstr(" -> physical @ ");
+    puthex((ulong)ofw_translate(ofw_translate));
+    putstr("\n");
+    
+    putstr("Virtual @ ");
+    puthex((ulong)ofw_cif);
+    putstr(" -> physical @ ");
+    puthex((ulong)ofw_translate(ofw_cif));
+    putstr("\n");
+}

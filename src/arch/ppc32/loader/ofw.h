@@ -38,5 +38,7 @@ typedef ofw_arg_t (*ofw_entry_t)(struct ofw_args *args);
 extern void ofw_init(ulong ofw_entry);
 extern int ofw_get_mem_zone(int idx, ulong *start, ulong *size);
 extern void ofw_print_mem_zones();
+extern void *ofw_translate(void *virt);
+extern void ofw_test_translation();
 
 #endif

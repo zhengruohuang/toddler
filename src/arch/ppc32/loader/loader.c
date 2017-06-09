@@ -53,7 +53,7 @@ static void build_bootparam()
     boot_param.ap_stack_top_ptr = 0;
     
     // Core image
-    boot_param.coreimg_load_addr = coreimg_start_addr;
+    //boot_param.coreimg_load_addr = coreimg_start_addr;
     
     // HAL & kernel
     boot_param.hal_start_flag = 0;
@@ -64,8 +64,8 @@ static void build_bootparam()
     
     // Memory map
     boot_param.free_addr_start = 2 * 1024 * 1024;
-    boot_param.free_pfn_start = ADDR_TO_PFN(boot_param.free_addr_start);
-    boot_param.mem_size = (u64)memory_size;
+    //boot_param.free_pfn_start = ADDR_TO_PFN(boot_param.free_addr_start);
+    //boot_param.mem_size = (u64)memory_size;
     
     // Memory zones
     u32 zone_count = 0;
@@ -90,7 +90,7 @@ static void build_bootparam()
     
     // Usable memory (2MB to 128MB)
     boot_param.mem_zones[zone_count].start_paddr = 0x200000;
-    boot_param.mem_zones[zone_count].len = memory_size - 0x200000;
+    //boot_param.mem_zones[zone_count].len = memory_size - 0x200000;
     boot_param.mem_zones[zone_count].type = 1;
     zone_count++;
     
@@ -119,6 +119,7 @@ void loader_entry(ulong ofw_entry)
     init_bss();
     ofw_init(ofw_entry);
     ofw_print_mem_zones();
+    ofw_test_translation();
     
     init_mmu();
     init_caches();

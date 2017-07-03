@@ -138,6 +138,23 @@ def qemu():
     # Compose the cmd
     cmd = 'qemu-system-ppc' + \
         ' -cpu G4 -M mac99 -m 512' + \
+        ' -kernel ' + loader_name + \
+        ' -initrd ' + coreimg_name
+    #' -nographic -serial mon:stdio' + \
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+
+def qemu_text():
+    print_info('emulator', 'Starting QEMU')
+    
+    loader_name = bin_dir + 'tdlrldr.bin'
+    coreimg_name = loader_name#bin_dir + 'tdlrcore.img'
+    
+    # Compose the cmd
+    cmd = 'qemu-system-ppc' + \
+        ' -cpu G4 -M mac99 -m 512' + \
         ' -nographic -serial mon:stdio' + \
         ' -kernel ' + loader_name + \
         ' -initrd ' + coreimg_name
@@ -145,7 +162,7 @@ def qemu():
     # Execute the cmd
     code = exec_cmd(cmd)
     assert(code == 0)
-    
+
 def start_emu():
     emu_type = 'qemu'
     if emu_type in arch_funcs:
@@ -166,5 +183,6 @@ arch_funcs['build_loader'] = build_loader
 arch_funcs['build_hal'] = build_hal
 
 arch_funcs['qemu'] = qemu
+arch_funcs['qemu_text'] = qemu_text
 arch_funcs['qemu8'] = qemu8
 arch_funcs['start_emu'] = start_emu

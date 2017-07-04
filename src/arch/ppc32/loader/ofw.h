@@ -79,6 +79,7 @@ extern void *ofw_translate(void *virt);
 extern void ofw_test_translation();
 extern void ofw_setup_displays();
 extern void ofw_quiesce();
+extern void ofw_alloc_init();
 extern struct ofw_tree_node *ofw_tree_build();
 
 #endif

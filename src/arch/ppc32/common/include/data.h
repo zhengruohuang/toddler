@@ -24,6 +24,11 @@
 #endif
 
 
+#ifndef ARCH_WIDTH
+#define ARCH_WIDTH  32
+#endif
+
+
 typedef signed char         s8;
 typedef signed short        s16;
 typedef signed int          s32;

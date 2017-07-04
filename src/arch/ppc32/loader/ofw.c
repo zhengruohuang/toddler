@@ -42,18 +42,21 @@ static ofw_arg_t ofw_call(const char *service, const int nargs, const int nret, 
     va_start(list, rets);
     
     int i;
-    for (i = 0; i < nargs; i++)
+    for (i = 0; i < nargs; i++) {
         args.args[i] = va_arg(list, ofw_arg_t);
+    }
     
     va_end(list);
     
-    for (i = 0; i < nret; i++)
+    for (i = 0; i < nret; i++) {
         args.args[i + nargs] = 0;
+    }
     
     ofw_cif(&args);
     
-    for (i = 1; i < nret; i++)
+    for (i = 1; i < nret; i++) {
         rets[i - 1] = args.args[i + nargs];
+    }
     
     return args.args[nargs];
 }
@@ -233,14 +236,14 @@ void *ofw_translate(void *virt)
         //panic();
     }
 
-    if (sizeof(long) == sizeof(int)) {
-        // 32-bit
+#if (ARCH_WIDTH == 32)
         return (void *)(ulong)results[2];
-    } else {
-        // 64-bit
-        //return (void *)(((ulong)results[2] << 32) | (ulong)results[3]);
+#elif (ARCH_WIDTH == 64)
+        return (void *)(((ulong)results[2] << 32) | (ulong)results[3]);
+#else
+#error Unsupported architecture width
         return NULL;
-    }
+#endif
 }
 
 void ofw_test_translation()
@@ -403,34 +406,157 @@ void ofw_quiesce()
 
 
 /*
- * Copy device tree
+ * Firmware memory allocation
  */
-#define OFW_TREE_ALLOC_POOL_SIZE    32768
 #define ALIGN_UP(s, a)  (((s) + ((a) - 1)) & ~((a) - 1))
+#define PAGE_SIZE 4096
 
-static char path[OFW_TREE_PATH_MAX_LEN + 1];
-static char name[OFW_TREE_PROPERTY_MAX_NAMELEN];
-static char name2[OFW_TREE_PROPERTY_MAX_NAMELEN];
+static void *ofw_claim_virt_any(const int len, const int alignment)
+{
+    ofw_arg_t addr;
+    int ret = (int)ofw_call("call-method", 5, 2, &addr, "claim", ofw_mmu, alignment, len, (ofw_arg_t)0);
+    if (ret || !(int)addr) {
+        putstr("Error: mmu method claim failed\n");
+        panic();
+    }
+    
+    return (void *)addr;
+}
 
-static char ofw_tree_alloc_pool[OFW_TREE_ALLOC_POOL_SIZE];
-static int ofw_tree_alloc_offset = 0;
+static void *ofw_claim_phys_any(const int len, const int alignment)
+{
+    void *addr = NULL;
+    int ret = -1;
+    
+#if (ARCH_WIDTH == 32)
+    ofw_arg_t retaddr[1];
+    ret = ofw_call("call-method", 5, 2, retaddr, "claim", ofw_memory_prop, alignment, len, (ofw_arg_t)0);
+    addr = (void *)retaddr[0];
+    
+#elif (ARCH_WIDTH == 64)
+    ofw_arg_t retaddr[2];
+    ret = ofw_call("call-method", 6, 3, retaddr, "claim", ofw_memory_prop, alignment, len, (ofw_arg_t)0, (ofw_arg_t)0);
+    addr = (void *)((retaddr[0] << 32) | retaddr[1]);
+    
+#else
+#error Unsupported architecture width
+#endif
+    
+    if (ret || !addr) {
+        putstr("Error: memory method claim failed\n");
+        panic();
+    }
+    
+    return addr;
+}
 
-static void *ofw_tree_alloc(int size, int align)
+static void ofw_map(const void *phys, const void *virt, const int size, const ofw_arg_t mode)
+{
+    ofw_arg_t phys_hi;
+    ofw_arg_t phys_lo;
+    
+#if (ARCH_WIDTH == 32)
+    phys_hi = (ofw_arg_t)phys;
+    phys_lo = 0;
+    
+#elif (ARCH_WIDTH == 64)
+    phys_hi = (ofw_arg_t)phys >> 32;
+    phys_lo = (ofw_arg_t)phys & 0xffffffff;
+    
+#else
+#error Unsupported architecture width
+#endif
+    
+    ofw_arg_t ret = ofw_call("call-method", 7, 1, NULL, "map", ofw_mmu, mode, ALIGN_UP(size, PAGE_SIZE), virt, phys_hi, phys_lo);
+    
+    if (ret != 0) {
+        putstr("Error: Unable to map ");
+        puthex((ulong)virt);
+        putstr(" to ");
+        puthex((ulong)phys);
+        putstr(" (size: ");
+        puthex((ulong)size);
+        putstr(")\n");
+        
+        panic();
+    }
+}
+
+#define OFW_MEMORY_POOL_SIZE 32768
+
+static char *ofw_mempool_pool = NULL;
+static int ofw_mempool_offset = 0;
+
+static void memzero(void *src, int size)
+{
+    int i;
+    char *ptr = (char *)src;
+    
+    for (i = 0; i < size; i++) {
+        *(ptr++) = 0;
+    }
+    
+}
+
+static void *ofw_mempool_alloc(int size, int align)
 {
     if (align) {
         size = ALIGN_UP(size, align);
     }
     
-    if (ofw_tree_alloc_offset + size > OFW_TREE_ALLOC_POOL_SIZE) {
+    if (ofw_mempool_offset + size > OFW_MEMORY_POOL_SIZE) {
         putstr("Tree allocator run of of memory!\n");
         return NULL;
     }
     
-    void *addr = &ofw_tree_alloc_pool + ofw_tree_alloc_offset;
-    ofw_tree_alloc_offset += size;
+    void *addr = ofw_mempool_pool + ofw_mempool_offset;
+    ofw_mempool_offset += size;
+    
+//     putstr("Alloc @ ");
+//     puthex((ulong)ofw_mempool_pool);
+//     putstr("\n");
     
     return addr;
 }
+
+/*
+ * The allocated memory is always page-aligned.
+ *
+ * @param base    Virtual memory area address.
+ * @param base_pa Physical memory area address.
+ * @param size    Requested size in bytes.
+ * @param min_pa  Minimal allowed physical address.
+ *
+ */
+static void ofw_alloc(void **base, void **base_pa, const int size)
+{
+    *base = ofw_claim_virt_any(size, PAGE_SIZE);
+    *base_pa = ofw_claim_phys_any(size, PAGE_SIZE);
+    
+    ofw_map(*base_pa, *base, ALIGN_UP(size, PAGE_SIZE), (ofw_arg_t)-1);
+}
+
+void ofw_alloc_init()
+{
+    void *pool_pa = NULL;
+    ofw_alloc((void **)&ofw_mempool_pool, &pool_pa, OFW_MEMORY_POOL_SIZE);
+    
+    putstr("Memory pool initialized, virt @ ");
+    puthex((ulong)ofw_mempool_pool);
+    putstr(", phys @ ");
+    puthex((ulong)pool_pa);
+    putstr("\n");
+    
+    memzero(ofw_mempool_pool, OFW_MEMORY_POOL_SIZE);
+}
+
+
+/*
+ * Copy device tree
+ */
+static char path[OFW_TREE_PATH_MAX_LEN + 1];
+static char name[OFW_TREE_PROPERTY_MAX_NAMELEN];
+static char name2[OFW_TREE_PROPERTY_MAX_NAMELEN];
 
 static void *ofw_tree_rebase(void *addr)
 {
@@ -439,17 +565,17 @@ static void *ofw_tree_rebase(void *addr)
 
 static struct ofw_tree_node *ofw_tree_alloc_node()
 {
-    return (struct ofw_tree_node *)ofw_tree_alloc(sizeof(struct ofw_tree_node), 4);
+    return (struct ofw_tree_node *)ofw_mempool_alloc(sizeof(struct ofw_tree_node), 4);
 }
 
 static struct ofw_tree_prop *ofw_tree_alloc_prop(int count)
 {
-    return (struct ofw_tree_prop *)ofw_tree_alloc(count * sizeof(struct ofw_tree_prop), 4);
+    return (struct ofw_tree_prop *)ofw_mempool_alloc(count * sizeof(struct ofw_tree_prop), 4);
 }
 
 static char *ofw_tree_alloc_space(int size)
 {
-    char *addr = ofw_tree_alloc(size + 1, 4);
+    char *addr = ofw_mempool_alloc(size + 1, 4);
     if (addr) {
         addr[size] = '\0';
     }
@@ -472,17 +598,6 @@ static ofw_arg_t ofw_next_prop(const ofw_phandle_t device, char *previous, char 
     return ofw_call("nextprop", 3, 1, NULL, device, previous, buf);
 }
 
-static void memzero(void *src, int size)
-{
-    int i;
-    char *ptr = (char *)src;
-    
-    for (i = 0; i < size; i++) {
-        *(ptr++) = 0;
-    }
-    
-}
-
 static void memcpy(void *dest, const void *src, int count)
 {
     int i;
@@ -493,7 +608,6 @@ static void memcpy(void *dest, const void *src, int count)
     for (i = 0; i < count; i++) {
         *(d++) = *(s++);
     }
-    
 }
 
 /*
@@ -510,7 +624,7 @@ static void memcpy(void *dest, const void *src, int count)
  * @param current      OpenFirmware phandle to the current device tree node.
  *
  */
-static void ofw_tree_node_process(struct ofw_tree_node *current_node, struct ofw_tree_node *parent_node, ofw_phandle_t current)
+static void ofw_tree_node_process(struct ofw_tree_node *current_node, struct ofw_tree_node *parent_node, ofw_phandle_t current, int level)
 {
     while (current_node) {
         // Init current node
@@ -543,12 +657,21 @@ static void ofw_tree_node_process(struct ofw_tree_node *current_node, struct ofw
         da_name[len] = '\0';
         current_node->name = (char *)ofw_tree_rebase(da_name);
         
+        // Tell user about this node
+        int j;
+        for (j = 0; j < level; j++) {
+            putstr("  ");
+        }
+        putstr("Node: ");
+        putstr(current_node->name);
+        putstr("\n");
+        
         // Recursively process the potential child node.
         ofw_phandle_t child = ofw_get_child_node(current);
         if ((child != 0) && (child != (ofw_phandle_t)-1)) {
             struct ofw_tree_node *child_node = ofw_tree_alloc_node();
             if (child_node) {
-                ofw_tree_node_process(child_node, current_node, child);
+                ofw_tree_node_process(child_node, current_node, child, level + 1);
                 current_node->child = (struct ofw_tree_node *)ofw_tree_rebase(child_node);
             }
         }
@@ -559,13 +682,6 @@ static void ofw_tree_node_process(struct ofw_tree_node *current_node, struct ofw
             current_node->num_props++;
             memcpy(name, name2, OFW_TREE_PROPERTY_MAX_NAMELEN);
         }
-        
-        // Tell user about this node
-        putstr("Node: ");
-        putstr(current_node->name);
-        putstr(", num props: ");
-        puthex(current_node->num_props);
-        putstr("\n");
         
         if (!current_node->num_props) {
             return;
@@ -602,6 +718,10 @@ static void ofw_tree_node_process(struct ofw_tree_node *current_node, struct ofw
             }
             
             // Tell user about this prop
+            int j;
+            for (j = 0; j < level; j++) {
+                putstr("  ");
+            }
             putstr("  Prop: ");
             if (is_ascii(property[i].name[0])) {
                 putstr(property[i].name);
@@ -645,11 +765,11 @@ static void ofw_tree_node_process(struct ofw_tree_node *current_node, struct ofw
  */
 struct ofw_tree_node *ofw_tree_build()
 {
-    memzero(&ofw_tree_alloc_pool, OFW_TREE_ALLOC_POOL_SIZE);
+    putstr("To build device tree\n");
     
     struct ofw_tree_node *root = ofw_tree_alloc_node();
     if (root) {
-        ofw_tree_node_process(root, NULL, ofw_root);
+        ofw_tree_node_process(root, NULL, ofw_root, 0);
     }
     
     // The firmware client interface does not automatically include the "ssm" node in the list of children of "/"
@@ -657,11 +777,13 @@ struct ofw_tree_node *ofw_tree_build()
     if (ssm_node != (ofw_phandle_t)-1) {
         struct ofw_tree_node *ssm = ofw_tree_alloc_node();
         if (ssm) {
-            ofw_tree_node_process(ssm, root, ssm_node);
+            ofw_tree_node_process(ssm, root, ssm_node, 1);
             ssm->peer = root->child;
             root->child = (struct ofw_tree_node *)ofw_tree_rebase(ssm);
         }
     }
+    
+    putstr("Done\n");
     
     return (struct ofw_tree_node *)ofw_tree_rebase(root);
 }

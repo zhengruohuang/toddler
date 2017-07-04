@@ -121,6 +121,7 @@ void loader_entry(ulong ofw_entry)
     ofw_print_mem_zones();
     ofw_test_translation();
     ofw_setup_displays();
+    ofw_alloc_init();
     ofw_tree_build();
     
     init_mmu();

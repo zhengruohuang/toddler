@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "loader/ofw.h"
+#include "loader/mempool.h"
 
 
 static ofw_phandle_t ofw_chosen;
@@ -13,12 +14,13 @@ static ofw_entry_t ofw_cif;
 
 
 /*
- * Other helper functions
+ * Helper functions
  */
 static void panic()
 {
     while (1);
 }
+
 
 /*
  * Perform a call to OpenFirmware client interface
@@ -115,6 +117,64 @@ static void puthex(ulong hex)
     putstr(buf);
 }
 
+void ofw_printf(char *fmt, ...)
+{
+    char *c = fmt;
+    
+    va_list args;
+    va_start(args, fmt);
+
+    while (*c) {
+        switch (*c) {
+        case '%': {
+            char token = *++c;
+            switch (token) {
+            case 'x':
+            case 'h':
+            case 'p': {
+                ulong val = va_arg(args, ulong);
+                puthex(val);
+                break;
+            }
+            case 'd': {
+                ulong val = va_arg(args, ulong);
+                puthex(val);
+                break;
+            }
+            case 's' : {
+                char * val = va_arg(args, char *);
+                putstr(val);
+                break;
+            }
+            case '%':
+                putchar('%');
+                break;
+            default:
+                putchar('%');
+                putchar(token);
+                break;
+            }
+            
+            break;
+        }
+        case '\n':
+        case '\r':
+            putchar('\n');
+            break;
+        case '\t':
+            putstr("    ");
+            break;
+        default:
+            putchar(*c);
+            break;
+        }
+        
+        c++;
+    }
+
+    va_end(args);
+}
+
 
 /*
  * OFW init
@@ -176,13 +236,13 @@ void ofw_init(ulong ofw_entry)
 /*
  * Memory map
  */
-static ulong mem_zone_buf[32];
+static ulong mem_zone_buf[4];
 
-int ofw_get_mem_zone(int idx, ulong *start, ulong *size)
+int ofw_mem_zone(int idx, ulong *start, ulong *size)
 {
     int bytes = (int)ofw_get_prop(ofw_memory, "reg", mem_zone_buf, sizeof(mem_zone_buf));
     if (bytes <= 0) {
-        putstr("Error: Unable to get physical memory information, halting.\n");
+        putstr("Error: Unable to get physical memory information\n");
         panic();
     }
     
@@ -196,24 +256,6 @@ int ofw_get_mem_zone(int idx, ulong *start, ulong *size)
     *size = mem_zone_buf[cell_idx + 1];
     
     return 0;
-}
-
-void ofw_print_mem_zones()
-{
-    ulong start = 0;
-    ulong size = 0;
-    int idx = 0;
-    
-    int ret = ofw_get_mem_zone(idx++, &start, &size);
-    do {
-        putstr("Memory zone start @ ");
-        puthex(start);
-        putstr(", size: ");
-        puthex(size);
-        putstr("\n");
-        
-        ret = ofw_get_mem_zone(idx++, &start, &size);
-    } while (!ret);
 }
 
 
@@ -231,9 +273,6 @@ void *ofw_translate(void *virt)
     // If the translation failed then this address is probably directly mapped
     if (!results[0]) {
         return virt;
-        //putstr("Error: Unable to translate virtual address @ ");
-        //puthex((ulong)virt);
-        //panic();
     }
 
 #if (ARCH_WIDTH == 32)
@@ -244,21 +283,6 @@ void *ofw_translate(void *virt)
 #error Unsupported architecture width
         return NULL;
 #endif
-}
-
-void ofw_test_translation()
-{
-    putstr("Virtual @ ");
-    puthex((ulong)ofw_translate);
-    putstr(" -> physical @ ");
-    puthex((ulong)ofw_translate(ofw_translate));
-    putstr("\n");
-    
-    putstr("Virtual @ ");
-    puthex((ulong)ofw_cif);
-    putstr(" -> physical @ ");
-    puthex((ulong)ofw_translate(ofw_cif));
-    putstr("\n");
 }
 
 
@@ -288,111 +312,78 @@ static int strcmp(const char *s1, const char *s2)
     return result;
 }
 
-static void ofw_setup_display(ofw_phandle_t handle)
+int ofw_screen_is_graphic()
 {
-    // Check for device type
+    // Open screen device
+    ofw_phandle_t ofw_screen = ofw_find_dev("screen");
+    if (ofw_screen == (ofw_phandle_t)-1) {
+        putstr("Unable to open screen device");
+        panic();
+    }
+    
+    // Get device type
     char device_type[OFW_TREE_PROPERTY_MAX_VALUELEN];
-    int ret = (int)ofw_get_prop(handle, "device_type", device_type, OFW_TREE_PROPERTY_MAX_VALUELEN);
+    int ret = (int)ofw_get_prop(ofw_screen, "device_type", device_type, OFW_TREE_PROPERTY_MAX_VALUELEN);
+    if (ret <= 0) {
+        return 0;
+    }
+    
+    // Check device type
+    device_type[OFW_TREE_PROPERTY_MAX_VALUELEN - 1] = '\0';
+    if (strcmp(device_type, "display") != 0) {
+        return 0;
+    }
+    
+    return 1;
+}
+
+void ofw_screen_info(void **addr, int *width, int *height, int *depth, int *bpl)
+{
+    // Open screen device
+    ofw_phandle_t ofw_screen = ofw_find_dev("screen");
+    if (ofw_screen == (ofw_phandle_t)-1) {
+        putstr("Unable to open screen device");
+        panic();
+    }
+    
+    // Get device type
+    char device_type[OFW_TREE_PROPERTY_MAX_VALUELEN];
+    int ret = (int)ofw_get_prop(ofw_screen, "device_type", device_type, OFW_TREE_PROPERTY_MAX_VALUELEN);
     if (ret <= 0) {
         return;
     }
     
+    // Check device type
     device_type[OFW_TREE_PROPERTY_MAX_VALUELEN - 1] = '\0';
     if (strcmp(device_type, "display") != 0) {
         return;
     }
     
-    // See if there is enough space
-    if (ofw_display_count >= sizeof(ofw_displays) / sizeof(struct ofw_display)) {
-        return;
-    }
-    
     // Get display info
-    ofw_prop_t fb_addr, fb_width, fb_height, fb_depth, fb_bytes_per_line;
+    ofw_prop_t fb_addr, fb_width, fb_height, fb_depth, fb_bpl;
     
-    if ((int)ofw_get_prop(handle, "address", &fb_addr, sizeof(fb_addr)) <= 0) {
+    if ((int)ofw_get_prop(ofw_screen, "address", &fb_addr, sizeof(fb_addr)) <= 0) {
         fb_addr = 0;
     }
-    if ((int)ofw_get_prop(handle, "width", &fb_width, sizeof(fb_width)) <= 0) {
+    if ((int)ofw_get_prop(ofw_screen, "width", &fb_width, sizeof(fb_width)) <= 0) {
         fb_width = 0;
     }
-    if ((int)ofw_get_prop(handle, "height", &fb_height, sizeof(fb_height)) <= 0) {
+    if ((int)ofw_get_prop(ofw_screen, "height", &fb_height, sizeof(fb_height)) <= 0) {
         fb_height = 0;
     }
-    if ((int)ofw_get_prop(handle, "depth", &fb_depth, sizeof(fb_depth)) <= 0) {
+    if ((int)ofw_get_prop(ofw_screen, "depth", &fb_depth, sizeof(fb_depth)) <= 0) {
         fb_depth = 0;
     }
-    if ((int)ofw_get_prop(handle, "linebytes", &fb_bytes_per_line, sizeof(fb_bytes_per_line)) <= 0) {
-        fb_bytes_per_line = 0;
+    if ((int)ofw_get_prop(ofw_screen, "linebytes", &fb_bpl, sizeof(fb_bpl)) <= 0) {
+        fb_bpl = 0;
     }
     
-    putstr("Frame buffer @ ");
-    puthex((ulong)fb_addr);
-    putstr(", Width: ");
-    puthex((ulong)fb_width);
-    putstr(", Height: ");
-    puthex((ulong)fb_height);
-    putstr(", Depth: ");
-    puthex((ulong)fb_depth);
-    putstr(", Bytes per Line: ");
-    puthex((ulong)fb_bytes_per_line);
-    putstr("\n");
-    
-    // Save this display
-    ofw_displays[ofw_display_count].addr = (unsigned long)fb_addr;
-    ofw_displays[ofw_display_count].width = (int)fb_width;
-    ofw_displays[ofw_display_count].height = (int)fb_height;
-    ofw_displays[ofw_display_count].depth = (int)fb_depth;
-    ofw_displays[ofw_display_count].bytes_per_line = (int)fb_bytes_per_line;
-    
-    ofw_display_count++;
-}
-
-static ofw_phandle_t ofw_get_child_node(const ofw_phandle_t node)
-{
-    return (ofw_phandle_t)ofw_call("child", 1, 1, NULL, node);
-}
-
-static ofw_phandle_t ofw_get_peer_node(const ofw_phandle_t node)
-{
-    return (ofw_phandle_t)ofw_call("peer", 1, 1, NULL, node);
-}
-
-static void ofw_detect_displays(ofw_phandle_t current)
-{
-    while ((current != 0) && (current != (ofw_phandle_t)-1)) {
-        // Set up current device if it's a display
-        ofw_setup_display(current);
-        
-        // Recursively process the potential child node
-        ofw_phandle_t child = ofw_get_child_node(current);
-        if ((child != 0) && (child != (ofw_phandle_t)-1)) {
-            ofw_detect_displays(child);
-        }
-        
-        /*
-         * Iteratively process the next peer node.
-         * Note that recursion is a bad idea here.
-         * Due to the topology of the OpenFirmware device tree,
-         * the nesting of peer nodes could be to wide and the
-         * risk of overflowing the stack is too real.
-         */
-        ofw_phandle_t peer = ofw_get_peer_node(current);
-        if ((peer != 0) && (peer != (ofw_phandle_t)-1)) {
-            current = peer;
-            // Process the peer in next iteration.
-            continue;
-        }
-        
-        // No more peers on this level.
-        break;
-    }
-}
-
-void ofw_setup_displays()
-{
-    putstr("To setup displays\n");
-    ofw_detect_displays(ofw_root);
+    // Return
+    if (addr) *addr = (void *)fb_addr;
+    if (width) *width = (int)fb_width;
+    if (height) *height = (int)fb_height;
+    if (depth) *depth = (int)fb_depth;
+    if (bpl) *bpl = (int)fb_bpl;
 }
 
 
@@ -482,72 +473,12 @@ static void ofw_map(const void *phys, const void *virt, const int size, const of
     }
 }
 
-#define OFW_MEMORY_POOL_SIZE 32768
-
-static char *ofw_mempool_pool = NULL;
-static int ofw_mempool_offset = 0;
-
-static void memzero(void *src, int size)
+void ofw_alloc(void **virt, void **phys, const int size)
 {
-    int i;
-    char *ptr = (char *)src;
+    *virt = ofw_claim_virt_any(size, PAGE_SIZE);
+    *phys = ofw_claim_phys_any(size, PAGE_SIZE);
     
-    for (i = 0; i < size; i++) {
-        *(ptr++) = 0;
-    }
-    
-}
-
-static void *ofw_mempool_alloc(int size, int align)
-{
-    if (align) {
-        size = ALIGN_UP(size, align);
-    }
-    
-    if (ofw_mempool_offset + size > OFW_MEMORY_POOL_SIZE) {
-        putstr("Tree allocator run of of memory!\n");
-        return NULL;
-    }
-    
-    void *addr = ofw_mempool_pool + ofw_mempool_offset;
-    ofw_mempool_offset += size;
-    
-//     putstr("Alloc @ ");
-//     puthex((ulong)ofw_mempool_pool);
-//     putstr("\n");
-    
-    return addr;
-}
-
-/*
- * The allocated memory is always page-aligned.
- *
- * @param base    Virtual memory area address.
- * @param base_pa Physical memory area address.
- * @param size    Requested size in bytes.
- * @param min_pa  Minimal allowed physical address.
- *
- */
-static void ofw_alloc(void **base, void **base_pa, const int size)
-{
-    *base = ofw_claim_virt_any(size, PAGE_SIZE);
-    *base_pa = ofw_claim_phys_any(size, PAGE_SIZE);
-    
-    ofw_map(*base_pa, *base, ALIGN_UP(size, PAGE_SIZE), (ofw_arg_t)-1);
-}
-
-void ofw_alloc_init()
-{
-    void *pool_pa = NULL;
-    ofw_alloc((void **)&ofw_mempool_pool, &pool_pa, OFW_MEMORY_POOL_SIZE);
-    
-    putstr("Memory pool initialized, virt @ ");
-    puthex((ulong)ofw_mempool_pool);
-    putstr(", phys @ ");
-    puthex((ulong)pool_pa);
-    putstr("\n");
-    
-    memzero(ofw_mempool_pool, OFW_MEMORY_POOL_SIZE);
+    ofw_map(*phys, *virt, ALIGN_UP(size, PAGE_SIZE), (ofw_arg_t)-1);
 }
 
 
@@ -560,22 +491,22 @@ static char name2[OFW_TREE_PROPERTY_MAX_NAMELEN];
 
 static void *ofw_tree_rebase(void *addr)
 {
-    return addr;
+    return mempool_to_phys(addr);
 }
 
 static struct ofw_tree_node *ofw_tree_alloc_node()
 {
-    return (struct ofw_tree_node *)ofw_mempool_alloc(sizeof(struct ofw_tree_node), 4);
+    return (struct ofw_tree_node *)mempool_alloc(sizeof(struct ofw_tree_node), 0);
 }
 
 static struct ofw_tree_prop *ofw_tree_alloc_prop(int count)
 {
-    return (struct ofw_tree_prop *)ofw_mempool_alloc(count * sizeof(struct ofw_tree_prop), 4);
+    return (struct ofw_tree_prop *)mempool_alloc(count * sizeof(struct ofw_tree_prop), 0);
 }
 
 static char *ofw_tree_alloc_space(int size)
 {
-    char *addr = ofw_mempool_alloc(size + 1, 4);
+    char *addr = mempool_alloc(size + 1, 0);
     if (addr) {
         addr[size] = '\0';
     }
@@ -596,6 +527,16 @@ static ofw_arg_t ofw_get_proplen(const ofw_phandle_t device, const char *name)
 static ofw_arg_t ofw_next_prop(const ofw_phandle_t device, char *previous, char *buf)
 {
     return ofw_call("nextprop", 3, 1, NULL, device, previous, buf);
+}
+
+static ofw_phandle_t ofw_get_child_node(const ofw_phandle_t node)
+{
+    return (ofw_phandle_t)ofw_call("child", 1, 1, NULL, node);
+}
+
+static ofw_phandle_t ofw_get_peer_node(const ofw_phandle_t node)
+{
+    return (ofw_phandle_t)ofw_call("peer", 1, 1, NULL, node);
 }
 
 static void memcpy(void *dest, const void *src, int count)
@@ -662,9 +603,7 @@ static void ofw_tree_node_process(struct ofw_tree_node *current_node, struct ofw
         for (j = 0; j < level; j++) {
             putstr("  ");
         }
-        putstr("Node: ");
-        putstr(current_node->name);
-        putstr("\n");
+        ofw_printf("Node: %s\n", da_name[0] ? da_name : "(root)");
         
         // Recursively process the potential child node.
         ofw_phandle_t child = ofw_get_child_node(current);
@@ -717,24 +656,7 @@ static void ofw_tree_node_process(struct ofw_tree_node *current_node, struct ofw
                 property[i].value = NULL;
             }
             
-            // Tell user about this prop
-            int j;
-            for (j = 0; j < level; j++) {
-                putstr("  ");
-            }
-            putstr("  Prop: ");
-            if (is_ascii(property[i].name[0])) {
-                putstr(property[i].name);
-            } else {
-                puthex(*(unsigned long *)property[i].name);
-            }
-            putstr(", value: ");
-            if (is_ascii(((char *)property[i].value)[0]) && '`' != ((char *)property[i].value)[0]) {
-                putstr((char *)property[i].value);
-            } else {
-                puthex(*(unsigned long *)property[i].value);
-            }
-            putstr("\n");
+            //ofw_printf(" %s\n", property[i].name);
         }
         
         // Just in case we ran out of memory
@@ -760,12 +682,25 @@ static void ofw_tree_node_process(struct ofw_tree_node *current_node, struct ofw
     }
 }
 
+static void ofw_tree_node_extra(struct ofw_tree_node *root, char *name)
+{
+    ofw_phandle_t handle = ofw_find_dev(name);
+    if (handle != (ofw_phandle_t)-1) {
+        struct ofw_tree_node *node = ofw_tree_alloc_node();
+        if (node) {
+            ofw_tree_node_process(node, root, handle, 1);
+            node->peer = root->child;
+            root->child = (struct ofw_tree_node *)ofw_tree_rebase(node);
+        }
+    }
+}
+
 /*
  * Construct memory representation of OpenFirmware device tree
  */
 struct ofw_tree_node *ofw_tree_build()
 {
-    putstr("To build device tree\n");
+    putstr("Copying device tree\n");
     
     struct ofw_tree_node *root = ofw_tree_alloc_node();
     if (root) {
@@ -773,15 +708,7 @@ struct ofw_tree_node *ofw_tree_build()
     }
     
     // The firmware client interface does not automatically include the "ssm" node in the list of children of "/"
-    ofw_phandle_t ssm_node = ofw_find_dev("/ssm@0,0");
-    if (ssm_node != (ofw_phandle_t)-1) {
-        struct ofw_tree_node *ssm = ofw_tree_alloc_node();
-        if (ssm) {
-            ofw_tree_node_process(ssm, root, ssm_node, 1);
-            ssm->peer = root->child;
-            root->child = (struct ofw_tree_node *)ofw_tree_rebase(ssm);
-        }
-    }
+    ofw_tree_node_extra(root, "/ssm@0,0");
     
     putstr("Done\n");
     

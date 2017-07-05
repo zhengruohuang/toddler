@@ -73,13 +73,19 @@ struct ofw_tree_node {
  * OFW services
  */
 extern void ofw_init(ulong ofw_entry);
-extern int ofw_get_mem_zone(int idx, ulong *start, ulong *size);
-extern void ofw_print_mem_zones();
+extern void ofw_printf(char *fmt, ...);
+
+extern int ofw_mem_zone(int idx, ulong *start, ulong *size);
+
+extern int ofw_screen_is_graphic();
+extern void ofw_screen_info(void **addr, int *width, int *height, int *depth, int *bpl);
+
 extern void *ofw_translate(void *virt);
-extern void ofw_test_translation();
-extern void ofw_setup_displays();
+
 extern void ofw_quiesce();
-extern void ofw_alloc_init();
+
+extern void ofw_alloc(void **base, void **base_pa, const int size);
+
 extern struct ofw_tree_node *ofw_tree_build();
 
 #endif

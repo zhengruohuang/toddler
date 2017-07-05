@@ -76,16 +76,39 @@ boot_tools = { \
 def build_loader():
     print_info('loader', 'Building loader')
     
+    # Bootstrap
     build_files(
-        files = get_all_files(arch_dir + 'loader/', [ '.S', '.c' ]),
-        target_name = obj_dir + 'loader/loader.elf',
+        files = [ arch_dir + 'loader/start.S', arch_dir + 'loader/bootstrap.c' ],
+        target_name = obj_dir + 'loader/bootstrap.bin',
+        ext_dep = [ arch_dir + 'loader/bootstrap.ld' ],
+        ext_flags = { 'ld/script' : arch_dir + 'loader/bootstrap.ld' },
+        tools = arch_tools['boot_tools']
+    )
+    
+    #gen_bin(
+        #src_name = obj_dir + 'loader/bootstrap.elf',
+        #target_name = obj_dir + 'loader/bootstrap.bin',
+        #tools = arch_tools['boot_tools']
+    #)
+    
+    # The actual loader
+    build_files(
+        files = [ arch_dir + 'loader/loader.c', arch_dir + 'loader/ofw.c' ],
+        target_name = obj_dir + 'loader/loader.bin',
         ext_dep = [ arch_dir + 'loader/loader.ld' ],
         ext_flags = { 'ld/script' : arch_dir + 'loader/loader.ld' },
         tools = arch_tools['boot_tools']
     )
     
-    gen_bin(
-        src_name = obj_dir + 'loader/loader.elf',
+    #gen_bin(
+        #src_name = obj_dir + 'loader/loader.elf',
+        #target_name = obj_dir + 'loader/loader.bin',
+        #tools = arch_tools['boot_tools']
+    #)
+    
+    # Concatinate the two files
+    cat_files(
+        files = [ obj_dir + 'loader/bootstrap.bin', obj_dir + 'loader/loader.bin' ],
         target_name = bin_dir + 'tdlrldr.bin',
         tools = arch_tools['boot_tools']
     )

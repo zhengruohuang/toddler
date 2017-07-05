@@ -1,14 +1,9 @@
 OUTPUT_FORMAT("binary")
-ENTRY(loader_entry)
+ENTRY(start)
 
 SECTIONS
 {
-    . = 0xFFFFC;
-    
-    .image_size : {
-        LONG(__bss_start - __start);
-    }
-    
+    . = 0x01000000;
     __start = .;
 
     __text_start = .;

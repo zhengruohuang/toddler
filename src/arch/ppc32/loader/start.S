@@ -10,7 +10,7 @@ start:
     //stw r5, 0(r4)
 
     addi r3, r5, 0
-    bl loader_entry
+    bl bootstrap
     nop
     
     b .

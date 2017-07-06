@@ -1,5 +1,4 @@
 #include "common/include/data.h"
-#include "common/include/task.h"
 #include "common/include/memlayout.h"
 #include "hal/include/print.h"
 #include "hal/include/cpu.h"
@@ -281,7 +280,7 @@ void general_except_handler(struct context *context)
         if (pending_irq != -1) {
             vector = INT_VECTOR_EXTERNAL_BASE + pending_irq;
             
-            handler = handler = int_handler_list[vector];
+            handler = int_handler_list[vector];
             if (NULL == (void *)handler) {
                 handler = int_handler_dummy;
             }

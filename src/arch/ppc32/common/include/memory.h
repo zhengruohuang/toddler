@@ -32,8 +32,23 @@
 #endif
 
 
+/*
+ * Alignment
+ */
 #ifndef ALIGN_UP
 #define ALIGN_UP(s, a)  (((s) + ((a) - 1)) & ~((a) - 1))
+#endif
+
+
+/*
+ * Addr <--> PFN
+ */
+#ifndef PFN_TO_ADDR
+#define PFN_TO_ADDR(pfn)        ((pfn) << 12)
+#endif
+
+#ifndef ADDR_TO_PFN
+#define ADDR_TO_PFN(addr)       ((addr) >> 12)
 #endif
 
 

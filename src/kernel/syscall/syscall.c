@@ -4,7 +4,7 @@
 
 
 #include "common/include/data.h"
-#include "common/include/task.h"
+#include "common/include/kdisp.h"
 #include "common/include/syscall.h"
 #include "kernel/include/hal.h"
 #include "kernel/include/proc.h"

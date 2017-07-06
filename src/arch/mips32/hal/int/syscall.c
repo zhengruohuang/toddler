@@ -1,5 +1,6 @@
 #include "common/include/data.h"
-#include "common/include/task.h"
+#include "common/include/kdisp.h"
+#include "common/include/context.h"
 #include "common/include/syscall.h"
 #include "hal/include/print.h"
 #include "hal/include/int.h"

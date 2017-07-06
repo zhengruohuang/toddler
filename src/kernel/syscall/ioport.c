@@ -1,7 +1,7 @@
 /*
  * System call worker thread - read and write IO ports
  */
-#include "common/include/task.h"
+#include "common/include/kdisp.h"
 #include "kernel/include/hal.h"
 #include "kernel/include/syscall.h"
 

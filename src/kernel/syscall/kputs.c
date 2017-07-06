@@ -1,7 +1,7 @@
 /*
  * System call worker thread - kputs
  */
-#include "common/include/task.h"
+#include "common/include/kdisp.h"
 #include "kernel/include/hal.h"
 #include "kernel/include/proc.h"
 #include "kernel/include/mem.h"

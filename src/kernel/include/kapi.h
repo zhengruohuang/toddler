@@ -3,7 +3,6 @@
 
 
 #include "common/include/data.h"
-#include "common/include/task.h"
 #include "common/include/syscall.h"
 #include "kernel/include/syscall.h"
 #include "kernel/include/proc.h"

@@ -1,5 +1,6 @@
 #include "common/include/data.h"
-#include "common/include/task.h"
+#include "common/include/context.h"
+#include "common/include/kdisp.h"
 #include "hal/include/int.h"
 #include "hal/include/lib.h"
 #include "hal/include/drv.h"

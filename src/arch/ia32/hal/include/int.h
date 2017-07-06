@@ -3,7 +3,8 @@
 
 
 #include "common/include/data.h"
-#include "common/include/task.h"
+#include "common/include/context.h"
+#include "common/include/kdisp.h"
 
 
 // Number of IDT entries

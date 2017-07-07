@@ -36,18 +36,6 @@ typedef ofw_arg_t (*ofw_entry_t)(struct ofw_args *args);
 
 
 /*
- * OFW display prop record
- */
-struct ofw_display {
-    unsigned long addr;
-    int width;
-    int height;
-    int depth;
-    int bytes_per_line;
-};
-
-
-/*
  * Memory representation of OpenFirmware device tree node and property
  */
 struct ofw_tree_prop {
@@ -84,7 +72,7 @@ extern void *ofw_translate(void *virt);
 
 extern void ofw_quiesce();
 
-extern void ofw_alloc(void **base, void **base_pa, const int size);
+extern void ofw_alloc(void **virt, void **phys, const int size, int align);
 
 extern struct ofw_tree_node *ofw_tree_build();
 

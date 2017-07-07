@@ -1,18 +1,22 @@
 #include "common/include/data.h"
-#include "common/include/bootparam.h"
 #include "common/include/memory.h"
+#include "common/include/memlayout.h"
+#include "common/include/bootparam.h"
+#include "common/include/coreimg.h"
+#include "common/include/elf32.h"
 #include "loader/ofw.h"
 #include "loader/mempool.h"
-
-
-#define MEMPOOL_SIZE    65536
-#define HAL_AREA_SIZE   0x100000    // 1MB
-#define PHT_SIZE        65536       // 64KB
 
 
 /*
  * Helper functions
  */
+static void panic()
+{
+    ofw_printf("\nPanic!\n");
+    while (1);
+}
+
 static void memzero(void *src, int size)
 {
     int i;
@@ -36,6 +40,32 @@ static void memcpy(void *dest, const void *src, int count)
     }
 }
 
+static int strdiff(char *src, char *dest, int len)
+{
+    int i;
+    
+    for (i = 0; i < len; i++) {
+        if (src[i] != dest[i]) {
+            return 1;
+        } else if (src[i] == 0) {
+            return 0;
+        }
+    }
+    
+    return 0;
+}
+
+static u32 swap_endian32(u32 val)
+{
+    u32 rr = val & 0xff;
+    u32 rl = (val >> 8) & 0xff;
+    u32 lr = (val >> 16) & 0xff;
+    u32 ll = (val >> 24) & 0xff;
+    
+    u32 swap = (rr << 24) | (rl << 16) | (lr << 8) | ll;
+    return swap;
+}
+
 
 /*
  * BSS
@@ -54,20 +84,20 @@ static void init_bss()
 
 
 /*
- * Memory pool
+ * Memory layout
  */
 static void *claim_virt = NULL;
 static void *claim_phys = NULL;
 static int claim_size = 0;
 
-static void *coreimg_virt = NULL;
-static void *coreimg_phys = NULL;
+static struct pht_group *pht_virt = NULL;
+static struct pht_group *pht_phys = NULL;
+
+static struct coreimg_fat *coreimg_virt = NULL;
+static struct coreimg_fat *coreimg_phys = NULL;
 
 static void *hal_virt = NULL;
 static void *hal_phys = NULL;
-
-static struct pht_group *pht_virt = NULL;
-static struct pht_group *pht_phys = NULL;
 
 static struct page_frame *pde_virt = NULL;
 static struct page_frame *pde_phys = NULL;
@@ -81,26 +111,31 @@ static void *bsp_area_phys = NULL;
 static void *mempool_virt = NULL;
 static void *mempool_phys = NULL;
 
-static void create_mempool(void *coreimg_addr, int coreimg_size)
+static void init_mem_layout(void *coreimg_addr, int coreimg_size)
 {
     // Calculate the total size needed
+    int pht_area = ALIGN_UP(LOADER_PHT_SIZE, PAGE_SIZE);
     int coreimg_area = ALIGN_UP(coreimg_size, PAGE_SIZE);
     int hal_area = ALIGN_UP(HAL_AREA_SIZE, PAGE_SIZE);
-    int pht_area = ALIGN_UP(PHT_SIZE + PHT_SIZE, PAGE_SIZE);
     int page_area = PAGE_SIZE + PAGE_SIZE;
     int bsp_area = PAGE_SIZE + PAGE_SIZE;
-    int mempool_area = ALIGN_UP(MEMPOOL_SIZE, PAGE_SIZE);
+    int mempool_area = ALIGN_UP(LOADER_MEMPOOL_SIZE, PAGE_SIZE);
     
-    claim_size = coreimg_area + hal_area + pht_area + page_area + bsp_area + mempool_area;
+    claim_size = pht_area + coreimg_area + hal_area + page_area + bsp_area + mempool_area;
     
     // Claim memory
-    ofw_alloc(&claim_virt, &claim_phys, claim_size);
+    //   Note here we use PHT size as alignment
+    ofw_alloc(&claim_virt, &claim_phys, claim_size, LOADER_PHT_SIZE);
     memzero(claim_virt, claim_size);
     ofw_printf("Memory claimed, virt @ %p, phys @ %p, size: %d\n", claim_virt, claim_phys, claim_size);
     
     // Set up memory areas
-    coreimg_virt = claim_virt;
-    coreimg_phys = claim_phys;
+    pht_virt = claim_virt;
+    pht_phys = claim_phys;
+    ofw_printf("PHT area reserved, virt @ %p, phys @ %p, size: %d\n", pht_virt, pht_phys, LOADER_PHT_SIZE);
+    
+    coreimg_virt = (void *)((ulong)pht_virt + pht_area);
+    coreimg_phys = (void *)((ulong)pht_phys + pht_area);
     memcpy(coreimg_virt, coreimg_addr, coreimg_size);
     ofw_printf("Core image moved, virt @ %p, phys @ %p, size: %d\n", coreimg_virt, coreimg_phys, coreimg_size);
     
@@ -108,16 +143,12 @@ static void create_mempool(void *coreimg_addr, int coreimg_size)
     hal_phys = (void *)((ulong)coreimg_phys + coreimg_area);
     ofw_printf("HAL area reserved, virt @ %p, phys @ %p, size: %d\n", hal_virt, hal_phys, hal_area);
     
-    pht_virt = (struct pht_group *)((ulong)hal_virt + hal_area);
-    pht_phys = (struct pht_group *)((ulong)hal_phys + hal_area);
-    ofw_printf("PHT area reserved, virt @ %p, phys @ %p, size: %d\n", pht_virt, pht_phys, pht_area);
-    
-    pde_virt = (struct page_frame *)((ulong)pht_virt + pht_area);
-    pde_phys = (struct page_frame *)((ulong)pht_phys + pht_area);
+    pde_virt = (void *)((ulong)hal_virt + hal_area);
+    pde_phys = (void *)((ulong)hal_phys + hal_area);
     ofw_printf("PDE area reserved, virt @ %p, phys @ %p, size: %d\n", pde_virt, pde_phys, PAGE_SIZE);
     
-    pte_virt = (struct page_frame *)((ulong)pde_virt + PAGE_SIZE);
-    pte_phys = (struct page_frame *)((ulong)pde_phys + PAGE_SIZE);
+    pte_virt = (void *)((ulong)pde_virt + PAGE_SIZE);
+    pte_phys = (void *)((ulong)pde_phys + PAGE_SIZE);
     ofw_printf("PTE area reserved, virt @ %p, phys @ %p, size: %d\n", pte_virt, pte_phys, PAGE_SIZE);
     
     bsp_area_virt = (void *)((ulong)pte_virt + PAGE_SIZE);
@@ -128,11 +159,6 @@ static void create_mempool(void *coreimg_addr, int coreimg_size)
     mempool_phys = (void *)((ulong)bsp_area_phys + bsp_area);
     mempool_init(mempool_virt, mempool_phys, mempool_area);
     ofw_printf("Memory pool created, virt @ %p, phys @ %p, size: %d\n", mempool_virt, mempool_phys, mempool_area);
-    
-    // Align up PHT address
-    pht_virt = (struct pht_group *)ALIGN_UP((ulong)pht_virt, PHT_SIZE);
-    pht_phys = (struct pht_group *)ALIGN_UP((ulong)pht_phys, PHT_SIZE);
-    ofw_printf("PHT address aligned up, virt @ %p, phys @ %p, size: %d\n", pht_virt, pht_phys, PHT_SIZE);
 }
 
 
@@ -455,9 +481,13 @@ static void pht_fill(ulong vstart, ulong len, int io)
 static void init_pht()
 {
     int i, j;
-    int count = PHT_SIZE / sizeof(struct pht_group);
+    int count = LOADER_PHT_SIZE / sizeof(struct pht_group);
+    
+    ofw_printf("Initializing page hash table\n");
+    ofw_printf("\tPHT entries: %d\n", count);
     
     sdr1 = (u32)(ulong)pht_phys;
+    ofw_printf("\tSDR1: %p\n", sdr1);
     
     for (i = 0; i < count; i++) {
         for (j = 0; j < 8; j++) {
@@ -467,9 +497,25 @@ static void init_pht()
     }
 }
 
-static void init_paging()
+static void init_segment()
 {
     int i;
+    struct seg_reg sr;
+    
+    ofw_printf("Initializing segment registers\n");
+    
+    for (i = 0; i < 16; i++) {
+        sr.value = 0;
+        sr.key_user = 1;
+        sr.vsid = i;
+    }
+}
+
+static void init_page_table()
+{
+    int i;
+    
+    ofw_printf("Initializing page table\n");
     
     // Direct mapping for lower 4GB-4MB
     for (i = 0; i < PAGE_ENTRY_COUNT; i++) {
@@ -501,7 +547,7 @@ static void init_paging()
         pte_virt->value_pte[i].pfn = (u32)ADDR_TO_PFN((ulong)bsp_area_phys) + i;
     }
     
-    pht_fill(0xffc00000, 8192);
+    pht_fill(0xffc00000, 8192, 0);
     
     // 4GB-1MB ~ 4GB -> HAL reserved area
     for (i = 0; i < 256; i++) {
@@ -510,18 +556,114 @@ static void init_paging()
         pte_virt->value_pte[idx].pfn = (u32)ADDR_TO_PFN((ulong)hal_phys) + i;
     }
     
-    pht_fill(0xfff00000, 0x100000);
+    pht_fill(0xfff00000, 0x100000, 0);
+}
+
+
+/*
+ * Load ELF image
+ */
+static void find_and_layout(char *name, int bin_type)
+{
+    u32 i;
+    
+    // Find the file
+    struct coreimg_record *record = NULL;
+    int found = 0;
+    
+    for (i = 0; i < swap_endian32(coreimg_virt->header.file_count); i++) {
+        record = &coreimg_virt->records[i];
+        
+        if (!strdiff(name, (char *)record->file_name, 20)) {
+            found = 1;
+            break;
+        }
+    }
+    
+    if (!found) {
+        ofw_printf("Unable to find file: %s\n", name);
+        panic();
+    }
+    
+    ofw_printf("Loading image: %s\n", name);
+    
+    // Load the file
+    struct elf32_elf_header *elf_header = (struct elf32_elf_header *)(swap_endian32(record->start_offset) + (ulong)coreimg_virt);
+    struct elf32_program_header *header = NULL;
+    ulong vaddr_end = 0;
+    
+    // Load each segment
+    
+    for (i = 0; i < elf_header->elf_phnum; i++) {
+        // Move to next header
+        if (header) {
+            header = (struct elf32_program_header *)((ulong)header + elf_header->elf_phentsize);
+        } else {
+            header = (struct elf32_program_header *)((ulong)elf_header + elf_header->elf_phoff);
+        }
+        
+        ofw_printf("\tSegment @ %p, file: %d, mem: %d", header->program_vaddr,
+                   header->program_filesz, header->program_memsz);
+        
+        // Zero the memory
+        if (header->program_memsz) {
+            ulong target_vaddr = (ulong)hal_virt + (ulong)header->program_vaddr - HAL_AREA_VADDR;
+            memzero((void *)target_vaddr, header->program_memsz);
+            
+            ofw_printf(", zero section: @ %p (%p)", header->program_vaddr, target_vaddr);
+        }
+        
+        // Copy the program data
+        if (header->program_filesz) {
+            ulong target_vaddr = (ulong)hal_virt + (ulong)header->program_vaddr - HAL_AREA_VADDR;
+            memcpy(
+                (void *)target_vaddr,
+                (void *)(ulong)(header->program_offset + (u32)elf_header),
+                header->program_filesz
+            );
+            
+            ofw_printf(", copy section @ %p -> %p (%p)",
+                       header->program_offset + (u32)elf_header,
+                       header->program_vaddr, target_vaddr);
+        }
+        
+        ofw_printf("\n");
+        
+        // Get the end of virtual address
+        if (header->program_vaddr + header->program_memsz > vaddr_end) {
+            vaddr_end = header->program_vaddr + header->program_memsz;
+        }
+    }
+    
+    // We just loaded HAL
+    if (bin_type == 1) {
+        // HAL Virtual Address End: Align to page size
+        vaddr_end = ALIGN_UP(vaddr_end, PAGE_SIZE);
+        
+        // Set HAL Entry
+        boot_param->hal_entry_addr = elf_header->elf_entry;
+        boot_param->hal_vaddr_end = vaddr_end;
+    }
+    
+    // We just loaded kernel
+    else if (bin_type == 2) {
+        boot_param->kernel_entry_addr = elf_header->elf_entry;
+    }
 }
 
 
 /*
  * Jump to HAL!
  */
-static void (*hal_entry)();
+typedef void (*hal_entry_t)(struct boot_parameters *boot_param);
+static hal_entry_t hal_entry;
 
 static void jump_to_hal()
 {
-
+    ofw_printf("Starting HAL @ %p ... ", boot_param->hal_entry_addr);
+    
+    hal_entry = (hal_entry_t)boot_param->hal_entry_addr;
+    hal_entry(boot_param);
 }
 
 
@@ -535,16 +677,28 @@ void loader_entry(void *initrd_addr, ulong initrd_size, ulong ofw_entry)
     ofw_printf("Toddler loader started!\n");
     ofw_printf("Boot args: initrd @ %p, size: %d, OFW @ %p\n", initrd_addr, initrd_size, ofw_entry);
     
-    create_mempool(initrd_addr, initrd_size);
+    // Memory layout
+    init_mem_layout(initrd_addr, initrd_size);
+    
+    // Various inits
     detect_screen();
-    copy_device_tree();
+    //copy_device_tree();
     build_bootparam();
     detect_mem_zones();
-    init_paging();
     
-    jump_to_hal();
+    // Memory management
+    init_segment();
+    init_pht();
+    init_page_table();
+    
+    // Load images
+    find_and_layout("tdlrhal.bin", 1);
+    find_and_layout("tdlrkrnl.bin", 2);
+    
+    // Go to HAL!
+    //jump_to_hal();
     
     while (1) {
-        //panic();
+        panic();
     }
 }

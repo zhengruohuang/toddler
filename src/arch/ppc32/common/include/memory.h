@@ -114,10 +114,10 @@ struct pht_entry {
     union {
         u32 word0;
         struct {
-            u32     page_idx    : 6;
-            u32     secondary   : 1;
-            u32     vsid        : 24;
             u32     valid       : 1;
+            u32     vsid        : 24;
+            u32     secondary   : 1;
+            u32     page_idx    : 6;
         };
     };
     
@@ -125,22 +125,41 @@ struct pht_entry {
         u32 word1;
         
         struct {
-            u32     protect     : 2;
-            u32     reserved1   : 1;
+            u32     pfn         : 20;
+            u32     reserved1   : 3;
+            u32     reference   : 1;
+            u32     change      : 1;
             u32     write_thru  : 1;
             u32     no_cache    : 1;
             u32     coherent    : 1;
             u32     guarded     : 1;
-            u32     change      : 1;
-            u32     reference   : 1;
-            u32     reserved2   : 3;
-            u32     pfn         : 20;
+            u32     reserved2   : 1;
+            u32     protect     : 2;
         };
     };
 } packedstruct;
 
 struct pht_group {
     struct pht_entry entries[8];
+} packedstruct;
+
+
+/*
+ * Segment register
+ */
+struct seg_reg {
+    union {
+        struct {
+            u32     direct_store    : 1;
+            u32     key_kernel      : 1;
+            u32     key_user        : 1;
+            u32     no_exec         : 1;
+            u32     reserved        : 4;
+            u32     vsid            : 24;
+        };
+        
+        u32 value;
+    };
 } packedstruct;
 
 

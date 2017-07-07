@@ -289,9 +289,6 @@ void *ofw_translate(void *virt)
 /*
  * Screen
  */
-struct ofw_display ofw_displays[8];
-int ofw_display_count = 0;
-
 static int strcmp(const char *s1, const char *s2)
 {
     int result = 0;
@@ -473,10 +470,14 @@ static void ofw_map(const void *phys, const void *virt, const int size, const of
     }
 }
 
-void ofw_alloc(void **virt, void **phys, const int size)
+void ofw_alloc(void **virt, void **phys, const int size, int align)
 {
-    *virt = ofw_claim_virt_any(size, PAGE_SIZE);
-    *phys = ofw_claim_phys_any(size, PAGE_SIZE);
+    if (!align) {
+        align = PAGE_SIZE;
+    }
+    
+    *virt = ofw_claim_virt_any(size, align);
+    *phys = ofw_claim_phys_any(size, align);
     
     ofw_map(*phys, *virt, ALIGN_UP(size, PAGE_SIZE), (ofw_arg_t)-1);
 }

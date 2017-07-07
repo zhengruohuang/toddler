@@ -32,8 +32,8 @@ void *mempool_alloc(int size, int align)
         return NULL;
     }
     
-    ulong result = mempool_virt_base;
-    mempool_virt_base += size;
+    ulong result = mempool_virt_base + mempool_offset;
+    mempool_offset += size;
     
     return (void *)result;
 }

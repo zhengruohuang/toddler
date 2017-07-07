@@ -22,9 +22,6 @@ struct boot_parameters {
     u32 boot_dev;
     u32 boot_dev_info;
     
-    // Loader
-    ulong loader_func_type_ptr;
-    
     // AP starter
     ulong ap_entry_addr;
     ulong ap_page_table_ptr;
@@ -38,6 +35,7 @@ struct boot_parameters {
     ulong hal_entry_addr;
     ulong hal_vaddr_end;
     ulong hal_vspace_end;
+    ulong bsp_area_addr;
     
     // Kernel
     ulong kernel_entry_addr;
@@ -51,6 +49,11 @@ struct boot_parameters {
     u32 res_y;
     u32 bytes_per_pixel;
     u32 bytes_per_line;
+    
+    // Pageing
+    ulong pht_addr;
+    ulong pde_addr;
+    ulong pte_addr;
     
     // Address where free memory starts
     ulong free_addr_start;

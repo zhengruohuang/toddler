@@ -1,4 +1,4 @@
-ENTRY(_start)
+ENTRY(start)
 
 SECTIONS
 {
@@ -8,7 +8,8 @@ SECTIONS
     
     __text_start = .;
     .text : {
-        *(.text)
+        *(BOOTSTRAP);
+        *(.text);
     }
     __text_end = .;
     

@@ -222,9 +222,6 @@ static void build_bootparam()
     boot_param->boot_dev = 0;
     boot_param->boot_dev_info = 0;
     
-    // Loader func
-    boot_param->loader_func_type_ptr = 0;
-    
     // AP starter
     boot_param->ap_entry_addr = 0;
     boot_param->ap_page_table_ptr = 0;
@@ -237,8 +234,13 @@ static void build_bootparam()
     boot_param->hal_start_flag = 0;
     boot_param->hal_entry_addr = 0;
     boot_param->hal_vaddr_end = 0;
-    boot_param->hal_vspace_end = 0x80180000;
+    boot_param->hal_vspace_end = 0;
     boot_param->kernel_entry_addr = 0;
+    
+    // Paging
+    boot_param->pht_addr = (ulong)pht_phys;
+    boot_param->pde_addr = (ulong)pde_phys;
+    boot_param->pte_addr = (ulong)pte_phys;
     
     // Memory map
     boot_param->free_addr_start = 1 * 1024 * 1024;
@@ -426,6 +428,7 @@ static struct pht_entry *find_free_pht_entry(u32 vaddr)
     for (i = 0; i < 8; i++) {
         entry = &pht_virt[idx].entries[i];
         if (!entry->valid) {
+            entry->secondary = 0;
             return entry;
         }
     }
@@ -449,6 +452,8 @@ static void pht_fill(ulong vstart, ulong len, int io)
     ulong virt;
     ulong end = vstart + len;
     
+    ofw_printf("\tTo fill PHT @ %p to %p\n", vstart, end);
+    
     for (virt = vstart; virt < end; virt += PAGE_SIZE) {
         int pde_idx = GET_PDE_INDEX(virt);
         int pte_idx = GET_PTE_INDEX(virt);
@@ -467,13 +472,17 @@ static void pht_fill(ulong vstart, ulong len, int io)
             entry->page_idx = (ADDR_TO_PFN(virt) >> 10) & 0x3f;
             entry->vsid = virt >> 28;
             entry->pfn = phys_pfn;
-            entry->protect = 0;
+            entry->protect = 3;
             if (io) {
                 entry->no_cache = 1;
                 entry->guarded = 1;
             } else {
                 entry->coherent = 1;
             }
+            
+            //ofw_printf("\tPHT filled @ %p: %x %x -> %d\n", virt, entry->word0, entry->word1, phys_pfn);
+        } else {
+            ofw_printf("\tUnable to find a free PHT entry @ %p\n", virt);
         }
     }
 }
@@ -556,7 +565,7 @@ static void init_page_table()
         pte_virt->value_pte[idx].pfn = (u32)ADDR_TO_PFN((ulong)hal_phys) + i;
     }
     
-    pht_fill(0xfff00000, 0x100000, 0);
+    pht_fill(0xfff00000, 0x100000 - PAGE_SIZE, 0);
 }
 
 
@@ -643,27 +652,118 @@ static void find_and_layout(char *name, int bin_type)
         // Set HAL Entry
         boot_param->hal_entry_addr = elf_header->elf_entry;
         boot_param->hal_vaddr_end = vaddr_end;
+        
+        ofw_printf("\tHAL entry @ %p, vaddr end @ %p\n", boot_param->hal_entry_addr, boot_param->hal_vaddr_end);
     }
     
     // We just loaded kernel
     else if (bin_type == 2) {
         boot_param->kernel_entry_addr = elf_header->elf_entry;
+        ofw_printf("\tKernel entry @ %p\n", boot_param->kernel_entry_addr);
     }
 }
 
 
 /*
- * Jump to HAL!
+ * Real mode
  */
-typedef void (*hal_entry_t)(struct boot_parameters *boot_param);
-static hal_entry_t hal_entry;
+extern void jump_to_real_mode(struct boot_parameters *bp, void *jump_hal_paddr, void *real_entry_paddr);
 
-static void jump_to_hal()
+extern void jump_to_hal(struct boot_parameters *bp, ulong hal_entry_vaddr);
+typedef void (*jump_to_hal_t)(struct boot_parameters *bp, ulong hal_entry_vaddr);
+
+static no_opt void real_mode_entry(struct boot_parameters *bp, void *jump_hal_paddr)
 {
-    ofw_printf("Starting HAL @ %p ... ", boot_param->hal_entry_addr);
+    int i, j;
+    ulong tmp;
+    struct seg_reg sr;
     
-    hal_entry = (hal_entry_t)boot_param->hal_entry_addr;
-    hal_entry(boot_param);
+//     __asm__ __volatile__
+//     (
+//         "xor 3, 3, 3;"
+//         "addi 3, 3, 0xbe;"
+//     );
+//     while (1);
+    
+    // Fill segment registers
+    for (i = 0; i < 16; i++) {
+        sr.value = 0;
+//         sr.key_kernel = 1;
+//         sr.key_user = 1;
+        sr.vsid = i;
+        
+        __asm__ __volatile__
+        (
+            "mtsrin %[val], %[idx];"
+            :
+            : [val]"r"(sr.value), [idx]"r"(i)
+        );
+    }
+    
+    // Invalidate BAT registers
+    for (i = 0; i < 16; i++) {
+        __asm__ __volatile__
+        (
+            "mtspr %[idx], %[zero];"
+            :
+            : [idx]"r"(528 + i), [zero]"r"(0)
+        );
+    }
+    
+    // Fill in PHT
+    __asm__ __volatile__
+    (
+        "mtsdr1 %[sdr1];"
+        :
+        : [sdr1]"r"(bp->pht_addr)
+    );
+    
+    for (i = 0; i < LOADER_PHT_SIZE / sizeof(struct pht_group); i++) {
+        tmp = bp->pht_addr;
+        
+        for (j = 0; j < 8; j++) {
+            __asm__ __volatile__
+            (
+                "dcbst 0, %[addr];"
+                "sync;"
+                "icbi 0, %[addr];"
+                "sync;"
+                "isync;"
+                :
+                : [addr]"r"(tmp)
+            );
+            
+            tmp += sizeof(struct pht_entry);
+        }
+    }
+    
+    // Flush TLB
+    __asm__ __volatile__
+    (
+        "sync;"
+    );
+    
+    tmp = 0;
+    for (i = 0; i < 64; i++) {
+        __asm__ __volatile__
+        (
+            "tlbie %[addr];"
+            :
+            : [addr]"r"(tmp)
+        );
+        tmp += 0x1000;
+    }
+    
+    __asm__ __volatile__
+    (
+        "eieio;"
+        "tlbsync;"
+        "sync;"
+    );
+    
+    // Go to HAL
+    jump_to_hal_t jump_to_hal_phys = jump_hal_paddr;
+    jump_to_hal_phys(bp, bp->hal_entry_addr);
 }
 
 
@@ -682,7 +782,7 @@ void loader_entry(void *initrd_addr, ulong initrd_size, ulong ofw_entry)
     
     // Various inits
     detect_screen();
-    //copy_device_tree();
+    copy_device_tree();
     build_bootparam();
     detect_mem_zones();
     
@@ -695,7 +795,17 @@ void loader_entry(void *initrd_addr, ulong initrd_size, ulong ofw_entry)
     find_and_layout("tdlrhal.bin", 1);
     find_and_layout("tdlrkrnl.bin", 2);
     
+//     // Write something to HAL load area
+//     int i;
+//     ulong *addr = hal_virt;
+//     for (i = 0; i < 262140; i++) {
+//         *addr = 0xdeadbeef;
+//         addr++;
+//     }
+    
     // Go to HAL!
+    ofw_printf("Boot param virt @ %p, phys @ %p\n", boot_param, mempool_to_phys(boot_param));
+    jump_to_real_mode(mempool_to_phys(boot_param), ofw_translate(jump_to_hal), ofw_translate(real_mode_entry));
     //jump_to_hal();
     
     while (1) {

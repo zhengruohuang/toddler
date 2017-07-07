@@ -599,12 +599,12 @@ static void ofw_tree_node_process(struct ofw_tree_node *current_node, struct ofw
         da_name[len] = '\0';
         current_node->name = (char *)ofw_tree_rebase(da_name);
         
-        // Tell user about this node
-        int j;
-        for (j = 0; j < level; j++) {
-            putstr("  ");
-        }
-        ofw_printf("Node: %s\n", da_name[0] ? da_name : "(root)");
+//         // Tell user about this node
+//         int j;
+//         for (j = 0; j < level; j++) {
+//             putstr("  ");
+//         }
+//         ofw_printf("Node: %s\n", da_name[0] ? da_name : "(root)");
         
         // Recursively process the potential child node.
         ofw_phandle_t child = ofw_get_child_node(current);

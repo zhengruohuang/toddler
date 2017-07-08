@@ -19,8 +19,8 @@ struct boot_mem_zone {
 
 struct boot_parameters {
     // Boot device
-    u32 boot_dev;
-    u32 boot_dev_info;
+    int boot_dev;
+    int boot_dev_info;
     
     // AP starter
     ulong ap_entry_addr;
@@ -31,7 +31,7 @@ struct boot_parameters {
     ulong coreimg_load_addr;
     
     // HAL
-    u32 hal_start_flag;
+    int hal_start_flag;
     ulong hal_entry_addr;
     ulong hal_vaddr_end;
     ulong hal_vspace_end;
@@ -41,14 +41,19 @@ struct boot_parameters {
     ulong kernel_entry_addr;
     
     // Video info
-    u32 video_mode;
-    u32 cursor_row;
-    u32 cursor_col;
-    ulong framebuffer_addr;
-    u32 res_x;
-    u32 res_y;
-    u32 bytes_per_pixel;
-    u32 bytes_per_line;
+    int video_mode;
+    union {
+        struct {
+            ulong fb_addr;
+            int fb_res_x, fb_res_y;
+            int fb_bits_per_pixel;
+            int fb_bytes_per_line;
+        };
+        
+        struct {
+            ulong serial_addr;
+        };
+    };
     
     // Pageing
     ulong pht_addr;
@@ -63,7 +68,7 @@ struct boot_parameters {
     u64 mem_size;
     
     // Memory zones
-    u32 mem_zone_count;
+    int mem_zone_count;
     struct boot_mem_zone mem_zones[32];
 } packedstruct;
 

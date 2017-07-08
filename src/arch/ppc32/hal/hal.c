@@ -1,14 +1,16 @@
 #include "common/include/data.h"
+#include "common/include/bootparam.h"
+#include "hal/include/lib.h"
+#include "hal/include/periph.h"
 
 
-void asmlinkage no_opt hal_entry()
+void no_opt hal_entry(struct boot_parameters *boot_param)
 {
-    __asm__ __volatile__
-    (
-        "xor 3, 3, 3;"
-        "addi 3, 3, 0xbe;"
-    );
-    while (1);
+    init_bootparam(boot_param);
+    init_fb();
     
-    while (1);
+    int i;
+    for (i = 0; i < 1000; i++) {
+        fb_draw_char('a');
+    }
 }

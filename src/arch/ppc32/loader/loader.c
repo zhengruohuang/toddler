@@ -234,6 +234,16 @@ static void build_bootparam()
     boot_param->ap_page_table_ptr = 0;
     boot_param->ap_stack_top_ptr = 0;
     
+    // Video
+    if (screen.graphic) {
+        boot_param->video_mode = VIDEO_FRAMEBUFFER;
+        boot_param->fb_addr = (ulong)screen.fb_addr;
+        boot_param->fb_res_x = screen.width;
+        boot_param->fb_res_y = screen.height;
+        boot_param->fb_bits_per_pixel = screen.depth;
+        boot_param->fb_bytes_per_line = screen.bpl;
+    }
+    
     // Core image
     boot_param->coreimg_load_addr = (ulong)coreimg_phys;
     
@@ -479,7 +489,7 @@ static void pht_fill(ulong vstart, ulong len, int io)
             entry->page_idx = (ADDR_TO_PFN(virt) >> 10) & 0x3f;
             entry->vsid = virt >> 28;
             entry->pfn = phys_pfn;
-            entry->protect = 3;
+            entry->protect = 0x2;
             if (io) {
                 entry->no_cache = 1;
                 entry->guarded = 1;
@@ -572,7 +582,17 @@ static void init_page_table()
         pte_virt->value_pte[idx].pfn = (u32)ADDR_TO_PFN((ulong)hal_phys) + i;
     }
     
-    pht_fill(0xfff00000, 0x100000 - PAGE_SIZE, 0);;
+    pht_fill(0xfff00000, 0x100000 - PAGE_SIZE, 0);
+    
+    // Set up mapping for loader claimed area
+    pht_fill((ulong)claim_phys, ALIGN_UP(claim_size, PAGE_SIZE), 0);
+    
+    // Also set up mapping for framebuffer
+    if (screen.graphic) {
+        ulong fb_size = (ulong)screen.height * (ulong)screen.bpl;
+        fb_size = ALIGN_UP(fb_size, PAGE_SIZE);
+        pht_fill((ulong)screen.fb_addr, fb_size, 1);
+    }
 }
 
 

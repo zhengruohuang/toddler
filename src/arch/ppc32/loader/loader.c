@@ -182,7 +182,7 @@ static struct screen_info {
         };
         
         struct {
-            void *uart_addr;
+            void *serial_addr;
         };
     };
 } screen;
@@ -195,11 +195,16 @@ static void detect_screen()
     ofw_printf("\tIs graphic: %s\n", screen.graphic ? "yes" : "no");
     
     if (screen.graphic) {
-        ofw_screen_info(&screen.fb_addr, &screen.width, &screen.height, &screen.depth, &screen.bpl);
+        ofw_fb_info(&screen.fb_addr, &screen.width, &screen.height, &screen.depth, &screen.bpl);
         ofw_printf("\tFramebuffer @ %p -> %p\n\tScreen width: %d, height: %d, depth: %d, bytes per line: %d\n",
             screen.fb_addr, ofw_translate(screen.fb_addr), screen.width, screen.height, screen.depth, screen.bpl
         );
-        
+    } else {
+        //ofw_escc_info(&screen.serial_addr);
+        screen.serial_addr = (void *)0x80013020;
+        ofw_printf("\tESCC serial controller @ %p -> %p\n",
+            screen.serial_addr, ofw_translate(screen.serial_addr)
+        );
     }
 }
 
@@ -242,6 +247,8 @@ static void build_bootparam()
         boot_param->fb_res_y = screen.height;
         boot_param->fb_bits_per_pixel = screen.depth;
         boot_param->fb_bytes_per_line = screen.bpl;
+    } else {
+        boot_param->serial_addr = 0x81093020;
     }
     
     // Core image
@@ -587,11 +594,13 @@ static void init_page_table()
     // Set up mapping for loader claimed area
     pht_fill((ulong)claim_phys, ALIGN_UP(claim_size, PAGE_SIZE), 0);
     
-    // Also set up mapping for framebuffer
+    // Also set up mapping for framebuffer or serial controller
     if (screen.graphic) {
         ulong fb_size = (ulong)screen.height * (ulong)screen.bpl;
         fb_size = ALIGN_UP(fb_size, PAGE_SIZE);
         pht_fill((ulong)screen.fb_addr, fb_size, 1);
+    } else {
+        pht_fill((ulong)screen.serial_addr, PAGE_SIZE, 1);
     }
 }
 

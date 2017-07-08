@@ -334,7 +334,7 @@ int ofw_screen_is_graphic()
     return 1;
 }
 
-void ofw_screen_info(void **addr, int *width, int *height, int *depth, int *bpl)
+void ofw_fb_info(void **addr, int *width, int *height, int *depth, int *bpl)
 {
     // Open screen device
     ofw_phandle_t ofw_screen = ofw_find_dev("screen");
@@ -381,6 +381,43 @@ void ofw_screen_info(void **addr, int *width, int *height, int *depth, int *bpl)
     if (height) *height = (int)fb_height;
     if (depth) *depth = (int)fb_depth;
     if (bpl) *bpl = (int)fb_bpl;
+}
+
+void ofw_escc_info(void **addr)
+{
+    // Open screen device
+    ofw_phandle_t ofw_screen = ofw_find_dev("screen");
+    if (ofw_screen == (ofw_phandle_t)-1) {
+        putstr("Unable to open screen device");
+        panic();
+    }
+    
+    // Get device type
+    char device_type[OFW_TREE_PROPERTY_MAX_VALUELEN];
+    int ret = (int)ofw_get_prop(ofw_screen, "device_type", device_type, OFW_TREE_PROPERTY_MAX_VALUELEN);
+    if (ret <= 0) {
+        putstr("Unable to get device type");
+        return;
+    }
+    
+    // Check device type
+    device_type[OFW_TREE_PROPERTY_MAX_VALUELEN - 1] = '\0';
+    if (strcmp(device_type, "serial") != 0) {
+        putstr("Wrong device type");
+        return;
+    }
+    
+    // Get display info
+    ofw_prop_t serial_addr;
+    
+    if ((int)ofw_get_prop(ofw_screen, "AAPL,address", &serial_addr, sizeof(serial_addr)) <= 0) {
+        serial_addr = 0;
+    }
+    
+    // Return
+    if (addr) {
+        *addr = (void *)serial_addr;
+    }
 }
 
 

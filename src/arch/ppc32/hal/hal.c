@@ -7,10 +7,20 @@
 void no_opt hal_entry(struct boot_parameters *boot_param)
 {
     init_bootparam(boot_param);
-    init_fb();
+//     init_fb();
+//     
+//     int i;
+//     for (i = 0; i < 1000; i++) {
+//         fb_draw_char('a');
+//     }
+    
+    init_escc();
     
     int i;
     for (i = 0; i < 1000; i++) {
-        fb_draw_char('a');
+        escc_draw_char('a');
     }
+    
+    halt();
+    while (1);
 }

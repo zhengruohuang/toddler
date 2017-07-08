@@ -66,7 +66,8 @@ extern void ofw_printf(char *fmt, ...);
 extern int ofw_mem_zone(int idx, ulong *start, ulong *size);
 
 extern int ofw_screen_is_graphic();
-extern void ofw_screen_info(void **addr, int *width, int *height, int *depth, int *bpl);
+extern void ofw_fb_info(void **addr, int *width, int *height, int *depth, int *bpl);
+extern void ofw_escc_info(void **addr);
 
 extern void *ofw_translate(void *virt);
 

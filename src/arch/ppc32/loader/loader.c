@@ -14,6 +14,13 @@
 static void panic()
 {
     ofw_printf("\nPanic!\n");
+    
+    __asm__ __volatile__
+    (
+        "xor 3, 3, 3;"
+        "addi 3, 3, 0xbe;"
+    );
+    
     while (1);
 }
 
@@ -558,14 +565,14 @@ static void init_page_table()
     
     pht_fill(0xffc00000, 8192, 0);
     
-    // 4GB-1MB ~ 4GB -> HAL reserved area
-    for (i = 0; i < 256; i++) {
+    // 4GB-1MB ~ 4GB-4KB -> HAL reserved area
+    for (i = 0; i < 255; i++) {
         int idx = 768 + i;
         pte_virt->value_pte[idx].present = 1;
         pte_virt->value_pte[idx].pfn = (u32)ADDR_TO_PFN((ulong)hal_phys) + i;
     }
     
-    pht_fill(0xfff00000, 0x100000 - PAGE_SIZE, 0);
+    pht_fill(0xfff00000, 0x100000 - PAGE_SIZE, 0);;
 }
 
 
@@ -678,37 +685,35 @@ static no_opt void real_mode_entry(struct boot_parameters *bp, void *jump_hal_pa
     ulong tmp;
     struct seg_reg sr;
     
-//     __asm__ __volatile__
-//     (
-//         "xor 3, 3, 3;"
-//         "addi 3, 3, 0xbe;"
-//     );
-//     while (1);
-    
     // Fill segment registers
     for (i = 0; i < 16; i++) {
         sr.value = 0;
-//         sr.key_kernel = 1;
-//         sr.key_user = 1;
+        sr.key_kernel = 1;
         sr.vsid = i;
         
         __asm__ __volatile__
         (
             "mtsrin %[val], %[idx];"
             :
-            : [val]"r"(sr.value), [idx]"r"(i)
+            : [val]"r"(sr.value), [idx]"r"(i << 28)
         );
     }
     
     // Invalidate BAT registers
-    for (i = 0; i < 16; i++) {
-        __asm__ __volatile__
-        (
-            "mtspr %[idx], %[zero];"
-            :
-            : [idx]"r"(528 + i), [zero]"r"(0)
-        );
-    }
+    __asm__ __volatile__
+    (
+        "mtspr 528, %[zero]; mtspr 529, %[zero];"
+        "mtspr 530, %[zero]; mtspr 531, %[zero];"
+        "mtspr 532, %[zero]; mtspr 533, %[zero];"
+        "mtspr 534, %[zero]; mtspr 535, %[zero];"
+        
+        "mtspr 536, %[zero]; mtspr 537, %[zero];"
+        "mtspr 538, %[zero]; mtspr 539, %[zero];"
+        "mtspr 540, %[zero]; mtspr 541, %[zero];"
+        "mtspr 542, %[zero]; mtspr 543, %[zero];"
+        :
+        : [zero]"r"(0)
+    );
     
     // Fill in PHT
     __asm__ __volatile__
@@ -795,19 +800,14 @@ void loader_entry(void *initrd_addr, ulong initrd_size, ulong ofw_entry)
     find_and_layout("tdlrhal.bin", 1);
     find_and_layout("tdlrkrnl.bin", 2);
     
-//     // Write something to HAL load area
-//     int i;
-//     ulong *addr = hal_virt;
-//     for (i = 0; i < 262140; i++) {
-//         *addr = 0xdeadbeef;
-//         addr++;
-//     }
-    
     // Go to HAL!
-    ofw_printf("Boot param virt @ %p, phys @ %p\n", boot_param, mempool_to_phys(boot_param));
+    ofw_printf("Starting HAL @ %p\n\treal_mode_entry @ %p\n\tjump_to_hal @ %p\n",
+        boot_param->hal_entry_addr,
+        ofw_translate(real_mode_entry), ofw_translate(jump_to_hal)
+    );
     jump_to_real_mode(mempool_to_phys(boot_param), ofw_translate(jump_to_hal), ofw_translate(real_mode_entry));
-    //jump_to_hal();
     
+    // Should never reach here
     while (1) {
         panic();
     }

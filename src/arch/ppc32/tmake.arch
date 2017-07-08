@@ -132,6 +132,7 @@ def qemu():
     # Compose the cmd
     cmd = 'qemu-system-ppc' + \
         ' -cpu G4 -M mac99 -m 512' + \
+        '  -serial mon:stdio' + \
         ' -kernel ' + loader_name + \
         ' -initrd ' + coreimg_name
     #' -nographic -serial mon:stdio' + \

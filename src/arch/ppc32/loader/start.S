@@ -40,22 +40,18 @@ jump_to_real_mode:
 // r3 = paddr of boot params
 // r4 = vaddr of HAL entry
 jump_to_hal:
-/*    xor r3, r3, r3
-    addi r3, r3, 0xbe
-    xor r4, r4, r4
-    addi r4, r4, 0xef
-    b .
-    nop*/
-    
     // Set HAL entry point
     mtspr srr0, r4
     
-    li r31, 0x100
-    mtsprg0 r31
-	
+    // Set HAL stack
+    subi sp, r4, 0x10
+    
+    // Set exception stack top
+    //li r31, 0x100
+    //mtsprg0 r31
+    
     // This forces the usage of sprg0 as exception stack pointer
     //li sp, 0
-    subi sp, r4, 0x10
     
     // Enable address translation
     mfmsr r31

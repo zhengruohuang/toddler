@@ -21,6 +21,38 @@ static void panic()
     while (1);
 }
 
+static void memcpy(void *dest, const void *src, int count)
+{
+    int i;
+    
+    char *s = (char *)src;
+    char *d = (char *)dest;
+    
+    for (i = 0; i < count; i++) {
+        *(d++) = *(s++);
+    }
+}
+
+static int strcmp(const char *s1, const char *s2)
+{
+    int result = 0;
+    
+    while (*s1 || *s2) {
+        if (!s1 && !s2) {
+            return 0;
+        }
+        
+        if (*s1 != *s2) {
+            return *s1 > *s2 ? 1 : -1;
+        }
+        
+        s1++;
+        s2++;
+    }
+    
+    return result;
+}
+
 
 /*
  * Perform a call to OpenFirmware client interface
@@ -177,7 +209,7 @@ void ofw_printf(char *fmt, ...)
 
 
 /*
- * OFW init
+ * OFW wrappers
  */
 static ofw_arg_t ofw_get_prop(const ofw_phandle_t device, const char *name, void *buf, const int len)
 {
@@ -189,6 +221,35 @@ static ofw_phandle_t ofw_find_dev(const char *name)
     return (ofw_phandle_t)ofw_call("finddevice", 1, 1, NULL, name);
 }
 
+static ofw_arg_t ofw_package_to_path(ofw_phandle_t device, char *buf, const int len)
+{
+    return ofw_call("package-to-path", 3, 1, NULL, device, buf, len);
+}
+
+static ofw_arg_t ofw_get_proplen(const ofw_phandle_t device, const char *name)
+{
+    return ofw_call("getproplen", 2, 1, NULL, device, name);
+}
+
+static ofw_arg_t ofw_next_prop(const ofw_phandle_t device, char *previous, char *buf)
+{
+    return ofw_call("nextprop", 3, 1, NULL, device, previous, buf);
+}
+
+static ofw_phandle_t ofw_get_child_node(const ofw_phandle_t node)
+{
+    return (ofw_phandle_t)ofw_call("child", 1, 1, NULL, node);
+}
+
+static ofw_phandle_t ofw_get_peer_node(const ofw_phandle_t node)
+{
+    return (ofw_phandle_t)ofw_call("peer", 1, 1, NULL, node);
+}
+
+
+/*
+ * OFW init
+ */
 void ofw_init(ulong ofw_entry)
 {
     int ret = 0;
@@ -289,26 +350,6 @@ void *ofw_translate(void *virt)
 /*
  * Screen
  */
-static int strcmp(const char *s1, const char *s2)
-{
-    int result = 0;
-    
-    while (*s1 || *s2) {
-        if (!s1 && !s2) {
-            return 0;
-        }
-        
-        if (*s1 != *s2) {
-            return *s1 > *s2 ? 1 : -1;
-        }
-        
-        s1++;
-        s2++;
-    }
-    
-    return result;
-}
-
 int ofw_screen_is_graphic()
 {
     // Open screen device
@@ -341,19 +382,6 @@ void ofw_fb_info(void **addr, int *width, int *height, int *depth, int *bpl)
     if (ofw_screen == (ofw_phandle_t)-1) {
         putstr("Unable to open screen device");
         panic();
-    }
-    
-    // Get device type
-    char device_type[OFW_TREE_PROPERTY_MAX_VALUELEN];
-    int ret = (int)ofw_get_prop(ofw_screen, "device_type", device_type, OFW_TREE_PROPERTY_MAX_VALUELEN);
-    if (ret <= 0) {
-        return;
-    }
-    
-    // Check device type
-    device_type[OFW_TREE_PROPERTY_MAX_VALUELEN - 1] = '\0';
-    if (strcmp(device_type, "display") != 0) {
-        return;
     }
     
     // Get display info
@@ -392,31 +420,39 @@ void ofw_escc_info(void **addr)
         panic();
     }
     
-    // Get device type
-    char device_type[OFW_TREE_PROPERTY_MAX_VALUELEN];
-    int ret = (int)ofw_get_prop(ofw_screen, "device_type", device_type, OFW_TREE_PROPERTY_MAX_VALUELEN);
-    if (ret <= 0) {
-        putstr("Unable to get device type");
-        return;
+    // Get serial info
+    ofw_prop_t serial_offset[2];
+    if ((int)ofw_get_prop(ofw_screen, "reg", serial_offset, sizeof(serial_offset)) <= 0) {
+        serial_offset[0] = 0;
     }
     
-    // Check device type
-    device_type[OFW_TREE_PROPERTY_MAX_VALUELEN - 1] = '\0';
-    if (strcmp(device_type, "serial") != 0) {
-        putstr("Wrong device type");
-        return;
+    // Find PCI node
+    ofw_phandle_t child = ofw_get_child_node(ofw_root);
+    while (child && child != (ofw_phandle_t)-1) {
+        // Get device type
+        char devt[OFW_TREE_PROPERTY_MAX_VALUELEN];
+        int ret = (int)ofw_get_prop(child, "device_type", devt, OFW_TREE_PROPERTY_MAX_VALUELEN);
+        if (ret > 0 && devt[0] == 'p' && devt[1] == 'c' && devt[2] == 'i') {
+            break;
+        }
+        
+        // Move to next node
+        child = ofw_get_peer_node(child);
     }
     
-    // Get display info
-    ofw_prop_t serial_addr;
-    
-    if ((int)ofw_get_prop(ofw_screen, "AAPL,address", &serial_addr, sizeof(serial_addr)) <= 0) {
-        serial_addr = 0;
+    // Find PCI base address
+    ofw_prop_t pci_base[2];
+    pci_base[0] = 0;
+    if (child && child != (ofw_phandle_t)-1) {
+        ofw_get_prop(child, "reg", pci_base, sizeof(pci_base));
     }
+    
+    void *serial_addr = (void *)pci_base[0] + serial_offset[0];
+    serial_addr = ofw_translate(serial_addr);
     
     // Return
     if (addr) {
-        *addr = (void *)serial_addr;
+        *addr = serial_addr;
     }
 }
 
@@ -550,43 +586,6 @@ static char *ofw_tree_alloc_space(int size)
     }
     
     return addr;
-}
-
-static ofw_arg_t ofw_package_to_path(ofw_phandle_t device, char *buf, const int len)
-{
-    return ofw_call("package-to-path", 3, 1, NULL, device, buf, len);
-}
-
-static ofw_arg_t ofw_get_proplen(const ofw_phandle_t device, const char *name)
-{
-    return ofw_call("getproplen", 2, 1, NULL, device, name);
-}
-
-static ofw_arg_t ofw_next_prop(const ofw_phandle_t device, char *previous, char *buf)
-{
-    return ofw_call("nextprop", 3, 1, NULL, device, previous, buf);
-}
-
-static ofw_phandle_t ofw_get_child_node(const ofw_phandle_t node)
-{
-    return (ofw_phandle_t)ofw_call("child", 1, 1, NULL, node);
-}
-
-static ofw_phandle_t ofw_get_peer_node(const ofw_phandle_t node)
-{
-    return (ofw_phandle_t)ofw_call("peer", 1, 1, NULL, node);
-}
-
-static void memcpy(void *dest, const void *src, int count)
-{
-    int i;
-    
-    char *s = (char *)src;
-    char *d = (char *)dest;
-    
-    for (i = 0; i < count; i++) {
-        *(d++) = *(s++);
-    }
 }
 
 /*

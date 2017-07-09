@@ -7,7 +7,6 @@
 #endif
 
 #ifndef asmlinkage
-//#define asmlinkage __attribute__((regparm(0)))
 #define asmlinkage
 #endif
 
@@ -16,7 +15,11 @@
 #endif
 
 #ifndef no_opt
+#ifdef __clang__
+#define no_opt  __attribute__((optnone))
+#else
 #define no_opt  __attribute__((optimize("-O0")))
+#endif
 #endif
 
 

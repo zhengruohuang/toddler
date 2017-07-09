@@ -8,7 +8,7 @@
 #define TAB_WIDTH   4
 
 
-extern int kprintf(char *fmt, ...);
+extern int kprintf(char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 
 #endif

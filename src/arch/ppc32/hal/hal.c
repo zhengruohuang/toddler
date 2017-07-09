@@ -2,24 +2,14 @@
 #include "common/include/bootparam.h"
 #include "hal/include/lib.h"
 #include "hal/include/periph.h"
+#include "hal/include/print.h"
 
 
 void no_opt hal_entry(struct boot_parameters *boot_param)
 {
     init_bootparam(boot_param);
-//     init_fb();
-//     
-//     int i;
-//     for (i = 0; i < 1000; i++) {
-//         fb_draw_char('a');
-//     }
-    
-    init_escc();
-    
-    int i;
-    for (i = 0; i < 1000; i++) {
-        escc_draw_char('a');
-    }
+    init_print();
+    kprintf("We are in HAL!\n");
     
     halt();
     while (1);

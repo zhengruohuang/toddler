@@ -1,4 +1,5 @@
 #include "common/include/data.h"
+#include "common/include/bootparam.h"
 #include "hal/include/lib.h"
 #include "hal/include/font.h"
 
@@ -100,6 +101,10 @@ static void black_screen()
 
 void fb_draw_char(char ch)
 {
+    if (!fb) {
+        return;
+    }
+    
     switch (ch) {
     case '\r':
     case '\n':

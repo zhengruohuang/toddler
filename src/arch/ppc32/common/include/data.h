@@ -15,7 +15,11 @@
 #endif
 
 #ifndef no_opt
+#ifdef __clang__
+#define no_opt  __attribute__((optnone))
+#else
 #define no_opt  __attribute__((optimize("-O0")))
+#endif
 #endif
 
 

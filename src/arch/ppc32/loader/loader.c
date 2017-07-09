@@ -248,7 +248,8 @@ static void build_bootparam()
         boot_param->fb_bits_per_pixel = screen.depth;
         boot_param->fb_bytes_per_line = screen.bpl;
     } else {
-        boot_param->serial_addr = 0x81093020;
+        boot_param->video_mode = VIDEO_SERIAL;
+        boot_param->serial_addr = (ulong)screen.serial_addr;
     }
     
     // Core image

@@ -14,8 +14,8 @@ typedef __builtin_va_list va_list;
 /*
  * OFW data types
  */
-#define MEMMAP_MAX_RECORDS  32
-#define MAX_OFW_ARGS        12
+#define MEMMAP_MAX_RECORDS              32
+#define MAX_OFW_ARGS                    12
 #define OFW_TREE_PATH_MAX_LEN           256
 #define OFW_TREE_PROPERTY_MAX_NAMELEN   32
 #define OFW_TREE_PROPERTY_MAX_VALUELEN  64
@@ -26,9 +26,9 @@ typedef unsigned long ofw_ihandle_t;
 typedef unsigned long ofw_phandle_t;
 
 struct ofw_args {
-    ofw_arg_t service;      // Command name
-    ofw_arg_t nargs;        // Number of in arguments
-    ofw_arg_t nret;         // Number of out arguments
+    ofw_arg_t service;              // Command name
+    ofw_arg_t nargs;                // Number of in arguments
+    ofw_arg_t nret;                 // Number of out arguments
     ofw_arg_t args[MAX_OFW_ARGS];   // List of arguments
 };
 
@@ -76,5 +76,6 @@ extern void ofw_quiesce();
 extern void ofw_alloc(void **virt, void **phys, const int size, int align);
 
 extern struct ofw_tree_node *ofw_tree_build();
+
 
 #endif

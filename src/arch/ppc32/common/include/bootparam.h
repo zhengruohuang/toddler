@@ -8,7 +8,7 @@
 #define VIDEO_NONE          0
 #define VIDEO_FRAMEBUFFER   1
 #define VIDEO_TEXT          2
-#define VIDEO_UART          3
+#define VIDEO_SERIAL        3
 
 
 struct boot_mem_zone {

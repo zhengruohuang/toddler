@@ -16,4 +16,11 @@ extern void escc_draw_char(char ch);
 extern void init_escc();
 
 
+/*
+ * Print
+ */
+extern void draw_char(char ch);
+extern void init_print();
+
+
 #endif

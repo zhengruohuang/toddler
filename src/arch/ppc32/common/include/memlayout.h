@@ -10,13 +10,15 @@
  */
 #define LOADER_MEMPOOL_SIZE                 (65536)
 #define LOADER_PHT_SIZE                     (65536)
+#define LOADER_PHT_ATTRI_SIZE               (LOADER_PHT_SIZE / sizeof(struct pht_entry) * sizeof(struct pht_attri_entry))
 
 
 /*
  * HAL
  */
 #define HAL_AREA_SIZE                       (0x100000)      // 1MB
-#define HAL_AREA_VADDR                      (0xfff00000)
+#define HAL_AREA_VADDR                      (0xfff00000)    // 4GB-4MB
+#define HAL_VSPACE_END                      (0xfffff000)    // 4GB-4KB
 
 #define HAL_BASE_VADDR                      (0xfff80000)
 

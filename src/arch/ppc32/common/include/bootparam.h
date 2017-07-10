@@ -57,6 +57,7 @@ struct boot_parameters {
     
     // Pageing
     ulong pht_addr;
+    ulong attri_addr;
     ulong pde_addr;
     ulong pte_addr;
     

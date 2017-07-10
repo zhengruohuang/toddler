@@ -100,6 +100,9 @@ static int claim_size = 0;
 static struct pht_group *pht_virt = NULL;
 static struct pht_group *pht_phys = NULL;
 
+static struct pht_attri_group *attri_virt = NULL;
+static struct pht_attri_group *attri_phys = NULL;
+
 static struct coreimg_fat *coreimg_virt = NULL;
 static struct coreimg_fat *coreimg_phys = NULL;
 
@@ -122,13 +125,14 @@ static void init_mem_layout(void *coreimg_addr, int coreimg_size)
 {
     // Calculate the total size needed
     int pht_area = ALIGN_UP(LOADER_PHT_SIZE, PAGE_SIZE);
+    int attri_area = ALIGN_UP(LOADER_PHT_ATTRI_SIZE, PAGE_SIZE);
     int coreimg_area = ALIGN_UP(coreimg_size, PAGE_SIZE);
     int hal_area = ALIGN_UP(HAL_AREA_SIZE, PAGE_SIZE);
     int page_area = PAGE_SIZE + PAGE_SIZE;
     int bsp_area = PAGE_SIZE + PAGE_SIZE;
     int mempool_area = ALIGN_UP(LOADER_MEMPOOL_SIZE, PAGE_SIZE);
     
-    claim_size = pht_area + coreimg_area + hal_area + page_area + bsp_area + mempool_area;
+    claim_size = pht_area + attri_area + coreimg_area + hal_area + page_area + bsp_area + mempool_area;
     
     // Claim memory
     //   Note here we use PHT size as alignment
@@ -141,8 +145,12 @@ static void init_mem_layout(void *coreimg_addr, int coreimg_size)
     pht_phys = claim_phys;
     ofw_printf("PHT area reserved, virt @ %p, phys @ %p, size: %d\n", pht_virt, pht_phys, LOADER_PHT_SIZE);
     
-    coreimg_virt = (void *)((ulong)pht_virt + pht_area);
-    coreimg_phys = (void *)((ulong)pht_phys + pht_area);
+    attri_virt = (void *)((ulong)pht_virt + pht_area);
+    attri_phys = (void *)((ulong)pht_phys + pht_area);
+    ofw_printf("PHT attribute area reserved, virt @ %p, phys @ %p, size: %d\n", attri_virt, attri_phys, LOADER_PHT_ATTRI_SIZE);
+    
+    coreimg_virt = (void *)((ulong)attri_virt + attri_area);
+    coreimg_phys = (void *)((ulong)attri_phys + attri_area);
     memcpy(coreimg_virt, coreimg_addr, coreimg_size);
     ofw_printf("Core image moved, virt @ %p, phys @ %p, size: %d\n", coreimg_virt, coreimg_phys, coreimg_size);
     
@@ -259,11 +267,12 @@ static void build_bootparam()
     boot_param->hal_start_flag = 0;
     boot_param->hal_entry_addr = 0;
     boot_param->hal_vaddr_end = 0;
-    boot_param->hal_vspace_end = 0;
+    boot_param->hal_vspace_end = HAL_VSPACE_END;
     boot_param->kernel_entry_addr = 0;
     
     // Paging
     boot_param->pht_addr = (ulong)pht_phys;
+    boot_param->attri_addr = (ulong)attri_phys;
     boot_param->pde_addr = (ulong)pde_phys;
     boot_param->pte_addr = (ulong)pte_phys;
     
@@ -443,7 +452,7 @@ static int pht_index(u32 vaddr, int secondary)
     return index;
 }
 
-static struct pht_entry *find_free_pht_entry(u32 vaddr)
+static struct pht_entry *find_free_pht_entry(u32 vaddr, int *group, int *offset)
 {
     int i, idx;
     struct pht_entry *entry = NULL;
@@ -453,6 +462,9 @@ static struct pht_entry *find_free_pht_entry(u32 vaddr)
     for (i = 0; i < 8; i++) {
         entry = &pht_virt[idx].entries[i];
         if (!entry->valid) {
+            if (group) *group = idx;
+            if (offset) *offset = i;
+            
             entry->secondary = 0;
             return entry;
         }
@@ -463,6 +475,9 @@ static struct pht_entry *find_free_pht_entry(u32 vaddr)
     for (i = 0; i < 8; i++) {
         entry = &pht_virt[idx].entries[i];
         if (!entry->valid) {
+            if (group) *group = idx;
+            if (offset) *offset = i;
+            
             entry->secondary = 1;
             return entry;
         }
@@ -491,8 +506,10 @@ static void pht_fill(ulong vstart, ulong len, int io)
             phys_pfn += ADDR_TO_PFN(virt & 0x3FFFFF);
         }
         
-        struct pht_entry *entry = find_free_pht_entry(virt);
+        int group = 0, offset = 0;
+        struct pht_entry *entry = find_free_pht_entry(virt, &group, &offset);
         if (entry) {
+            // Set up entry
             entry->valid = 1;
             entry->page_idx = (ADDR_TO_PFN(virt) >> 10) & 0x3f;
             entry->vsid = virt >> 28;
@@ -504,6 +521,9 @@ static void pht_fill(ulong vstart, ulong len, int io)
             } else {
                 entry->coherent = 1;
             }
+            
+            // Set up Toddler special attributes
+            attri_virt[group].entries[offset].persist = 1;
             
             //ofw_printf("\tPHT filled @ %p: %x %x -> %d\n", virt, entry->word0, entry->word1, phys_pfn);
         } else {

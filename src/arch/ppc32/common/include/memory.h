@@ -145,6 +145,24 @@ struct pht_group {
 
 
 /*
+ * OS PHT attribute table
+ */
+struct pht_attri_entry {
+    union {
+        u8 value;
+        struct {
+            u8 persist      : 1;
+            u8 reserved     : 7;
+        };
+    };
+} packedstruct;
+
+struct pht_attri_group {
+    struct pht_attri_entry entries[8];
+} packedstruct;
+
+
+/*
  * Segment register
  */
 struct seg_reg {

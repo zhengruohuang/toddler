@@ -1,5 +1,5 @@
-#ifndef __ARCH_ARMV7_LOADER_FONT_HH__
-#define __ARCH_ARMV7_LOADER_FONT_HH__
+#ifndef __ARCH_PPC32_HAL_INCLUDE_FONT__
+#define __ARCH_PPC32_HAL_INCLUDE_FONT__
 
 
 #include "common/include/data.h"

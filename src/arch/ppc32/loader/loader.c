@@ -115,9 +115,6 @@ static struct page_frame *pde_phys = NULL;
 static struct page_frame *pte_virt = NULL;
 static struct page_frame *pte_phys = NULL;
 
-static void *bsp_area_virt = NULL;
-static void *bsp_area_phys = NULL;
-
 static void *mempool_virt = NULL;
 static void *mempool_phys = NULL;
 
@@ -129,10 +126,9 @@ static void init_mem_layout(void *coreimg_addr, int coreimg_size)
     int coreimg_area = ALIGN_UP(coreimg_size, PAGE_SIZE);
     int hal_area = ALIGN_UP(HAL_AREA_SIZE, PAGE_SIZE);
     int page_area = PAGE_SIZE + PAGE_SIZE;
-    int bsp_area = PAGE_SIZE + PAGE_SIZE;
     int mempool_area = ALIGN_UP(LOADER_MEMPOOL_SIZE, PAGE_SIZE);
     
-    claim_size = pht_area + attri_area + coreimg_area + hal_area + page_area + bsp_area + mempool_area;
+    claim_size = pht_area + attri_area + coreimg_area + hal_area + page_area + mempool_area;
     
     // Claim memory
     //   Note here we use PHT size as alignment
@@ -166,12 +162,8 @@ static void init_mem_layout(void *coreimg_addr, int coreimg_size)
     pte_phys = (void *)((ulong)pde_phys + PAGE_SIZE);
     ofw_printf("PTE area reserved, virt @ %p, phys @ %p, size: %d\n", pte_virt, pte_phys, PAGE_SIZE);
     
-    bsp_area_virt = (void *)((ulong)pte_virt + PAGE_SIZE);
-    bsp_area_phys = (void *)((ulong)pte_phys + PAGE_SIZE);
-    ofw_printf("BSP area reserved, virt @ %p, phys @ %p, size: %d\n", bsp_area_virt, bsp_area_phys, bsp_area);
-    
-    mempool_virt = (void *)((ulong)bsp_area_virt + bsp_area);
-    mempool_phys = (void *)((ulong)bsp_area_phys + bsp_area);
+    mempool_virt = (void *)((ulong)pte_virt + PAGE_SIZE);
+    mempool_phys = (void *)((ulong)pte_phys + PAGE_SIZE);
     mempool_init(mempool_virt, mempool_phys, mempool_area);
     ofw_printf("Memory pool created, virt @ %p, phys @ %p, size: %d\n", mempool_virt, mempool_phys, mempool_area);
 }
@@ -593,15 +585,6 @@ static void init_page_table()
         pte_virt->value_pte[i].exec_allow = 1;
         pte_virt->value_pte[i].write_allow = 1;
     }
-    
-    // 4GB-4MB ~ 4GB-4MB+8KB -> BSP reserved area
-    for (i = 0; i < 2; i++) {
-        pte_virt->value_pte[i].present = 1;
-        pte_virt->value_pte[i].exec_allow = 0;
-        pte_virt->value_pte[i].pfn = (u32)ADDR_TO_PFN((ulong)bsp_area_phys) + i;
-    }
-    
-    pht_fill(0xffc00000, 8192, 0);
     
     // 4GB-1MB ~ 4GB-4KB -> HAL reserved area
     for (i = 0; i < 255; i++) {

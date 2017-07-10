@@ -15,6 +15,7 @@ void no_opt hal_entry(struct boot_parameters *boot_param)
     
     // Init memory management
     init_pht();
+    init_map();
     init_kalloc();
     
     // Init CPU

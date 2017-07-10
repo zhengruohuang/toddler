@@ -46,21 +46,32 @@ ulong get_my_cpu_area_start_vaddr()
  */
 void init_mp()
 {
+    int i;
+    
     kprintf("Initializing multiprocessor support\n");
     
     // Reserve pages
     ulong per_cpu_are_start_pfn = palloc(PER_CPU_AREA_PAGE_COUNT * num_cpus);
-    //per_cpu_area_start_vaddr = PHYS_TO_KCODE(PFN_TO_ADDR(per_cpu_are_start_pfn));
+    per_cpu_area_start_vaddr = PER_CPU_AREA_BASE_VADDR;
     
     // Map per CPU private area
-    int i;
+    ulong cur_area_pstart = PFN_TO_ADDR(per_cpu_are_start_pfn);
+    ulong cur_area_vstart = per_cpu_area_start_vaddr;
+    
+    kprintf("\tPer-CPU area start phys @ %p, virt @ %p\n", (void *)cur_area_pstart, (void *)cur_area_vstart);
+    
     for (i = 0; i < num_cpus; i++) {
-        ulong cur_are_pfn = per_cpu_are_start_pfn + i * PER_CPU_AREA_PAGE_COUNT;
-        ulong cur_area_vstart = PFN_TO_ADDR(cur_are_pfn);
+        // Map the page to its new virt location
+        kernel_map_per_cpu_area(cur_area_vstart, cur_area_pstart);
+        fill_kernel_pht(cur_area_vstart, PER_CPU_AREA_SIZE, 0, 1);
+        evict_kernel_pht(cur_area_pstart, PER_CPU_AREA_SIZE);
         
         // Tell the user
         kprintf("\tCPU #%d, per-CPU area: %p (%d Bytes)\n", i,
             (void *)cur_area_vstart, PER_CPU_AREA_SIZE
         );
+        
+        cur_area_pstart += PER_CPU_AREA_SIZE;
+        cur_area_vstart += PER_CPU_AREA_SIZE;
     }
 }

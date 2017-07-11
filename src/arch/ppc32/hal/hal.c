@@ -5,6 +5,7 @@
 #include "hal/include/print.h"
 #include "hal/include/mem.h"
 #include "hal/include/cpu.h"
+#include "hal/include/int.h"
 
 
 void no_opt hal_entry(struct boot_parameters *boot_param)
@@ -26,6 +27,7 @@ void no_opt hal_entry(struct boot_parameters *boot_param)
     // Init task
     
     // Init interrupt
+    init_int();
     
     // Init timer
     

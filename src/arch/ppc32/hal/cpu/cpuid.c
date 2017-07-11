@@ -23,7 +23,16 @@ static struct pvr_record *record;
 
 static ulong read_pvr()
 {
-    return 0x000c0209;
+    ulong pvr = 0;
+    
+    __asm__ __volatile__
+    (
+        "mfspr %[dest], 287;"
+        : [dest]"=r"(pvr)
+        :
+    );
+    
+    return pvr;
 }
 
 static int decode_pvr(ulong pvr)

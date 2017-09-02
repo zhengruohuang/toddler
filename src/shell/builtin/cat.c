@@ -20,8 +20,15 @@ static int do_cat(char *name)
             s = kapi_urs_read(id, buf, sizeof(buf) - 1);
             if (s) {
                 for (j = 0; j < s; j++) {
-                    if (buf[j] == '%') {
+                    switch (buf[j]) {
+                    case '%':
                         buf[j] = '#';
+                        break;
+                    case '\0':
+                        buf[j] = '.';
+                        break;
+                    default:
+                        break;
                     }
                 }
                 buf[s] = '\0';

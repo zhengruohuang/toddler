@@ -9,7 +9,7 @@
 #include "hal/include/int.h"
 
 
-int_handler int_handler_list[IDT_ENTRY_COUNT];
+// int_handler int_handler_list[IDT_ENTRY_COUNT];
 
 static dec_per_cpu(int, interrupt_enabled);
 
@@ -55,27 +55,26 @@ void restore_local_int(int enabled)
     }
     
     else if (enabled) {
+        set_local_int_state(1);
         __asm__ __volatile__
         (
             "sti;"
             :
             :
         );
-        
-        set_local_int_state(1);
     }
 }
 
 void enable_local_int()
 {
+    set_local_int_state(1);
+    
     __asm__ __volatile__
     (
         "sti;"
         :
         :
     );
-    
-    set_local_int_state(1);
 }
 
 
@@ -92,22 +91,6 @@ void init_int_state()
     set_local_int_state(0);
 }
 
-
-/*
- * Initialize int handlers
- */
-void init_int_handlers()
-{
-    u32 i;
-    
-    kprintf("Initializing interrupt handlers ... ");
-    
-    for (i = 0; i < IDT_ENTRY_COUNT; i++) {
-        int_handler_list[i] = NULL;
-    }
-    
-    kprintf("Done!\n");
-}
 
 /*
  * General interrupt handler entry
@@ -141,7 +124,7 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
 //     }
     
     // Get the actual interrupt handler
-    int_handler handler = int_handler_list[vector_num];
+    int_handler handler = get_int_handler(vector_num);
     if (NULL == (void *)handler) {
         handler = int_handler_dummy;
     }
@@ -176,10 +159,17 @@ int asmlinkage int_handler_entry(u32 vector_num, u32 error_code)
  */
 int int_handler_dummy(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
-    kprintf("Interrupt, vector: %x, err_code: %x, eip: %x, esp: %x, cs: %x, ds: %x, es: %x, fs: %x, ss: %x eflags: %x\n",
-            context->vector, context->error_code,
-            context->context->eip, context->context->esp, context->context->cs, context->context->ds, context->context->es, context->context->fs, context->context->ss, context->context->eflags);
-            
+    kprintf(
+        "Interrupt, vector: %p, err_code: %p, "
+        "eip: %p, esp: %p, "
+        "cs: %p, ds: %p, es: %p, fs: %p, ss: %p, "
+        "eflags: %p\n",
+        
+        (void *)(ulong)context->vector, (void *)(ulong)context->error_code,
+        (void *)(ulong)context->context->eip, (void *)(ulong)context->context->esp,
+        (void *)(ulong)context->context->cs, (void *)(ulong)context->context->ds, (void *)(ulong)context->context->es, (void *)(ulong)context->context->fs, (void *)(ulong)context->context->ss,
+        (void *)(ulong)context->context->eflags);
+    
     return 0;
 }
 

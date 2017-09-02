@@ -203,6 +203,7 @@ void init_salloc()
     
     // Allocate a page for obj page
     obj_page = (struct salloc_obj_page *)PFN_TO_ADDR(palloc(1));
+    kprintf("\tObject page allocated @ %p\n", (void *)obj_page);
     
     // Initialize the obj page
     obj_page->obj_id_base = 0;

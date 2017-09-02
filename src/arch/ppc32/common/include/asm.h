@@ -159,6 +159,7 @@
 #define xer      1
 #define lr       8
 #define ctr      9
+#define dar      19
 #define dec      22
 #define sdr1     25
 #define srr0     26

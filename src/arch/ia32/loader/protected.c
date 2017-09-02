@@ -586,14 +586,14 @@ static void no_inline find_and_layout(char *name, int bin_type)
         print_failed();
     }
     
-    struct elf32_elf_header *elf_header = (struct elf32_elf_header *)(record->start_offset + COREIMG_LOAD_PADDR);
-    struct elf32_program_header *header;
+    struct elf32_header *elf_header = (struct elf32_header *)(record->start_offset + COREIMG_LOAD_PADDR);
+    struct elf32_program *header;
     ulong vaddr_end = 0;
     
     /* For every segment, map and load them */
     for (i = 0; i < elf_header->elf_phnum; i++) {
         /* Get header */
-        header = (struct elf32_program_header *)((u32)elf_header + elf_header->elf_phoff + elf_header->elf_phentsize * i);
+        header = (struct elf32_program *)((u32)elf_header + elf_header->elf_phoff + elf_header->elf_phentsize * i);
         
         //print_string("  Program #");
         //print_hex(i);

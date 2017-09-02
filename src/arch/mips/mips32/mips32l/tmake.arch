@@ -1,0 +1,6 @@
+#!/usr/bin/python
+
+
+globals()['mips_endian_prefix'] = 'mipsel'
+
+include(arch_dir_map['mips32'] + 'tmake.inc')

@@ -19,6 +19,8 @@
 #define PALLOC_DUMMY_BUCKET 15
 #define PALLOC_BUCKET_BITS  4
 
+#define PFN_BITS            (sizeof(unsigned long) * 8 - PAGE_BITS)
+
 
 struct palloc_node {
     union {

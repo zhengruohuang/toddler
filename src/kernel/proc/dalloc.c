@@ -6,6 +6,7 @@
 #include "common/include/data.h"
 #include "common/include/memory.h"
 #include "kernel/include/hal.h"
+#include "kernel/include/lib.h"
 #include "kernel/include/mem.h"
 #include "kernel/include/sync.h"
 #include "kernel/include/proc.h"
@@ -64,6 +65,10 @@ static ulong alloc_new(struct process *p, ulong size)
     
     p->dynamic.cur_top -= size;
     record_block(p, p->dynamic.cur_top, size);
+    
+//     kprintf("\np->dynamic.cur_top: %p\n", (void *)p->dynamic.cur_top);
+//     kprintf("p->memory.heap_end: %p\n", (void *)p->memory.heap_end);
+//     kprintf("size: %p\n", (void *)size);
     
     return p->dynamic.cur_top;
 }
@@ -125,12 +130,7 @@ ulong dalloc(struct process *p, ulong size)
 {
     assert(p->type != process_kernel);
     
-    if (size % PAGE_SIZE) {
-        size /= PAGE_SIZE;
-        size++;
-        size *= PAGE_SIZE;
-    }
-    
+    size = ALIGN_UP(size, PAGE_SIZE);
     ulong result = alloc_exist(p, size);
     if (!result) {
         result = alloc_new(p, size);

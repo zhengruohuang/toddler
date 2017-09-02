@@ -54,7 +54,7 @@ asmlinkage void urs_reg_super_handler(msg_t *s)
 //     sfree(arg);
 //     
 //     // Wait for this thread to be terminated
-//     kernel_unreachable();
+//     ksys_unreachable();
 // }
 
 

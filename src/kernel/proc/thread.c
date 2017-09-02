@@ -6,6 +6,7 @@
 #include "common/include/data.h"
 #include "common/include/memory.h"
 #include "kernel/include/hal.h"
+#include "kernel/include/lib.h"
 #include "kernel/include/mem.h"
 #include "kernel/include/proc.h"
 
@@ -144,22 +145,12 @@ struct thread *create_thread(
     if (!stack_size) {
         stack_size = PAGE_SIZE;
     }
-    
-    if (stack_size % PAGE_SIZE) {
-        stack_size /= PAGE_SIZE;
-        stack_size++;
-        stack_size *= PAGE_SIZE;
-    }
+    stack_size = ALIGN_UP(stack_size, PAGE_SIZE);
     
     if (!tls_size) {
         tls_size = PAGE_SIZE;
     }
-    
-    if (tls_size % PAGE_SIZE) {
-        tls_size /= PAGE_SIZE;
-        tls_size++;
-        tls_size *= PAGE_SIZE;
-    }
+    tls_size = ALIGN_UP(tls_size, PAGE_SIZE);
     
     // Setup sizes
     t->memory.msg_send_size = PAGE_SIZE;
@@ -178,6 +169,7 @@ struct thread *create_thread(
     // Allocate memory
     if (p->type == process_kernel) {
         t->memory.block_base = PFN_TO_ADDR(palloc(t->memory.block_size / PAGE_SIZE));
+        //kprintf("Kernel thread block allocated paddr @ %p\n", (void *)t->memory.block_base);
         
         t->memory.msg_send_paddr = t->memory.block_base + t->memory.msg_send_offset;
         t->memory.msg_recv_paddr = t->memory.block_base + t->memory.msg_recv_offset;
@@ -188,6 +180,7 @@ struct thread *create_thread(
         t->memory.block_base = dalloc(p, t->memory.block_size);
         
         // Allocate memory and map it
+        // Msg send
         ulong paddr = PFN_TO_ADDR(palloc(t->memory.msg_send_size / PAGE_SIZE));
         assert(paddr);
         int succeed = hal->map_user(
@@ -197,7 +190,10 @@ struct thread *create_thread(
         );
         assert(succeed);
         t->memory.msg_send_paddr = paddr;
+        //kprintf("Mapped msg send, vaddr @ %p, paddr @ %p\n",
+        //        (void *)(t->memory.block_base + t->memory.msg_send_offset), (void *)paddr);
         
+        // Msg recv
         paddr = PFN_TO_ADDR(palloc(t->memory.msg_recv_size / PAGE_SIZE));
         assert(paddr);
         succeed = hal->map_user(
@@ -207,7 +203,10 @@ struct thread *create_thread(
         );
         assert(succeed);
         t->memory.msg_recv_paddr = paddr;
+        //kprintf("Mapped msg recv, vaddr @ %p, paddr @ %p\n",
+        //        (void *)(t->memory.block_base + t->memory.msg_recv_offset), (void *)paddr);
         
+        // TLS
         paddr = PFN_TO_ADDR(palloc(tls_size / PAGE_SIZE));
         assert(paddr);
         succeed = hal->map_user(
@@ -217,7 +216,10 @@ struct thread *create_thread(
         );
         assert(succeed);
         t->memory.tls_start_paddr = paddr;
+        //kprintf("Mapped TLS, vaddr @ %p, paddr @ %p\n",
+        //       (void *)(t->memory.block_base + t->memory.tls_start_offset), (void *)paddr);
         
+        // Stack
         paddr = PFN_TO_ADDR(palloc(stack_size / PAGE_SIZE));
         assert(paddr);
         succeed = hal->map_user(
@@ -227,6 +229,8 @@ struct thread *create_thread(
         );
         assert(succeed);
         t->memory.stack_top_paddr = paddr + stack_size;
+        //kprintf("Mapped stack, vaddr @ %p, paddr @ %p\n",
+        //        (void *)(t->memory.block_base + t->memory.stack_limit_offset), (void *)paddr);
     }
     
     // Insert TCB into TLS
@@ -239,6 +243,8 @@ struct thread *create_thread(
     
     // Initialize TCB
     struct thread_control_block *tcb = (struct thread_control_block *)t->memory.tcb_start_paddr;
+    //kprintf("TCB @ %p\n", tcb);
+    
     tcb->self = (struct thread_control_block *)(t->memory.block_base + t->memory.tcb_start_offset);
     tcb->msg_send = (void *)(t->memory.block_base + t->memory.msg_send_offset);
     tcb->msg_recv = (void *)(t->memory.block_base + t->memory.msg_recv_offset);
@@ -320,6 +326,8 @@ static void destroy_thread(struct process *p, struct thread *t)
     // Scheduling
     clean_sched(t->sched);
     
+    // FIXME: Temporarily disable this part to avoid some weird issues
+#if 1
     // Dynamic area
     if (p->type == process_kernel) {
         pfree(ADDR_TO_PFN(t->memory.block_base));
@@ -327,36 +335,45 @@ static void destroy_thread(struct process *p, struct thread *t)
         ulong vaddr = 0;
         ulong paddr = 0;
         
+        assert(t->memory.block_base != 0xeffbe000);
+        
         // TLB shootdown first
         trigger_tlb_shootdown(p->asid, t->memory.block_base, t->memory.block_size);
         
         // Msg send
         vaddr = t->memory.block_base + t->memory.msg_send_offset;
         paddr = t->memory.msg_send_paddr;
+        //kprintf("To unmap msg send, vaddr @ %p, paddr @ %p\n", (void *)vaddr, (void *)paddr);
         hal->unmap_user(p->page_dir_pfn, vaddr, paddr, t->memory.msg_send_size);
         pfree(ADDR_TO_PFN(paddr));
         
-        // Msg send
+        // Msg recv
         vaddr = t->memory.block_base + t->memory.msg_recv_offset;
         paddr = t->memory.msg_recv_paddr;
+        //kprintf("To unmap msg recv, vaddr @ %p, paddr @ %p\n", (void *)vaddr, (void *)paddr);
         hal->unmap_user(p->page_dir_pfn, vaddr, paddr, t->memory.msg_recv_size);
         pfree(ADDR_TO_PFN(paddr));
         
         // TLS
         vaddr = t->memory.block_base + t->memory.tls_start_offset;
         paddr = t->memory.tls_start_paddr;
+        vaddr = ALIGN_DOWN(vaddr, PAGE_SIZE);
+        paddr = ALIGN_DOWN(paddr, PAGE_SIZE);
+        //kprintf("To unmap tls, vaddr @ %p, paddr @ %p\n", (void *)vaddr, (void *)paddr);
         hal->unmap_user(p->page_dir_pfn, vaddr, paddr, t->memory.tls_size);
         pfree(ADDR_TO_PFN(paddr));
         
         // Stack
         vaddr = t->memory.block_base + t->memory.stack_limit_offset;
         paddr = hal->get_paddr(p->page_dir_pfn, vaddr);
+        //kprintf("To unmap stack, vaddr @ %p, paddr @ %p\n", (void *)vaddr, (void *)paddr);
         hal->unmap_user(p->page_dir_pfn, vaddr, paddr, t->memory.stack_size);
         pfree(ADDR_TO_PFN(paddr));
         
         // Free dynamic area
         dfree(p, t->memory.block_base);
     }
+#endif
     
     spin_unlock_int(&t->lock);
     

@@ -31,5 +31,5 @@ asmlinkage void kmap_handler(struct kernel_msg_handler_arg *arg)
     sfree(arg);
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }

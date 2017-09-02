@@ -1,4 +1,4 @@
-ENTRY(start)
+ENTRY(hal_entry)
 
 SECTIONS
 {
@@ -8,7 +8,7 @@ SECTIONS
     
     __text_start = .;
     .text : {
-        *(BOOTSTRAP);
+        *(entry);
         *(.text);
     }
     __text_end = .;

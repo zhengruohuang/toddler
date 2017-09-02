@@ -9,20 +9,11 @@
  * Context
  */
 struct context {
-    u32 zero;
-    u32 at;
-    u32 v0, v1;
-    u32 a0, a1, a2, a3;
-    u32 t0, t1, t2, t3, t4, t5, t6, t7;
-    u32 s0, s1, s2, s3, s4, s5, s6, s7;
-    u32 t8, t9;
-    u32 k0, k1;
-    u32 gp;
-    u32 sp;
-    u32 fp;
-    u32 ra;
-    
-    u32 pc;
+    u32 r0, r1, r2, r3, r4, r5, r6, r7, r8, r9;
+    u32 r10, r11, r12, r13, r14, r15, r16, r17, r18, r19;
+    u32 r20, r21, r22, r23, r24, r25, r26, r27, r28, r29;
+    u32 r30, r31;
+    u32 lr, cr, ctr, xer, msr, pc;
 } packedstruct;
 
 

@@ -4,6 +4,7 @@
 #include "common/include/memlayout.h"
 #include "hal/include/print.h"
 #include "hal/include/lib.h"
+#include "hal/include/debug.h"
 #include "hal/include/mem.h"
 
 
@@ -19,9 +20,6 @@ ulong palloc(int count)
     
     ulong result = (ulong)get_bootparam()->free_pfn_start;
     get_bootparam()->free_pfn_start += count;
-    
-    // Map the page
-    fill_kernel_pht(PFN_TO_ADDR(result), count << PAGE_BITS, 0, 0);
     
     // Zero the page
     memzero((void *)PFN_TO_ADDR(result), count << PAGE_BITS);

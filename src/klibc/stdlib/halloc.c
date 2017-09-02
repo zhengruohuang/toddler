@@ -2,6 +2,7 @@
 #include "common/include/atomic.h"
 #include "klibc/include/sys.h"
 #include "klibc/include/kthread.h"
+#include "klibc/include/stdio.h"
 #include "klibc/include/stdlib.h"
 
 

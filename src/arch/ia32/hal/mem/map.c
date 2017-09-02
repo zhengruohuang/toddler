@@ -149,13 +149,11 @@ int user_indirect_map_array(
     ulong page_dir_pfn, ulong vaddr, ulong paddr, size_t length,
     int exec, int write, int cacheable, int overwrite)
 {
-    ulong vstart = (vaddr / PAGE_SIZE) * PAGE_SIZE;
-    ulong pstart = (paddr / PAGE_SIZE) * PAGE_SIZE;
+    ulong vstart = ALIGN_DOWN(vaddr, PAGE_SIZE);
+    ulong pstart = ALIGN_DOWN(paddr, PAGE_SIZE);
     
-    ulong page_count = length / PAGE_SIZE;
-    if (length % PAGE_SIZE) {
-        page_count++;
-    }
+    ulong vend = ALIGN_UP(vaddr + length, PAGE_SIZE);
+    ulong page_count = (vend - vstart) >> PAGE_BITS;
     
     ulong i;
     ulong vcur = vstart;
@@ -213,13 +211,11 @@ int user_indirect_unmap_array(ulong page_dir_pfn, ulong vaddr, ulong paddr, size
 {
     //kprintf("To unmap, pfn: %u, vaddr: %u, paddr: %u, size: %u\n", page_dir_pfn, vaddr, paddr, length);
     
-    ulong vstart = (vaddr / PAGE_SIZE) * PAGE_SIZE;
-    ulong pstart = (paddr / PAGE_SIZE) * PAGE_SIZE;
+    ulong vstart = ALIGN_DOWN(vaddr, PAGE_SIZE);
+    ulong pstart = ALIGN_DOWN(paddr, PAGE_SIZE);
     
-    ulong page_count = length / PAGE_SIZE;
-    if (length % PAGE_SIZE) {
-        page_count++;
-    }
+    ulong vend = ALIGN_UP(vaddr + length, PAGE_SIZE);
+    ulong page_count = (vend - vstart) >> PAGE_BITS;
     
     ulong i;
     ulong vcur = vstart;
@@ -255,13 +251,13 @@ void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int overri
     }
     
     // PTE
-    page = (struct page_frame *)(PFN_TO_ADDR(page->value_pde[index].pfn));
+    page = (struct page_frame *)(PFN_TO_ADDR((ulong)page->value_pde[index].pfn));
     index = GET_PTE_INDEX(vaddr);
     
     if (page->value_u32[index] && !override) {
         if (page->value_pte[index].pfn != ADDR_TO_PFN(paddr)) {
             kprintf("Inconsistency detected, original PFN: %p, new PFN: %p\n",
-                    page->value_pte[index].pfn, ADDR_TO_PFN(paddr));
+                    (void *)(ulong)page->value_pte[index].pfn, (void *)ADDR_TO_PFN(paddr));
         }
         
         assert(
@@ -283,26 +279,18 @@ void kernel_indirect_map(ulong vaddr, ulong paddr, int disable_cache, int overri
 
 void kernel_indirect_map_array(ulong vaddr, ulong paddr, size_t size, int disable_cache, int override)
 {
-    assert(vaddr % PAGE_SIZE == paddr % PAGE_SIZE);
+    assert((vaddr & (PAGE_SIZE - 1)) == (paddr & (PAGE_SIZE - 1)));
     
     // Round down start addr
-    ulong vstart = (vaddr / PAGE_SIZE) * PAGE_SIZE;
-    ulong pstart = (paddr / PAGE_SIZE) * PAGE_SIZE;
+    ulong vstart = ALIGN_DOWN(vaddr, PAGE_SIZE);
+    ulong pstart = ALIGN_DOWN(paddr, PAGE_SIZE);
     
     // Round up end addr
-    ulong pend = paddr + size;
-    if (pend % PAGE_SIZE) {
-        pend /= PAGE_SIZE;
-        pend++;
-        pend *= PAGE_SIZE;
-    }
+    ulong pend = ALIGN_UP(paddr + size, PAGE_SIZE);
     
     // Calculate the real size and page count
     ulong real_size = pend - pstart;
-    ulong page_count = real_size / PAGE_SIZE;
-    if (real_size % PAGE_SIZE) {
-        page_count++;
-    }
+    ulong page_count = real_size >> PAGE_BITS;
     
     ulong i;
     ulong vcur = vstart;
@@ -323,22 +311,14 @@ void kernel_direct_map(ulong addr, int disable_cache)
 void kernel_direct_map_array(ulong addr, size_t size, int disable_cache)
 {
     // Round down start addr
-    ulong start = addr / PAGE_SIZE * PAGE_SIZE;
+    ulong start = ALIGN_DOWN(addr, PAGE_SIZE);
     
     // Round up end addr
-    ulong end = addr + size;
-    if (end % PAGE_SIZE) {
-        end /= PAGE_SIZE;
-        end++;
-        end *= PAGE_SIZE;
-    }
+    ulong end = ALIGN_UP(addr + size, PAGE_SIZE);
     
     // Calculate the real size and page count
     ulong real_size = end - start;
-    ulong page_count = real_size / PAGE_SIZE;
-    if (real_size % PAGE_SIZE) {
-        page_count++;
-    }
+    ulong page_count = real_size >> PAGE_BITS;
     
     ulong cur = start;
     ulong i;

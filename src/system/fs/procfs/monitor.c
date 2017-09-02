@@ -18,7 +18,7 @@ static asmlinkage void on_process_create_before(msg_t *msg)
     unsigned long ret_mbox_id = msg->mailbox_id;
     int errno = EOK;
     
-    kprintf("Before thread creation!\n");
+    kprintf("Before process creation!\n");
     
     // Setup the reply msg
     msg_t *r = syscall_msg();
@@ -43,6 +43,8 @@ static asmlinkage void on_process_create_after(msg_t *msg)
 {
     unsigned long ret_mbox_id = msg->mailbox_id;
     int errno = EOK;
+    
+    kprintf("After process creation!\n");
     
     // Setup the reply msg
     msg_t *r = syscall_msg();

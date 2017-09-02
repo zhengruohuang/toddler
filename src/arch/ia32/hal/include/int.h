@@ -5,6 +5,7 @@
 #include "common/include/data.h"
 #include "common/include/context.h"
 #include "common/include/kdisp.h"
+#include "hal/include/vector.h"
 
 
 // Number of IDT entries
@@ -83,19 +84,6 @@ struct idt {
 
 
 /*
- * Interrupt handler
- */
-struct int_context {
-    ulong vector;
-    ulong error_code;
-    
-    struct context *context;
-};
-
-typedef int (*int_handler)(struct int_context *intc, struct kernel_dispatch_info *kdi);
-
-
-/*
  * Assembly export functions and addresses
  */
 extern void int_handler_divide();
@@ -141,8 +129,6 @@ extern void init_int_state();
 /*
  * Pre-defined interrupt handlers
  */
-extern int_handler int_handler_list[IDT_ENTRY_COUNT];
-extern void init_int_handlers();
 extern int asmlinkage int_handler_entry(u32 vector_num, u32 error_code);
 extern int int_handler_dummy(struct int_context *intc, struct kernel_dispatch_info *kdi);
 extern int int_handler_exception(struct int_context *intc, struct kernel_dispatch_info *kdi);
@@ -154,26 +140,6 @@ extern int int_handler_device(struct int_context *intc, struct kernel_dispatch_i
  */
 extern void load_idt();
 extern void init_idt();
-
-
-/*
- * Interrupt vectors
- */
-#define INT_VECTOR_ALLOC_START        32
-#define INT_VECTOR_ALLOC_END          255
-
-enum int_vector_state {
-    int_vector_unknown,
-    int_vector_reserved,
-    int_vector_free,
-    int_vector_allocated,
-    int_vector_other
-};
-
-extern void init_int_vector();
-extern int set_int_vector(int vector, int_handler hdlr);
-extern int alloc_int_vector(int_handler hdlr);
-extern void free_int_vector(int vector);
 
 
 #endif

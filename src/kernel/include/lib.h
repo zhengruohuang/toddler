@@ -6,6 +6,18 @@
 
 
 /*
+ * Alignment
+ */
+#ifndef ALIGN_UP
+#define ALIGN_UP(s, a)  (((s) + ((a) - 1)) & ~((a) - 1))
+#endif
+
+#ifndef ALIGN_DOWN
+#define ALIGN_DOWN(s, a)  ((s) & ~((a) - 1))
+#endif
+
+
+/*
  * Str
  */
 extern size_t strlen(const char *s);

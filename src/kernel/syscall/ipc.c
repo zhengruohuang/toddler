@@ -312,7 +312,8 @@ void recv_worker_thread(ulong param)
             break;
         }
         
-        hal->yield();
+        //hal->yield();
+        ksys_yield();
     } while (1);
     
 //     // Clean the previous msg
@@ -335,7 +336,7 @@ void recv_worker_thread(ulong param)
     terminate_thread_self(worker);
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }
 
 void request_worker_thread(ulong param)
@@ -362,7 +363,7 @@ void request_worker_thread(ulong param)
     terminate_thread_self(worker);
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }
 
 void respond_worker_thread(ulong param)
@@ -389,5 +390,5 @@ void respond_worker_thread(ulong param)
 //     kprintf("Worker thread terminated!\n");
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }

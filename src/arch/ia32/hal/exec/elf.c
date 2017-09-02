@@ -20,8 +20,8 @@ int load_elf_exe(
     ulong vaddr_end = 0;
     ulong entry = 0;
     
-    struct elf32_elf_header *elf_header = (struct elf32_elf_header *)image_start;
-    struct elf32_program_header *prog_header;
+    struct elf32_header *elf_header = (struct elf32_header *)image_start;
+    struct elf32_program *prog_header;
     
     //kprintf("\tLoad ELF image at %p, page dir PFN %d\n", image_start, dest_page_dir_pfn);
     
@@ -30,7 +30,7 @@ int load_elf_exe(
         //kprintf("\t\tSegment #%d\n", i);
         
         // Get program header
-        prog_header = (struct elf32_program_header *)(image_start + elf_header->elf_phoff + elf_header->elf_phentsize * i);
+        prog_header = (struct elf32_program *)(image_start + elf_header->elf_phoff + elf_header->elf_phentsize * i);
         
         // Map the segment to destination's vaddr space
         if (prog_header->program_memsz) {

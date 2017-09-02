@@ -47,10 +47,17 @@ extern void respond_worker_thread(ulong param);
 extern void reg_kapi_server_worker(struct kernel_dispatch_info *disp_info);
 extern void unreg_kapi_server_worker(struct kernel_dispatch_info *disp_info);
 
+
+/*
+ * Ksys - invoking system calls from kernel
+ */
 extern no_opt struct thread_control_block *ksys_get_tcb();
 extern int ksys_syscall(unsigned long num, unsigned long param1, unsigned long param2, unsigned long *out1, unsigned long *out2);
+
 extern msg_t *ksys_msg();
 extern msg_t *ksys_request();
+extern void ksys_yield();
+extern void ksys_unreachable();
 
 
 /*

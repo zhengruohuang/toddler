@@ -49,3 +49,18 @@ msg_t *ksys_request()
 //         return NULL;
 //     }
 }
+
+void ksys_yield()
+{
+    ksys_syscall(SYSCALL_YIELD, 0, 0, NULL, NULL);
+}
+
+void ksys_unreachable()
+{
+    do {
+        ksys_syscall(SYSCALL_YIELD, 0, 0, NULL, NULL);
+    } while (1);
+    
+    kprintf("Unreachable: should never reach here!\n");
+    while (1);
+}

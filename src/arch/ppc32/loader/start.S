@@ -25,11 +25,12 @@ jump_to_real_mode:
     // Set real mode entry point physical address
     mtspr srr0, r5
 
-    // Disable address translation
-    mfmsr r31
-    lis r30, ~0@h
-    ori r30, r30, ~(msr_ir | msr_dr | msr_ee)@l
-    and r31, r31, r30
+    // Disable address translation and interrupts
+    //mfmsr r31
+    //lis r30, ~0@h
+    //ori r30, r30, ~(msr_ir | msr_dr | msr_ee)@l
+    //and r31, r31, r30
+    li r31, 0
     mtspr srr1, r31
 
     // Go

@@ -3,11 +3,12 @@
 #include "common/include/memlayout.h"
 #include "common/include/proc.h"
 #include "hal/include/print.h"
-#include "hal/include/lib.h"
+#include "hal/include/debug.h"
 #include "hal/include/mem.h"
 #include "hal/include/cpu.h"
 
 
+static ulong per_cpu_area_start_paddr = 0;
 static ulong per_cpu_area_start_vaddr = 0;
 
 ulong tcb_padded_size = 0;
@@ -29,6 +30,17 @@ int get_cpu_id()
 /*
  * Per-CPU private data
  */
+ulong get_per_cpu_area_start_paddr(int cpu_id)
+{
+    assert(cpu_id < num_cpus);
+    return per_cpu_area_start_paddr + PER_CPU_AREA_SIZE * cpu_id;
+}
+
+ulong get_my_cpu_area_start_paddr()
+{
+    return get_per_cpu_area_start_paddr(get_cpu_id());
+}
+
 ulong get_per_cpu_area_start_vaddr(int cpu_id)
 {
     assert(cpu_id < num_cpus);
@@ -52,6 +64,7 @@ void init_mp()
     
     // Reserve pages
     ulong per_cpu_are_start_pfn = palloc(PER_CPU_AREA_PAGE_COUNT * num_cpus);
+    per_cpu_area_start_paddr = PFN_TO_ADDR(per_cpu_are_start_pfn);
     per_cpu_area_start_vaddr = PER_CPU_AREA_BASE_VADDR;
     
     // Map per CPU private area
@@ -62,9 +75,11 @@ void init_mp()
     
     for (i = 0; i < num_cpus; i++) {
         // Map the page to its new virt location
-        kernel_map_per_cpu_area(cur_area_vstart, cur_area_pstart);
-        fill_kernel_pht(cur_area_vstart, PER_CPU_AREA_SIZE, 0, 1);
-        evict_kernel_pht(cur_area_pstart, PER_CPU_AREA_SIZE);
+        kernel_map_per_cpu_area(cur_area_vstart, cur_area_pstart, PER_CPU_AREA_SIZE);
+        fill_kernel_pht(cur_area_vstart, PER_CPU_AREA_SIZE, 0, KERNEL_PHT_PERSIST);
+        
+        // Zero the area
+        memzero((void *)cur_area_vstart, PER_CPU_AREA_SIZE);
         
         // Tell the user
         kprintf("\tCPU #%d, per-CPU area: %p (%d Bytes)\n", i,

@@ -6,6 +6,7 @@
 #include "common/include/data.h"
 #include "kernel/include/hal.h"
 #include "kernel/include/proc.h"
+#include "kernel/include/syscall.h"
 #include "kernel/include/coreimg.h"
 
 
@@ -34,6 +35,8 @@ static unsigned long create_startup_process(char *name, char *url, enum process_
     // Create a process
     struct process *p = create_process(0, name, url, type, 0);
     
+    kprintf("Process created @ %p\n", p);
+    
     // Load image
     load_image(p, name);
     
@@ -55,7 +58,8 @@ static void create_startup_worker(ulong param)
         
         // Wait until the process is initialized
         do {
-            hal->yield();
+            //hal->yield();
+            ksys_yield();
             atomic_membar();
         } while (!records[i].started);
     }
@@ -66,7 +70,7 @@ static void create_startup_worker(ulong param)
     terminate_thread_self(worker);
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }
 
 void startup_process_started(ulong proc_id)

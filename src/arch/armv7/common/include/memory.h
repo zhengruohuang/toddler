@@ -17,8 +17,8 @@
 #define PAGE_ENTRY_COUNT    1024
 #endif
 
-#ifndef PAGE_LEVEL
-#define PAGE_LEVEL  2
+#ifndef PAGE_LEVELS
+#define PAGE_LEVELS 2
 #endif
 
 #ifndef ALIGN_MIN

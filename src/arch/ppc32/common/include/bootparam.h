@@ -61,6 +61,9 @@ struct boot_parameters {
     ulong pde_addr;
     ulong pte_addr;
     
+    // OFW
+    ulong ofw_tree_addr;
+    
     // Address where free memory starts
     ulong free_addr_start;
     ulong free_pfn_start;

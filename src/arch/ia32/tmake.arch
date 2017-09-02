@@ -175,11 +175,21 @@ def build_loader():
     
 def build_hal():
     print_info('hal', 'Building HAL')
-    build_dir(
-        arch_dir + 'hal/', [ '.c', '.asm' ],
+    
+    generic_files = get_all_files(src_dir + 'hal/', [ '.c' ])
+    arch_files = get_all_files(arch_dir + 'hal/', [ '.c', '.asm', '.s', '.S' ])
+    
+    build_files(
+        generic_files + arch_files,
         bin_dir + 'tdlrhal.bin',
         ext_flags = { 'ld/ext' : '-Ttext 0xFFF88000' },
     )
+    
+    #build_dir(
+        #arch_dir + 'hal/', [ '.c', '.asm' ],
+        #bin_dir + 'tdlrhal.bin',
+        #ext_flags = { 'ld/ext' : '-Ttext 0xFFF88000' },
+    #)
         
 def build_arch():
     # Build boot

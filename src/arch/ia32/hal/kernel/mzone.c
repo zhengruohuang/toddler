@@ -1,14 +1,10 @@
 #include "common/include/data.h"
 #include "common/include/bootparam.h"
 #include "common/include/memory.h"
+#include "common/include/kexport.h"
 #include "hal/include/print.h"
 #include "hal/include/mem.h"
 #include "hal/include/lib.h"
-
-#ifndef __HAL__
-#define __HAL__
-#endif
-#include "kernel/include/hal.h"
 
 
 #define MAX_KERNEL_MEM_ZONE_COUNT   32
@@ -145,7 +141,7 @@ void init_kmem_zone()
     
     // Full direct map for kernel
     for (i = PFN_TO_ADDR(get_bootparam()->free_pfn_start); i < paddr_space_end; i += PAGE_SIZE) {
-        //kprintf("\tDirect mapping: %p\n", i);
+//         kprintf("\tDirect mapping: %p\n", i);
         kernel_direct_map(i, 0);
     }
     
@@ -159,7 +155,7 @@ void init_kmem_zone()
     /*
      * Echo final mem zone map
      */
-    kprintf("\tPAddr space boundary: %p\n", paddr_space_end);
+    kprintf("\tPAddr space boundary: %p\n", (void *)paddr_space_end);
     kprintf("\tKernel memory zones\n");
     for (i = 0; i < mem_zone_count; i++) {
         u32 start = (u32)mem_zones[i].start;

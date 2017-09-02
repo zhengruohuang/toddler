@@ -237,13 +237,13 @@ static void find_and_layout(char *name, int bin_type)
     }
     
     // Load the file
-    struct elf32_elf_header *elf_header = (struct elf32_elf_header *)(record->start_offset + (ulong)coreimg);
-    struct elf32_program_header *header;
+    struct elf32_header *elf_header = (struct elf32_header *)(record->start_offset + (ulong)coreimg);
+    struct elf32_program *header;
     ulong vaddr_end = 0;
     
     // For each segment
     for (i = 0; i < elf_header->elf_phnum; i++) {
-        header = (struct elf32_program_header *)((u32)elf_header + elf_header->elf_phoff + elf_header->elf_phentsize * i);
+        header = (struct elf32_program *)((u32)elf_header + elf_header->elf_phoff + elf_header->elf_phentsize * i);
         
         // Copy the program data
         if (header->program_filesz) {

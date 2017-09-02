@@ -19,8 +19,8 @@
 #define PAGE_ENTRY_COUNT    1024
 #endif
 
-#ifndef PAGE_LEVEL
-#define PAGE_LEVEL  2
+#ifndef PAGE_LEVELS
+#define PAGE_LEVELS 2
 #endif
 
 #ifndef ALIGN_MIN
@@ -33,14 +33,6 @@
 
 #ifndef ALIGN_DEFAULT
 #define ALIGN_DEFAULT   4
-#endif
-
-
-/*
- * Alignment
- */
-#ifndef ALIGN_UP
-#define ALIGN_UP(s, a)  (((s) + ((a) - 1)) & ~((a) - 1))
 #endif
 
 
@@ -152,7 +144,8 @@ struct pht_attri_entry {
         u8 value;
         struct {
             u8 persist      : 1;
-            u8 reserved     : 7;
+            u8 temporary    : 1;
+            u8 reserved     : 6;
         };
     };
 } packedstruct;

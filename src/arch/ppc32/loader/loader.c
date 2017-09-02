@@ -9,8 +9,10 @@
 
 
 /*
- * Helper functions
+ * Helpers
  */
+#define ALIGN_UP(s, a)  (((s) + ((a) - 1)) & ~((a) - 1))
+
 static void panic()
 {
     ofw_printf("\nPanic!\n");
@@ -262,6 +264,9 @@ static void build_bootparam()
     boot_param->hal_vspace_end = HAL_VSPACE_END;
     boot_param->kernel_entry_addr = 0;
     
+    // OFW
+    boot_param->ofw_tree_addr = (ulong)device_tree;
+    
     // Paging
     boot_param->pht_addr = (ulong)pht_phys;
     boot_param->attri_addr = (ulong)attri_phys;
@@ -438,40 +443,30 @@ static int pht_index(u32 vaddr, int secondary)
     }
     
     // Calculate index
-    //   Since we are using the simplist case - 64KB PHT,
-    //   the index is simply the lower 10 bits of the hash value
-    int index = (int)(hash & 0x3ff);
+    ulong left = (hash >> 10) & LOADER_PHT_MASK & 0x1ff;
+    ulong right = hash & 0x3ff;
+    int index = (int)((left << 10) | right);
+
     return index;
 }
 
 static struct pht_entry *find_free_pht_entry(u32 vaddr, int *group, int *offset)
 {
-    int i, idx;
+    int i, idx, secondary;
     struct pht_entry *entry = NULL;
     
-    // Primary
-    idx = pht_index(vaddr, 0);
-    for (i = 0; i < 8; i++) {
-        entry = &pht_virt[idx].entries[i];
-        if (!entry->valid) {
-            if (group) *group = idx;
-            if (offset) *offset = i;
-            
-            entry->secondary = 0;
-            return entry;
-        }
-    }
-    
-    // Secondary
-    idx = pht_index(vaddr, 1);
-    for (i = 0; i < 8; i++) {
-        entry = &pht_virt[idx].entries[i];
-        if (!entry->valid) {
-            if (group) *group = idx;
-            if (offset) *offset = i;
-            
-            entry->secondary = 1;
-            return entry;
+    for (secondary = 0; secondary <= 1; secondary++) {
+        idx = pht_index(vaddr, secondary);
+        
+        for (i = 0; i < 8; i++) {
+            entry = &pht_virt[idx].entries[i];
+            if (!entry->valid) {
+                if (group) *group = idx;
+                if (offset) *offset = i;
+                
+                entry->secondary = secondary;
+                return entry;
+            }
         }
     }
     
@@ -532,7 +527,7 @@ static void init_pht()
     ofw_printf("Initializing page hash table\n");
     ofw_printf("\tPHT entries: %d\n", count);
     
-    sdr1 = (u32)(ulong)pht_phys;
+    sdr1 = (u32)(ulong)pht_phys | LOADER_PHT_MASK;
     ofw_printf("\tSDR1: %p\n", sdr1);
     
     for (i = 0; i < count; i++) {
@@ -617,10 +612,15 @@ static void find_and_layout(char *name, int bin_type)
     u32 i;
     
     // Find the file
+    u32 file_count = coreimg_virt->header.file_count;
+    if (ARCH_BIG_ENDIAN != coreimg_virt->header.big_endian) {
+        file_count = swap_endian32(file_count);
+    }
+    
     struct coreimg_record *record = NULL;
     int found = 0;
     
-    for (i = 0; i < swap_endian32(coreimg_virt->header.file_count); i++) {
+    for (i = 0; i < file_count; i++) {
         record = &coreimg_virt->records[i];
         
         if (!strdiff(name, (char *)record->file_name, 20)) {
@@ -637,18 +637,22 @@ static void find_and_layout(char *name, int bin_type)
     ofw_printf("Loading image: %s\n", name);
     
     // Load the file
-    struct elf32_elf_header *elf_header = (struct elf32_elf_header *)(swap_endian32(record->start_offset) + (ulong)coreimg_virt);
-    struct elf32_program_header *header = NULL;
+    u32 start_offset = record->start_offset;
+    if (ARCH_BIG_ENDIAN != coreimg_virt->header.big_endian) {
+        start_offset = swap_endian32(start_offset);
+    }
+    
+    struct elf32_header *elf_header = (struct elf32_header *)(start_offset + (ulong)coreimg_virt);
+    struct elf32_program *header = NULL;
     ulong vaddr_end = 0;
     
     // Load each segment
-    
     for (i = 0; i < elf_header->elf_phnum; i++) {
         // Move to next header
         if (header) {
-            header = (struct elf32_program_header *)((ulong)header + elf_header->elf_phentsize);
+            header = (struct elf32_program *)((ulong)header + elf_header->elf_phentsize);
         } else {
-            header = (struct elf32_program_header *)((ulong)elf_header + elf_header->elf_phoff);
+            header = (struct elf32_program *)((ulong)elf_header + elf_header->elf_phoff);
         }
         
         ofw_printf("\tSegment @ %p, file: %d, mem: %d", header->program_vaddr,
@@ -753,7 +757,7 @@ static no_opt void real_mode_entry(struct boot_parameters *bp, void *jump_hal_pa
     (
         "mtsdr1 %[sdr1];"
         :
-        : [sdr1]"r"(bp->pht_addr)
+        : [sdr1]"r"(bp->pht_addr | LOADER_PHT_MASK)
     );
     
     for (i = 0; i < LOADER_PHT_SIZE / sizeof(struct pht_group); i++) {

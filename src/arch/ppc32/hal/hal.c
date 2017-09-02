@@ -5,10 +5,13 @@
 #include "hal/include/print.h"
 #include "hal/include/mem.h"
 #include "hal/include/cpu.h"
+#include "hal/include/vector.h"
 #include "hal/include/int.h"
+#include "hal/include/kernel.h"
+#include "hal/include/time.h"
 
 
-void no_opt hal_entry(struct boot_parameters *boot_param)
+void entry_func hal_entry(struct boot_parameters *boot_param)
 {
     init_bootparam(boot_param);
     init_print();
@@ -19,20 +22,31 @@ void no_opt hal_entry(struct boot_parameters *boot_param)
     init_map();
     init_kalloc();
     
+    // Init OFW
+    init_ofw();
+    
     // Init CPU
     init_cpuid();
     init_topo();
     init_mp();
     
-    // Init task
-    
     // Init interrupt
+    init_int_vector();
     init_int();
-    
-    // Init timer
+    init_syscall();
+    init_pagefault();
     
     // Init kernel
+    init_kmem_zone();
+    init_kernel();
     
-    halt();
+    // Init timer
+    init_decrementer();
+    
+    // Start working
+    start_working();
+    
+    // Should not reach here
+//     halt();
     while (1);
 }

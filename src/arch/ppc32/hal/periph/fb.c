@@ -1,11 +1,13 @@
 #include "common/include/data.h"
 #include "common/include/bootparam.h"
+#include "common/include/vgafont.h"
+#include "hal/include/print.h"
 #include "hal/include/lib.h"
-#include "hal/include/font.h"
 
 
-static u8 *fb;
+static volatile u8 *fb;
 static int width, height, depth, bpp, bpl;
+static int usable_width, usable_height;
 static int cursor_row = 0, cursor_col = 0;
 static int chars_per_row, chars_per_col;
 
@@ -50,13 +52,15 @@ static void fb_update_cursor()
     }
     
     if (chars_per_col && cursor_row >= chars_per_col) {
-        u32 move_y = (cursor_row - chars_per_col + 1) * FONT_HEIGHT;
+        u32 move_y, offset_src, offset_dest;
         u32 x, y, d, of_src, of_dest;
         
-        u32 offset_src = move_y * bpl;
-        u32 offset_dest = 0;
+        // Move current screen up
+        move_y = (cursor_row - chars_per_col + 1) * FONT_HEIGHT;
+        offset_src = move_y * bpl;
+        offset_dest = 0;
         
-        for (y = move_y; y < height; y++) {
+        for (y = move_y; y < usable_height; y++) {
             of_src = offset_src;
             of_dest = offset_dest;
             
@@ -73,6 +77,25 @@ static void fb_update_cursor()
             offset_dest += bpl;
         }
         
+        // Clear the rest of the screen
+        move_y = (chars_per_col - 1) * FONT_HEIGHT;
+        offset_dest = move_y * bpl;
+        
+        for (y = move_y; y < height; y++) {
+            of_dest = offset_dest;
+            
+            for (x = 0; x < width; x++) {
+                for (d = 0; d < bpp; d++) {
+                    fb[of_dest + d] = 0;
+                }
+                
+                of_dest += bpp;
+            }
+            
+            offset_dest += bpl;
+        }
+        
+        // Done
         cursor_row = chars_per_col - 1;
     }
 }
@@ -140,6 +163,8 @@ void init_fb()
     cursor_row = cursor_col = 0;
     chars_per_row = width / FONT_WIDTH;
     chars_per_col = height / FONT_HEIGHT;
+    usable_width = chars_per_row * FONT_WIDTH;
+    usable_height = chars_per_col * FONT_HEIGHT;
     
-    //black_screen();
+    black_screen();
 }

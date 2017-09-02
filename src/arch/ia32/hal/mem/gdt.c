@@ -75,7 +75,7 @@ static void construct_gdt()
     
     // Per-CPU area for kernel
     construct_entry(
-        GDT_INDEX_PER_CPU_K, (u32)get_my_cpu_area_start_vaddr() + PER_CPU_KERNEL_DATA_START_OFFSET, PER_CPU_AREA_SIZE,
+        GDT_INDEX_PER_CPU_K, (u32)get_my_cpu_area_start_vaddr() + PER_CPU_DATA_START_OFFSET, PER_CPU_AREA_SIZE,
         GDT_DA_DRW  | GDT_DA_32 | GDT_DA_DPL_KERNEL
     );
     

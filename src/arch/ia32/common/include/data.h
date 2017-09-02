@@ -2,21 +2,14 @@
 #define __ARCH_IA32_COMMON_INCLUDE_DATA__
 
 
-#ifndef packedstruct
-#define packedstruct __attribute__((packed))
-#endif
+#include "common/include/compiler.h"
 
-#ifndef asmlinkage
+
+#ifdef asmlinkage
+#undef asmlinkage
+#endif
 #define asmlinkage __attribute__((regparm(0)))
-#endif
 
-#ifndef inthandler
-#define inthandler __attribute__((regparm(0)))
-#endif
-
-#ifndef no_inline
-#define no_inline   __attribute__((noinline))
-#endif
 
 #ifndef real_mode
 #ifdef __clang__
@@ -26,38 +19,22 @@
 #endif
 #endif
 
-#ifndef no_opt
-#ifdef __clang__
-#define no_opt  __attribute__((optnone))
-#else
-#define no_opt  __attribute__((optimize("-O0")))
+
+#ifndef ARCH_WIDTH
+#define ARCH_WIDTH  32
 #endif
+
+#ifndef ARCH_LITTLE_ENDIAN
+#define ARCH_LITTLE_ENDIAN  1
+#endif
+
+#ifndef ARCH_BIG_ENDIAN
+#define ARCH_BIG_ENDIAN  0
 #endif
 
 
 #ifndef NULL
 #define NULL    ((void *)0)
-#endif
-
-
-typedef signed char         s8;
-typedef signed short        s16;
-typedef signed int          s32;
-typedef signed long long    s64;
-
-typedef unsigned char       u8;
-typedef unsigned short      u16;
-typedef unsigned int        u32;
-typedef unsigned long long  u64;
-
-typedef unsigned char       uchar;
-typedef unsigned short      ushort;
-typedef unsigned int        uint;
-typedef unsigned long       ulong;
-typedef unsigned long long  ulonglong;
-
-#ifndef AVOID_LIBC_CONFLICT
-typedef unsigned long       size_t;
 #endif
 
 

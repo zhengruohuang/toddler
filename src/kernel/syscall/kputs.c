@@ -6,6 +6,7 @@
 #include "kernel/include/proc.h"
 #include "kernel/include/mem.h"
 #include "kernel/include/lib.h"
+#include "kernel/include/syscall.h"
 
 
 #define KPUTS_BUF_SIZE  128
@@ -59,5 +60,5 @@ void kputs_worker_thread(ulong param)
     terminate_thread_self(worker);
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }

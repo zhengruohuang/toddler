@@ -1,6 +1,7 @@
 #include "common/include/data.h"
 #include "common/include/memory.h"
 #include "common/include/memlayout.h"
+#include "common/include/kexport.h"
 #include "hal/include/print.h"
 #include "hal/include/mem.h"
 #include "hal/include/lib.h"
@@ -10,11 +11,6 @@
 #include "hal/include/kernel.h"
 #include "hal/include/time.h"
 #include "hal/include/syscall.h"
-
-#ifndef __HAL__
-#define __HAL__
-#endif
-#include "kernel/include/hal.h"
 
 
 static struct hal_exports *hexp;
@@ -70,9 +66,6 @@ void init_kernel()
     hexp->unmap_user = wrap_user_unmap;
     hexp->get_paddr = wrap_get_paddr;
     
-    // Load image
-    hexp->load_exe = wrap_load_exe;
-    
     // Address space
     hexp->vaddr_space_end = USER_VADDR_SPACE_END;
     hexp->init_addr_space = wrap_init_addr_space;
@@ -82,8 +75,6 @@ void init_kernel()
     hexp->set_context_param = set_thread_context_param;
     hexp->switch_context = switch_context;
     hexp->set_syscall_return = set_syscall_return;
-    hexp->sleep = wrap_sleep;
-    hexp->yield = wrap_yield;
     
     // TLB
     hexp->invalidate_tlb = wrap_invalidate_tlb;
@@ -91,8 +82,8 @@ void init_kernel()
     /*
      * Call kernel's entry
      */
-    kprintf("\tKernel entry: %p\n", get_bootparam()->kernel_entry_addr);
-    kernel_entry = (void *)get_bootparam()->kernel_entry_addr;
+    kprintf("\tKernel entry: %p\n", (void *)get_bootparam()->kernel_entry_addr);
+    kernel_entry = (void *)(ulong)get_bootparam()->kernel_entry_addr;
     kernel_entry(hexp);
     
     kprintf("Kernel has been initialized!\n");

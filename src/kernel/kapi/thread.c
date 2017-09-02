@@ -48,7 +48,7 @@ asmlinkage void thread_create_handler(struct kernel_msg_handler_arg *arg)
     sfree(arg);
 
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }
 
 asmlinkage void thread_exit_handler(struct kernel_msg_handler_arg *arg)
@@ -62,7 +62,7 @@ asmlinkage void thread_exit_handler(struct kernel_msg_handler_arg *arg)
     sfree(arg);
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }
 
 asmlinkage void thread_kill_handler(struct kernel_msg_handler_arg *arg)
@@ -81,5 +81,5 @@ asmlinkage void thread_kill_handler(struct kernel_msg_handler_arg *arg)
     sfree(arg);
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }

@@ -3,6 +3,7 @@
 #include "kernel/include/hal.h"
 #include "kernel/include/sync.h"
 #include "kernel/include/mem.h"
+#include "kernel/include/syscall.h"
 #include "kernel/include/proc.h"
 
 
@@ -79,7 +80,8 @@ void trigger_tlb_shootdown(ulong asid, ulong addr, size_t size)
     //kprintf("[TLB] TLB shootdown triggered, addr: %u, size: %u\n", addr, size);
     
     while (records[cur_cpu_id].response_count < cpu_count) {
-        hal->yield();
+        //hal->yield();
+        ksys_yield();
     }
     
     atomic_membar();

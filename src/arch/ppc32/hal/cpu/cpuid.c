@@ -1,15 +1,19 @@
 #include "common/include/data.h"
+#include "common/include/ofw.h"
+#include "hal/include/periph.h"
 #include "hal/include/print.h"
+#include "hal/include/cpu.h"
 
 
-struct pvr_record {
-    ulong pvr;
-    char *class;
-    char *model;
-    char *rev;
-};
+/*
+ * CPU properties
+ */
+struct cpu_prop cpu_info;
 
 
+/*
+ * PVR
+ */
 static struct pvr_record pvr_table[] = {
     { 0, "Unknown", "Unknown", "Unknown" },
     { 0x00010001, "PowerPC", "601", "0.1" },
@@ -19,7 +23,6 @@ static struct pvr_record pvr_table[] = {
 };
 
 static struct pvr_record *record;
-
 
 static ulong read_pvr()
 {
@@ -47,16 +50,41 @@ static int decode_pvr(ulong pvr)
     return 0;
 }
 
+
+/*
+ * Init
+ */
 void init_cpuid()
 {
+    // PVR
     ulong pvr = 0;
     
-    kprintf("Detecting CPU version\n");
+    kprintf("Detecting CPU information\n");
     
     pvr = read_pvr();
     record = &pvr_table[decode_pvr(pvr)];
     
     kprintf("\tPVR: %p, class: %s, model: %s, revision: %s\n",
         (void *)pvr, record->class, record->model, record->rev
+    );
+    
+    // CPU info
+    struct ofw_tree_prop *prop = NULL;
+    struct ofw_tree_node *node = ofw_node_find_by_name(NULL, "cpus");
+    node = ofw_node_get_child(node);
+    
+    prop = ofw_prop_find(node, "timebase-frequency");
+    cpu_info.freq_base = *(u32 *)prop->value;
+    
+    prop = ofw_prop_find(node, "clock-frequency");
+    cpu_info.freq_clock = *(u32 *)prop->value;
+    
+    prop = ofw_prop_find(node, "bus-frequency");
+    cpu_info.freq_bus = *(u32 *)prop->value;
+    
+    kprintf("\tFrequency base: %p, clock: %p, bus: %p\n",
+        (void *)cpu_info.freq_base,
+        (void *)cpu_info.freq_clock,
+        (void *)cpu_info.freq_bus
     );
 }

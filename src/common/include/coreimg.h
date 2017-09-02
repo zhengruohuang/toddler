@@ -15,8 +15,9 @@ struct coreimg_header {
         u16 release;
     }       version;
     u8      architecture;
+    u8      big_endian;
     u8      build_type;
-    u8      reserved[6];
+    u8      reserved[5];
     u64     time_stamp;
 } packedstruct;
 

@@ -6,6 +6,7 @@
 #include "common/include/context.h"
 #include "common/include/proc.h"
 #include "hal/include/cpu.h"
+#include "hal/include/percpu.h"
 
 
 struct tss {

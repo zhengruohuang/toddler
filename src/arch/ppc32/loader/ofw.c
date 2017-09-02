@@ -1,8 +1,21 @@
 #include "common/include/data.h"
+#include "common/include/ofw.h"
 #include "loader/ofw.h"
 #include "loader/mempool.h"
 
 
+/*
+ * Arg list
+ */
+typedef __builtin_va_list va_list;
+#define va_start(ap, last)  __builtin_va_start(ap, last)
+#define va_arg(ap, type)    __builtin_va_arg(ap, type)
+#define va_end(ap)          __builtin_va_end(ap)
+
+
+/*
+ * Common handles
+ */
 static ofw_phandle_t ofw_chosen;
 static ofw_ihandle_t ofw_stdout;
 static ofw_phandle_t ofw_root;
@@ -10,6 +23,10 @@ static ofw_ihandle_t ofw_mmu;
 static ofw_ihandle_t ofw_memory_prop;
 static ofw_phandle_t ofw_memory;
 
+
+/*
+ * OFW entry point
+ */
 static ofw_entry_t ofw_cif;
 
 

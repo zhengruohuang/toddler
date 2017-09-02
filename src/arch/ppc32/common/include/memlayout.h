@@ -8,8 +8,9 @@
 /*
  * Loader
  */
-#define LOADER_MEMPOOL_SIZE                 (65536)
-#define LOADER_PHT_SIZE                     (65536)
+#define LOADER_MEMPOOL_SIZE                 (0x10000)       // 64KB
+#define LOADER_PHT_SIZE                     (0x400000)      // 4MB
+#define LOADER_PHT_MASK                     (0x3f)          // 0011 1111
 #define LOADER_PHT_ATTRI_SIZE               (LOADER_PHT_SIZE / sizeof(struct pht_entry) * sizeof(struct pht_attri_entry))
 
 
@@ -31,6 +32,7 @@
 #define PER_CPU_AREA_SIZE                   (PAGE_SIZE * PER_CPU_AREA_PAGE_COUNT)
 #define PER_CPU_DATA_START_OFFSET           (0)
 #define PER_CPU_STACK_TOP_OFFSET            (PER_CPU_AREA_SIZE - 0x10)
+// #define PER_CPU_EXCEPT_STACK_TOP_OFFSET     (PER_CPU_AREA_SIZE - PAGE_SIZE - 0x10)
 
 #define THREAD_CTRL_BLOCK_ALIGNMENT         (64)
 

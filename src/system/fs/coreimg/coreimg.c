@@ -228,6 +228,8 @@ static int read(unsigned long super_id, unsigned long open_id, void *buf, unsign
     result = read_data_block(&open->node->data, (unsigned long)open->data_pos, buf, count);
     open->data_pos += result;
     
+    //kprintf("Read, size: %d, pos: %d, size: %d\n", result, open->data_pos, open->node->data.size);
+    
     if (actual) {
         *actual = result;
     }

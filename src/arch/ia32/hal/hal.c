@@ -1,5 +1,7 @@
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
+#include "common/include/bootparam.h"
+#include "hal/include/periph.h"
 #include "hal/include/print.h"
 #include "hal/include/lib.h"
 #include "hal/include/mem.h"
@@ -34,7 +36,6 @@ static void hal_entry()
     init_mps();
     
     // Init interrupt
-    init_int_handlers();
     init_int_vector();
     
     // Init topo
@@ -147,7 +148,10 @@ static void bios_return()
  */
 void asmlinkage no_opt _start()
 {
-    struct boot_parameters *boot_param = get_bootparam();
+    struct boot_parameters *boot_param = NULL;
+    
+    init_bootparam((struct boot_parameters *)BOOT_PARAM_PADDR);
+    boot_param = get_bootparam();
     
     switch (boot_param->hal_start_flag) {
     // Start HAL

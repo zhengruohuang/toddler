@@ -11,12 +11,12 @@
 #define ESCC_BES_TXE     0x04
 
 
-static u8 *escc_base;
+static volatile u8 *escc_base;
 
 
 static void reg_write(int reg, ulong val)
 {
-    u8 *regp = escc_base;
+    volatile u8 *regp = escc_base;
     regp += reg << 4;
     
     *regp = (u8)val;
@@ -24,7 +24,7 @@ static void reg_write(int reg, ulong val)
 
 static u8 reg_read(int reg)
 {
-    u8 *regp = escc_base;
+    volatile u8 *regp = escc_base;
     regp += reg << 4;
     
     u8 val = *regp;

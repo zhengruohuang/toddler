@@ -27,11 +27,14 @@ int syscall_yield()
 msg_t *syscall_msg()
 {
     struct thread_control_block *tcb = get_tcb();
+    //kprintf("tcb @ %p\n", tcb);
     if (!tcb) {
         return NULL;
     }
     
     msg_t *msg = tcb->msg_send;
+    //kprintf("Msg @ %p\n", msg);
+    
     msg->mailbox_id = IPC_MAILBOX_NONE;
     msg->opcode = IPC_OPCODE_NONE;
     msg->func_num = 0;

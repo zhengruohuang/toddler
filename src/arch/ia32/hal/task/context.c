@@ -101,7 +101,7 @@ u32 asmlinkage save_context(struct context *context)
         dest->ss = context->ss;
     } else {
         //kprintf("Saving kernel...");
-        dest->esp = (ulong)context + sizeof(struct context) - 8;
+        dest->esp = (ulong)context - 8 + sizeof(struct context);
         dest->ss = context->ds;
     }
     
@@ -116,7 +116,7 @@ u32 asmlinkage save_context(struct context *context)
         
         //kprintf("Need to switch stack for kernel->kernel\n");
         
-        ulong new_stack = my_cpu_area + PER_CPU_STACK_TOP_OFFSET - sizeof(struct context);
+        ulong new_stack = my_cpu_area + PER_CPU_STACK_TOP_OFFSET - sizeof(struct context) - 0x10;
         memcpy((void *)new_stack, context, sizeof(struct context));
         return new_stack;
     }
@@ -192,13 +192,16 @@ static void no_opt switch_to_user(struct context *context)
 
 static void no_opt switch_to_kernel(struct context *context)
 {
-    //kprintf("To switch, target ESP: %p\n", context->esp);
+//     kprintf("To switch, target SS: %p\n", context->ss);
     
     struct context *dest = (struct context *)(context->esp - sizeof(struct context) + 8);
     memcpy(dest, context, sizeof(struct context) - 8);
     
     __asm__ __volatile__
     (
+        // Update ss
+        "movw   %%ax, %%ss;"
+        
         // Set stack top to the beginning of register struct
         "movl   %%esi, %%esp;"
         
@@ -223,7 +226,7 @@ static void no_opt switch_to_kernel(struct context *context)
         // Return to context using iretd
         "iretl;"
         :
-        : "S" ((ulong)dest)
+        : "S" ((ulong)dest), "a" ((ulong)context->ss)
     );
 }
 

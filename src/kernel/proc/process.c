@@ -10,6 +10,7 @@
 #include "kernel/include/mem.h"
 #include "kernel/include/lib.h"
 #include "kernel/include/coreimg.h"
+#include "kernel/include/exec.h"
 #include "kernel/include/proc.h"
 
 
@@ -127,7 +128,8 @@ int load_image(struct process *p, char *url)
     // Load image
     ulong img = (ulong)get_core_file_addr_by_name(url); // FIXME: should use namespace service
     ulong entry = 0, vaddr_start = 0, vaddr_end = 0;
-    int succeed = hal->load_exe(img, p->page_dir_pfn, &entry, &vaddr_start, &vaddr_end);
+    //int succeed = hal->load_exe(img, p->page_dir_pfn, &entry, &vaddr_start, &vaddr_end);
+    int succeed = load_exec(img, p->page_dir_pfn, &entry, &vaddr_start, &vaddr_end);
     
     if (!succeed) {
         return 0;

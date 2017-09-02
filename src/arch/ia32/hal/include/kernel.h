@@ -3,11 +3,7 @@
 
 
 #include "common/include/data.h"
-
-#ifndef __HAL__
-#define __HAL__
-#endif
-#include "kernel/include/hal.h"
+#include "common/include/kexport.h"
 
 
 /*

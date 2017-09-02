@@ -24,7 +24,7 @@ asmlinkage void set_heap_end_handler(struct kernel_msg_handler_arg *arg)
     sfree(arg);
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }
 
 asmlinkage void get_heap_end_handler(struct kernel_msg_handler_arg *arg)
@@ -42,7 +42,7 @@ asmlinkage void get_heap_end_handler(struct kernel_msg_handler_arg *arg)
     sfree(arg);
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }
 
 asmlinkage void grow_heap_handler(struct kernel_msg_handler_arg *arg)
@@ -62,7 +62,7 @@ asmlinkage void grow_heap_handler(struct kernel_msg_handler_arg *arg)
     sfree(arg);
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }
 
 asmlinkage void shrink_heap_handler(struct kernel_msg_handler_arg *arg)
@@ -82,5 +82,5 @@ asmlinkage void shrink_heap_handler(struct kernel_msg_handler_arg *arg)
     sfree(arg);
     
     // Wait for this thread to be terminated
-    kernel_unreachable();
+    ksys_unreachable();
 }

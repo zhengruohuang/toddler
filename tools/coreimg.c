@@ -7,7 +7,7 @@
 #define AVOID_LIBC_CONFLICT
 #endif
 
-#include "common/include/data.h"
+#include "common/include/compiler.h"
 #include "common/include/coreimg.h"
 
 
@@ -19,7 +19,15 @@ static u8 *buffer;
 static struct coreimg_fat *fat;
 
 
-static void copy_to_image(const void *buf, u32 offset, size_t size)
+static int is_big_endian()
+{
+    unsigned int val = 0xbeefbeef;
+    unsigned char *first_byte = (void *)&val;
+    
+    return *first_byte == 0xbe;
+}
+
+static void copy_to_image(const void *buf, u32 offset, unsigned long size)
 {
     fseek(image, offset, 0);
     fwrite(buf, size, 1, image);
@@ -148,6 +156,7 @@ static int gen_image(int argc, char *argv[])
     // Set FAT header
     fat->header.file_count = file_count;
     fat->header.image_size = image_size;
+    fat->header.big_endian = (u8)is_big_endian();
     
     // Write FAT to image
     printf("\tProcessing FAT ... ");
@@ -168,7 +177,7 @@ static void usage()
 
 int main(int argc, char *argv[])
 {
-    printf("Toddler Kernel Image Generator 0.5.0.1\n");
+    printf("Toddler core image generator 0.5.1\n");
     
     // Check arguments
     if (argc < 4) {

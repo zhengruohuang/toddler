@@ -75,9 +75,9 @@ The driver process provides several essential device drivers, including keyboard
 
 |Architecture|Width|Target Machine|Status|
 |---|---|---|---|
-|ia32|32|NetBurst-based PC|Active|
+|ia32|32|NetBurst-based PC|Current|
 |armv7|32|QEMU Integrator/CP, QEMU RealView MP, Raspberry Pi 2|Active|
-|mips32|32|QEMU Malta, Creator CI20|Active|
+|mips32|32|QEMU Malta, Creator CI20|Current|
 |ppc32|32|QEMU Mac99, Mac Mini G4, PowerMac G4|Active|
 |sparcv8|32|SuperSPARC II|Initial|
 |riscv32|32|QEMU Spike|Planned|
@@ -85,7 +85,7 @@ The driver process provides several essential device drivers, including keyboard
 |amd64|64|Skylake-based PC|Planned|
 |armv8|64|Raspberry Pi 3|Planned|
 |ppc64|64|PowerMac G5|Planned|
-|mips64|64|Loongson 3 Desktop|Planned|
+|mips64|64|Loongson 3 Desktop|Active|
 |sparcv9|64|Sun UltraSPARC II Workstation|Planned|
 |riscv64|64|QEMU Spike|Planned|
 |ia64|64|Itaium 2|No Plan|

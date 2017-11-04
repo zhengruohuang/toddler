@@ -9,6 +9,7 @@
  * CPU ID
  */
 extern void init_cpuid();
+extern int read_cpu_config(int index, u32 *value);
 
 
 /*

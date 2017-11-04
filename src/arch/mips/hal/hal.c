@@ -21,14 +21,16 @@ static void entry_func hal_entry(struct boot_parameters *boot_param)
     // Init bootparam
     init_bootparam(boot_param);
     
-    // Init memory system
+    // Init mem pool
     init_kalloc();
-    init_tlb();
     
     // Init CPU
     init_cpuid();
     init_topo();
     init_mp();
+    
+    // Init TLB management
+    init_tlb();
     
     // Init task
     init_context();

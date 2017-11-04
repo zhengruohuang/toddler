@@ -6,12 +6,6 @@
 
 void start_working()
 {
-    // Enable timer counter interrupt
-    enable_local_timer_interrupt();
-    
-    // Enable global interrupt
-    enable_local_int();
-    
     // Enable external interrupt controller
     u32 sr = 0;
     __asm__ __volatile__ (
@@ -26,4 +20,10 @@ void start_working()
         : "r" (sr)
     );
     i8259_start();
+    
+    // Enable timer counter interrupt
+    enable_local_timer_interrupt();
+    
+    // Enable global interrupt
+    enable_local_int();
 }

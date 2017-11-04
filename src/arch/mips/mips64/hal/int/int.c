@@ -112,7 +112,7 @@ void tlb_refill_handler(struct context *context)
     
     save_context(context);
     
-    kprintf("TLB refill @ %lx, PC: %lx\n", bad_addr, context->pc);
+//     kprintf("TLB refill @ %lx, PC: %lx\n", bad_addr, context->pc);
     
     // Get kernel/user mode
     int user_mode = *get_per_cpu(int, cur_in_user_mode);
@@ -135,7 +135,7 @@ void tlb_refill_handler(struct context *context)
         : "r" (tcb)
     );
     
-//     kprintf("done\n");
+    kprintf("done\n");
     
     // Invalid addr
     if (invalid) {
@@ -166,7 +166,7 @@ void cache_error_handler(struct context *context)
  */
 void general_except_handler(struct context *context)
 {
-    kprintf("General exception!\n");
+//     kprintf("General exception!\n");
     int pit_takeover = 0;
     int pit_pending_irq = 0;
     
@@ -196,7 +196,9 @@ void general_except_handler(struct context *context)
         }
     }
     
-    kprintf("Vector: %x\n", vector);
+//     if (vector != 0x8) {
+//         kprintf("Vector: %x\n", vector);
+//     }
     
 //     // Tell the user
 //     if (vector != INT_VECTOR_LOCAL_TIMER && vector != INT_VECTOR_SYSCALL && vector != 36) {

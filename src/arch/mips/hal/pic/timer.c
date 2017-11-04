@@ -30,7 +30,7 @@ static void update_compare()
 
 int int_handler_local_timer(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
-    kprintf("Timer!\n");
+//     kprintf("Timer!\n");
     
     // Set a new value for compare
     update_compare();

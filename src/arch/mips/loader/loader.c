@@ -56,9 +56,9 @@ static int strlen(char *s)
     return len;
 }
 
-static void memcpy(void *dest, void *src, u32 count)
+static void memcpy(void *dest, void *src, ulong count)
 {
-    u32 i;
+    ulong i;
     unsigned char *s = (unsigned char *)src;
     unsigned char *d = (unsigned char *)dest;
     
@@ -68,9 +68,9 @@ static void memcpy(void *dest, void *src, u32 count)
     
 }
 
-static void memzero(void *dest, u32 count)
+static void memzero(void *dest, ulong count)
 {
-    u32 i;
+    ulong i;
     unsigned char *d = (unsigned char *)dest;
     
     for (i = 0; i < count; i++) {
@@ -115,12 +115,7 @@ static void init_cpu()
     struct cp0_status reg;
     
     // Read CP0_STATUS
-    __asm__ __volatile__
-    (
-        "mfc0   %[r], " ASM_MACRO(CP0_STATUS) ";"
-        : [r]"=r"(reg.value)
-        :
-    );
+    read_cp0_status(reg.value);
     
     // Enable 64-bit segments
 #if (ARCH_WIDTH == 64)
@@ -135,12 +130,7 @@ static void init_cpu()
     reg.erl = 0;
     
     // Apply to CP0_STATUS
-    __asm__ __volatile__
-    (
-        "mtc0   %[r], " ASM_MACRO(CP0_STATUS) ";"
-        :
-        : [r]"r"(reg.value)
-    );
+    write_cp0_status(reg.value);
 }
 
 
@@ -255,7 +245,7 @@ static void build_bootparam()
     boot_param.mem_size = (u64)memory_size;
     
     // Memory zones
-    u32 zone_count = 0;
+    int zone_count = 0;
     
     // Reserved by HW and loader programs (lowest 64KB)
     boot_param.mem_zones[zone_count].start_paddr = 0x0;
@@ -328,7 +318,7 @@ static void find_and_layout(char *name, int bin_type)
     
 //     struct elf32_header *elf_header = (struct elf32_header *)(start_offset + (ulong)coreimg);
 //     struct elf32_program *header;
-    elf_native_header_t *elf_header = (elf_native_header_t *)(start_offset + (ulong)coreimg);
+    elf_native_header_t *elf_header = (elf_native_header_t *)((ulong)start_offset + (ulong)coreimg);
     elf_native_program_t *header;
     ulong vaddr_end = 0;
     

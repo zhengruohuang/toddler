@@ -152,13 +152,45 @@ if target_suffix != '':
 # Path
 #-------------------------------------------------------------------------------
 
+def do_find_target_dirs(target, cur_path, dirs, dir_map):
+    subdirs = get_subdir(cur_path)
+    if not subdirs:
+        return False
+    
+    print(subdirs)
+    for d in subdirs:
+        next_path = cur_path + d + '/'
+        dirs.insert(0, next_path)
+        dir_map[d] = next_path
+        
+        if d == target:
+            return True
+        else:
+            found = do_find_target_dirs(target, next_path, dirs, dir_map)
+            if found:
+                return True
+            else:
+                dirs.remove(next_path)
+                del dir_map[d]
+    
+    return False
+
+def find_target_dirs(target, start_path):
+    dirs = []
+    dir_map = {}
+    do_find_target_dirs(target, start_path, dirs, dir_map)
+    return dirs, dir_map
+
 # Top level
 cur_dir         = os.path.dirname(os.path.realpath(__file__))
 project_dir     = cur_dir + '/'
 
 # Source
-src_dir         = project_dir + 'src/'
-arch_dir        = src_dir + 'arch/' + target_arch + '/'
+src_dir                 = project_dir + 'src/'
+arch_dirs, arch_dir_map = find_target_dirs(target_arch, src_dir + 'arch/')
+mach_dirs, mach_dir_map = find_target_dirs(target_platform, src_dir + 'mach/')
+
+arch_dir        = arch_dirs[0]      #src_dir + 'arch/' + target_arch + '/'
 platform_dir    = arch_dir + target_platform + '/'
 
 # Target
@@ -180,7 +212,7 @@ doc_dir         = project_dir + 'doc/'
 vm_dir          = project_dir + 'vm/'
 
 # Include
-inc_dir         = [ src_dir, arch_dir, platform_dir ]
+inc_dir         = [ src_dir ] + arch_dirs + mach_dirs
 
 #-------------------------------------------------------------------------------
 
@@ -466,15 +498,17 @@ def get_dep_list(src_name, obj_name, ext_dep, tools):
 def get_obj_name(src_name):
     obj_name = ''
     
-    if platform_dir in src_name:
-        obj_name = src_name.replace(platform_dir, obj_dir)
-    elif arch_dir in src_name:
-        obj_name = src_name.replace(arch_dir, obj_dir)
-    elif src_dir in src_name:
-        obj_name = src_name.replace(src_dir, obj_dir)
-    elif tools_src_dir in src_name:
-        obj_name = src_name.replace(tools_src_dir, tools_obj_dir)
-    else:
+    replace_paths = [ src_dir, tools_src_dir ] + arch_dirs + mach_dirs
+    replace_paths = sorted(replace_paths, key=len, reverse=True)
+    
+    found = False
+    for path in replace_paths:
+        if path in src_name:
+            obj_name = src_name.replace(path, obj_dir)
+            found = True
+            break
+    
+    if not found:
         panic('Unsupported src file path: ' + src_name)
     
     obj_name += '.o'

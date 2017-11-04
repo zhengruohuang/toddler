@@ -98,6 +98,9 @@ static void no_opt switch_to(struct context *context, int user_mode, ulong asid)
     hi.asid = asid;
     write_cp0_entry_hi(hi.value);
     
+    // Finally enable local interrupts, since EXL is set, interrupts won't trigger until rfe
+    enable_local_int();
+    
     // Restore GPRs
     restore_context_gpr();
 }
@@ -105,14 +108,11 @@ static void no_opt switch_to(struct context *context, int user_mode, ulong asid)
 void no_opt switch_context(ulong sched_id, struct context *context,
                                       ulong page_dir_pfn, int user_mode, ulong asid, ulong tcb)
 {
-    kprintf("To switch context, PC: %lx, SP: %lx, ASID: %lx, user: %d\n",
-           context->pc, context->sp, asid, user_mode);
+//     kprintf("To switch context, PC: %lx, SP: %lx, ASID: %lx, user: %d\n",
+//            context->pc, context->sp, asid, user_mode);
     
     // Disable local interrupts
     disable_local_int();
-    
-    // Mark local interrupt state as enabled
-    set_local_int_state(1);
     
     // Copy the context to local, thus prevent TLB miss
     struct saved_context *per_cpu_context = get_per_cpu(struct saved_context, cur_context);
@@ -167,7 +167,4 @@ void init_context()
     
     ulong *cur_tcb = get_per_cpu(ulong, cur_tcb_vaddr);
     *cur_tcb = 0;
-//     
-//     kprintf("Here, cur_tcb: %p\n", cur_tcb);
-//     while (1);
 }

@@ -13,53 +13,35 @@ static int reserved_tlb_entry_count = 0;
 dec_per_cpu(struct page_frame *, cur_page_dir);
 
 
-int reserve_tlb_entry()
-{
-    if (reserved_tlb_entry_count >= tlb_entry_count) {
-        return -1;
-    }
-    
-    // Set wired limit
-    __asm__ __volatile__ (
-        "mtc0   %0, $6;"        // wired
-        :
-        : "r" (reserved_tlb_entry_count)
-    );
-    
-    return reserved_tlb_entry_count++;
-}
-
-void write_tlb_entry(int index, u32 hi, u32 pm, u32 lo0, u32 lo1)
+void write_tlb_entry(int index, ulong hi, ulong pm, ulong lo0, ulong lo1)
 {
     u32 entry_index = index;
     
     // Find a random entry
     if (index < 0) {
-        __asm__ __volatile__ (
-            "mfc0   %0, $1, 0;" // Read random register - CP0 reg 1, sel 0
-            : "=r" (entry_index)
-            :
-        );
+        read_cp0_random(entry_index);
     }
     
+    // Write to TLB
+    write_cp0_entry_hi(hi);
+    write_cp0_page_mask(pm);
+    write_cp0_entry_lo0(lo0);
+    write_cp0_entry_lo1(lo1);
+    write_cp0_index(entry_index);
+    
+    // Apply the changes
     __asm__ __volatile__ (
-        "mtc0   %1, $10;"       // hi
-        "mtc0   %2, $5;"        // pm
-        "mtc0   %3, $2;"        // lo0
-        "mtc0   %4, $3;"        // lo1
-        "mtc0   %0, $0;"        // index
         "ehb;"                  // clear hazard barrier
         "tlbwi;"                // write indexed entry
         :
-        : "r" (entry_index), "r" (hi), "r" (pm), "r" (lo0), "r" (lo1)
-        : "memory"
+        :
     );
 }
 
 void map_tlb_entry_user(int index, u32 asid, u32 vaddr, u32 pfn0, int write0, u32 pfn1, int write1)
 {
     struct tlb_entry tlb;
-    struct tlb_entry_hi hi;
+    struct cp0_entry_hi hi;
     
     __asm__ __volatile__ (
         "mfc0   %0, $10;"   // hi
@@ -127,7 +109,7 @@ static void map_tlb_entry_kernel(u32 addr)
 static int tlb_probe_kernel(u32 addr)
 {
     int index = -1;
-    struct tlb_entry_hi hi;
+    struct cp0_entry_hi hi;
     
     hi.value = 0;
     hi.vpn2 = addr >> (PAGE_BITS + 1);
@@ -146,7 +128,7 @@ static int tlb_probe_kernel(u32 addr)
 
 static u32 read_asid()
 {
-    struct tlb_entry_hi hi;
+    struct cp0_entry_hi hi;
     
     __asm__ __volatile__ (
         "mfc0   %0, $10;"   // hi
@@ -159,7 +141,7 @@ static u32 read_asid()
 
 static void set_asid(u32 asid)
 {
-    struct tlb_entry_hi hi;
+    struct cp0_entry_hi hi;
     
     __asm__ __volatile__ (
         "mfc0   %0, $10;"   // hi
@@ -176,14 +158,14 @@ static void set_asid(u32 asid)
     );
 }
 
-int tlb_refill_kernel(u32 addr)
+int tlb_refill_kernel(ulong addr)
 {
     map_tlb_entry_kernel(addr);
     return 0;
 }
 
 // Note that we are running this function in kernel mode, ASID is already set to be 0
-int tlb_refill_user(u32 addr)
+int tlb_refill_user(ulong addr)
 {
 //     kprintf("User TLB refill @ %x ... ", addr);
     
@@ -241,7 +223,7 @@ static no_opt void invalidate_tlb(ulong asid, ulong vaddr)
 //     kprintf("TLB shootdown @ %x, ASID: %x ...", vaddr, asid);
     
     int index = -1;
-    struct tlb_entry_hi hi;
+    struct cp0_entry_hi hi;
     ulong hi_old = 0;
     
     // Read the old value of HI

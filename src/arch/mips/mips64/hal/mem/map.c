@@ -74,8 +74,6 @@ static int user_indirect_map(
 {
     int i;
     
-    //kprintf("Do mapping, vaddr @ %lx, paddr @ %lx\n", vaddr, paddr);
-    
     // Loop through page table levels to find the final level
     volatile struct page_frame *page = (struct page_frame *)PHYS_TO_KDATA(PFN_TO_ADDR(page_dir_pfn));
     int shift = PAGE_BITS + PAGE_ENTRY_BITS * (PAGE_LEVELS - 1);
@@ -112,8 +110,6 @@ static int user_indirect_map(
             page->entries[index].pfn != ADDR_TO_PFN(paddr) ||
             !page->entries[index].present
         ) {
-            //kprintf("Old PFN: %p, new PFN: %p, present: %d, user: %d\n", page->value_pte[index].pfn, ADDR_TO_PFN(paddr), page->value_pde[index].present, page->value_pde[index].user);
-            
             assert(page->entries[index].pfn == ADDR_TO_PFN(paddr));
             assert(page->entries[index].present);
             
@@ -174,8 +170,6 @@ int user_indirect_map_array(
 
 static int user_indirect_unmap(ulong page_dir_pfn, ulong vaddr, ulong paddr)
 {
-    //kprintf("Doing unmap!\n");
-    
     int i, j, level;
     
     // Loop through page table levels to find the final level
@@ -238,8 +232,6 @@ static int user_indirect_unmap(ulong page_dir_pfn, ulong vaddr, ulong paddr)
 
 int user_indirect_unmap_array(ulong page_dir_pfn, ulong vaddr, ulong paddr, size_t length)
 {
-    kprintf("\n!!!!!!!! To unmap, pfn: %lx, vaddr: %lx, paddr: %lx, size: %lx\n", page_dir_pfn, vaddr, paddr, length);
-    
     ulong vstart = ALIGN_DOWN(vaddr, PAGE_SIZE);
     ulong pstart = ALIGN_DOWN(paddr, PAGE_SIZE);
     ulong vend = ALIGN_UP(vaddr + length, PAGE_SIZE);

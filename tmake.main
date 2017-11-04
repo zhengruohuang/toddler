@@ -42,19 +42,23 @@ def build_main():
     # Build kernel
     print_info('kernel', 'Building kernel')
     
-    kernel_ld_script = arch_dir + 'kernel/kernel.ld'
     kernel_ext_dep = []
     kernel_ext_flags = {}
-    if os.path.exists(kernel_ld_script):
-        kernel_ext_dep.append(kernel_ld_script)
-        kernel_ext_flags['ld/script'] = kernel_ld_script
+    for d in arch_dirs:
+        kernel_ld = d + 'kernel/kernel.ld'
+        if os.path.exists(kernel_ld):
+            kernel_ext_dep.append(kernel_ld)
+            kernel_ext_flags['ld/script'] = kernel_ld
+            break
     else:
         kernel_ext_flags['ld/ext'] = '-Ttext 0xFFF01000'
     
-    kernel_generic_files = get_all_files(src_dir + 'kernel/', [ '.c' ])
-    kernel_arch_files = get_all_files(arch_dir + 'kernel/', [ '.c', '.asm', '.s', '.S' ])
+    kernel_files = get_all_files(src_dir + 'kernel/', [ '.c' ])
+    for d in arch_dirs:
+        kernel_files += get_all_files(d + 'kernel/', [ '.c', '.asm', '.s', '.S' ])
+    
     build_files(
-        kernel_generic_files + kernel_arch_files,
+        kernel_files,
         bin_dir + 'tdlrkrnl.bin',
         ext_dep = kernel_ext_dep,
         ext_flags = kernel_ext_flags,
@@ -62,20 +66,26 @@ def build_main():
     
     # Build klibc
     print_info('klibc', 'Building klibc')
-    lib_generic_files = get_all_files(src_dir + 'klibc/', [ '.c' ])
-    lib_arch_files = get_all_files(arch_dir + 'klibc/', [ '.c', '.asm', '.s', '.S' ])
+    
+    klib_files = get_all_files(src_dir + 'klibc/', [ '.c' ])
+    for d in arch_dirs:
+        klib_files += get_all_files(d + 'klibc/', [ '.c', '.asm', '.s', '.S' ])
+    
     lib_files(
-        lib_generic_files + lib_arch_files,
+        klib_files,
         bin_dir + 'tdlrklibc.a'
     )
     
     # External flags for generic processes
-    user_ld_script = arch_dir + 'klibc/klibc.ld'
     user_ext_dep = []
     user_ext_flags = {}
-    if os.path.exists(user_ld_script):
-        user_ext_dep.append(user_ld_script)
-        user_ext_flags['ld/script'] = user_ld_script
+    
+    for d in arch_dirs:
+        user_ld = d + 'klibc/klibc.ld'
+        if os.path.exists(user_ld):
+            user_ext_dep.append(user_ld)
+            user_ext_flags['ld/script'] = user_ld
+            break
     else:
         user_ext_flags['ld/ext'] = '-e _start'
     

@@ -15,7 +15,7 @@
 
 
 /*
- * The per-CPU entry template
+ * Interrupt handler entry template
  */
 .align 12
 int_entry_wrapper_begin:

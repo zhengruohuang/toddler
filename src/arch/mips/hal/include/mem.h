@@ -36,8 +36,6 @@ struct tlb_entry {
 
 ext_per_cpu(struct page_frame *, cur_page_dir);
 
-extern void write_tlb_entry(int index, ulong hi, ulong pm, ulong lo0, ulong lo1);
-
 extern int tlb_refill_kernel(ulong addr);
 extern int tlb_refill_user(ulong addr);
 

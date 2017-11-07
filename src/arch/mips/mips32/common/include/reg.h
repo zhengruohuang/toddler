@@ -24,7 +24,6 @@
 
 
 /*
- * FIXME: need to check the MIPS32 manual, the following def is from MIPS64
  * Status
  */
 struct cp0_status {
@@ -45,15 +44,15 @@ struct cp0_status {
             u32 im5     : 1;
             u32 im6     : 1;
             u32 im7     : 1;
-            u32 mid     : 2;
-            u32 zero1   : 1;
+            u32 impl    : 2;
+            u32 ase     : 1;
             u32 nmi     : 1;
             u32 sr      : 1;
-            u32 zero2   : 1;
+            u32 ts      : 1;
             u32 bev     : 1;
-            u32 px      : 1;
+            u32 px      : 1;    // Only valid in MIPS64, zero in MIPS32
             u32 mx      : 1;
-            u32 zero3   : 1;
+            u32 re      : 1;
             u32 fr      : 1;
             u32 rp      : 1;
             u32 cu0     : 1;
@@ -75,11 +74,19 @@ struct cp0_status {
  */
 struct cp0_ebase {
     union {
+#if ARCH_LITTLE_ENDIAN
         struct {
             u32 cpunum      : 10;
             u32 zero        : 2;
             u32 base        : 20;
         };
+#else
+        struct {
+            u32 base        : 20;
+            u32 zero        : 2;
+            u32 cpunum      : 10;
+        };
+#endif
         
         u32 value;
     };
@@ -166,9 +173,9 @@ struct cp0_entry_lo {
     };
 } packedstruct;
 
-// FIXME: need to check the MIPS32 manual, the following def is from MIPS64
 struct cp0_page_grain {
     union {
+#if ARCH_LITTLE_ENDIAN
         struct {
             u32 mc_cause    : 5;
             u32 zero0       : 3;
@@ -181,6 +188,20 @@ struct cp0_page_grain {
             u32 xie         : 1;
             u32 rie         : 1;
         };
+#else
+        struct {
+            u32 rie         : 1;
+            u32 xie         : 1;
+            u32 elpa        : 1;
+            u32 esp         : 1;
+            u32 iec         : 1;
+            u32 s32         : 1;
+            u32 zero1       : 13;
+            u32 ase         : 5;
+            u32 zero0       : 3;
+            u32 mc_cause    : 5;
+        };
+#endif
         
         u32 value;
     };
@@ -209,7 +230,6 @@ struct cp0_page_grain {
 
 
 /*
- * FIXME: need to check the MIPS32 manual, the following def is from MIPS64
  * Interrupt
  */
 struct cp0_cause {
@@ -218,7 +238,14 @@ struct cp0_cause {
             u32 zero0       : 2;
             u32 exc_code    : 5;
             u32 zero1       : 1;
-            u32 ip          : 8;
+            u32 ip0         : 1;
+            u32 ip1         : 1;
+            u32 ip2         : 1;
+            u32 ip3         : 1;
+            u32 ip4         : 1;
+            u32 ip5         : 1;
+            u32 ip6         : 1;
+            u32 ip7         : 1;
             u32 ase         : 2;
             u32 zero2       : 3;
             u32 fdci        : 1;
@@ -244,7 +271,6 @@ struct cp0_cause {
 
 
 /*
- * FIXME: need to check the MIPS32 manual, the following def is from MIPS64
  * Processor ID
  */
 struct cp0_proc_id {
@@ -344,7 +370,7 @@ struct cp0_config3 {
     union {
         struct {
             u32 reserved    : 30;
-            u32 has_big_page: 1;
+            u32 has_big_page: 1;    // Only valid in MIPS64, if set, then page mask becomes 64-bit
             u32 has_config4 : 1;
         };
         
@@ -355,13 +381,8 @@ struct cp0_config3 {
 struct cp0_config4 {
     union {
         struct {
-            union {
-                struct {
-                    u32 ftlb_sets   : 4;
-                    u32 ftlb_ways   : 4;
-                };
-                u32 mmu_size_ext    : 8;
-            };
+            u32 ftlb_sets   : 4;
+            u32 ftlb_ways   : 4;
             u32 ftlb_page   : 5;
             u32 zero        : 1;
             u32 mmu_ext_type: 2;
@@ -372,6 +393,11 @@ struct cp0_config4 {
             u32 has_config5 : 1;
         };
         
+        struct {
+            u32 mmu_size_ext: 8;
+            u32 other       : 24;
+        };
+        
         u32 value;
     };
 } packedstruct;
@@ -380,6 +406,7 @@ struct cp0_config5 {
     union {
         struct {
             u32 has_nested_fault: 1;
+            u32 zero0           : 1;
             u32 has_ufr         : 1;
             u32 has_mattri_regs : 1;
             u32 has_ll_bit      : 1;
@@ -390,9 +417,9 @@ struct cp0_config5 {
             u32 ena_ufe         : 1;
             u32 no_config2      : 1;
             u32 has_dual_endian : 1;
-            u32 zero0           : 1;
+            u32 zero1           : 1;
             u32 no_wide_llsc    : 1;
-            u32 zero1           : 14;
+            u32 zero2           : 13;
             u32 ena_simd        : 1;
             u32 has_eva         : 1;
             u32 dis_cache_vec   : 1;

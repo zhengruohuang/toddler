@@ -15,9 +15,11 @@ static int has_ftlb = 0;
 static u32 ftlb_ways = 0;
 static u32 ftlb_sets = 0;
 static int ftlb_entry_count = 0;
-// static u32 ftlb_approx_size_mask = 0;
 
 static int tlb_entry_count = 0;
+
+static int has_big_page = 0;
+
 
 dec_per_cpu(struct page_frame *, cur_page_dir);
 
@@ -55,11 +57,19 @@ static void write_tlb_entry(int index, int nonstd, ulong hi, ulong pm, ulong lo0
     //kprintf("Write to TLB index @ %d\n", entry_index);
     
     // Write to TLB
-    write_cp0_entry_hi(hi);
-    write_cp0_page_mask(pm);
-    write_cp0_entry_lo0(lo0);
-    write_cp0_entry_lo1(lo1);
-    write_cp0_index(entry_index);
+    if (has_big_page) {
+        write_cp0_entry_hi(hi);
+        write_cp0_page_mask64(pm);
+        write_cp0_entry_lo0(lo0);
+        write_cp0_entry_lo1(lo1);
+        write_cp0_index(entry_index);
+    } else {
+        write_cp0_entry_hi(hi);
+        write_cp0_page_mask(pm);
+        write_cp0_entry_lo0(lo0);
+        write_cp0_entry_lo1(lo1);
+        write_cp0_index(entry_index);
+    }
     
     // Apply the changes
     write_tlb_indexed();
@@ -155,32 +165,43 @@ int tlb_refill_kernel(ulong addr)
 {
 //     kprintf("Kernel TLB refill @ %lx ... ", addr);
     
-    ulong mask = (KERNEL_PAGE_MASK << 12) | (KERNEL_PAGE_MASK_EX << 10) | 0x3ff;
+    ulong mask = ((has_big_page ? KERNEL_PAGE_MASK64 : KERNEL_PAGE_MASK) << 12) | (KERNEL_PAGE_MASK_EX << 10) | 0x3ff;
     ulong physical_pfn = addr & ~mask;
     physical_pfn >>= 12;
     
-    struct tlb_entry tlb;
+    struct cp0_entry_hi hi;
+    struct cp0_page_mask pm;
+    struct cp0_page_mask64 pm64;
     
-    tlb.hi.value = 0;
-    tlb.hi.vpn2 = addr >> TLB_VPN2_SHIFT_BITS;
+    struct cp0_entry_lo lo0;
+    struct cp0_entry_lo lo1;
     
-    tlb.pm.value = 0;
-    tlb.pm.mask_ex = KERNEL_PAGE_MASK_EX;
-    tlb.pm.mask = KERNEL_PAGE_MASK;
+    hi.value = 0;
+    hi.vpn2 = addr >> TLB_VPN2_SHIFT_BITS;
     
-    tlb.lo0.value = 0;
-    tlb.lo0.pfn = physical_pfn & ~0x1ul;
-    tlb.lo0.valid = 1;
-    tlb.lo0.dirty = 1;
-    tlb.lo0.coherent = 0x6;
+    if (has_big_page) {
+        pm64.value = 0;
+        pm64.mask_ex = KERNEL_PAGE_MASK_EX;
+        pm64.mask = KERNEL_PAGE_MASK64;
+    } else {
+        pm.value = 0;
+        pm.mask_ex = KERNEL_PAGE_MASK_EX;
+        pm.mask = KERNEL_PAGE_MASK;
+    }
     
-    tlb.lo1.value = 0;
-    tlb.lo1.pfn = physical_pfn | 0x1ul;
-    tlb.lo1.valid = 1;
-    tlb.lo1.dirty = 1;
-    tlb.lo1.coherent = 0x6;
+    lo0.value = 0;
+    lo0.pfn = physical_pfn & ~0x1ul;
+    lo0.valid = 1;
+    lo0.dirty = 1;
+    lo0.coherent = 0x6;
     
-    write_tlb_entry(-1, 1, tlb.hi.value, tlb.pm.value, tlb.lo0.value, tlb.lo1.value);
+    lo1.value = 0;
+    lo1.pfn = physical_pfn | 0x1ul;
+    lo1.valid = 1;
+    lo1.dirty = 1;
+    lo1.coherent = 0x6;
+    
+    write_tlb_entry(-1, 1, hi.value, has_big_page ? pm64.value : pm.value, lo0.value, lo1.value);
     
 //     kprintf(" done");
     
@@ -346,8 +367,7 @@ static void flush_tlb()
     }
     
     if (has_ftlb) {
-        kprintf("has FTLB: %d\n", has_ftlb);
-        for (i = vtlb_entry_count; i < vtlb_entry_count + ftlb_entry_count; i++) {
+        for (i = vtlb_entry_count; i < tlb_entry_count; i++) {
             write_invalid_ftlb_entry(i);
         }
     }
@@ -452,20 +472,30 @@ void no_opt init_tlb()
     // Init all
     init_vtlb();
     init_ftlb();
-    flush_tlb();
     
     // Total TLB entry count
     tlb_entry_count = vtlb_entry_count + ftlb_entry_count;
     
+    // Flush TLB
+    flush_tlb();
+    
+    // Check if big page is present
+    u32 val = 0;
+    struct cp0_config3 c3;
+    assert(read_cpu_config(3, &val));
+    c3.value = val;
+    
+    has_big_page = c3.has_big_page;
+    
     // Set up page grain config
     struct cp0_page_grain grain;
-    read_cp0_page_mask(grain.value);
+    read_cp0_page_grain(grain.value);
     grain.value = 0;
     grain.iec = 1;
     grain.elpa = 1;
     grain.xie = 1;
     grain.rie = 1;
-    write_cp0_page_mask(grain.value);
+    write_cp0_page_grain(grain.value);
     
-    kprintf("TLB initialized, entry count: %d\n", tlb_entry_count);
+    kprintf("TLB initialized, entry count: %d, has big page: %d\n", tlb_entry_count, has_big_page);
 }

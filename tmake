@@ -177,11 +177,7 @@ def do_find_target_dirs(target, cur_path, dirs, dir_map):
 def find_target_dirs(target, start_path):
     dirs = []
     dir_map = {}
-    
     do_find_target_dirs(target, start_path, dirs, dir_map)
-    if not len(dirs):
-        panic('Unable to find tmake files for target: {0}'.format(target))
-        
     return dirs, dir_map
 
 # Top level
@@ -193,7 +189,11 @@ src_dir                 = project_dir + 'src/'
 arch_dirs, arch_dir_map = find_target_dirs(target_arch, src_dir + 'arch/')
 mach_dirs, mach_dir_map = find_target_dirs(target_platform, src_dir + 'mach/')
 
-arch_dir        = arch_dirs[0]      #src_dir + 'arch/' + target_arch + '/'
+# See if the target arch exists
+if not len(arch_dirs):
+    panic('Unable to find tmake files for target: {0}'.format(target_arch))
+
+arch_dir        = arch_dirs[0]
 platform_dir    = arch_dir + target_platform + '/'
 
 # Target

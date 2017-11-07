@@ -124,6 +124,19 @@ struct cp0_entry_hi {
 struct cp0_page_mask {
     union {
         struct {
+            u32 zero0   : 11;
+            u32 mask_ex : 2;
+            u32 mask    : 16;
+            u32 zero1   : 3;
+        };
+        
+        u32 value;
+    };
+} packedstruct;
+
+struct cp0_page_mask64 {
+    union {
+        struct {
             u64 zero0   : 11;
             u64 mask_ex : 2;
             u64 mask    : 47;
@@ -173,8 +186,11 @@ struct cp0_page_grain {
 #define read_cp0_entry_hi(value)    __dmfc0(value, 10, 0)
 #define write_cp0_entry_hi(value)   __dmtc0(value, 10, 0)
 
-#define read_cp0_page_mask(value)   __dmfc0(value, 5, 0)
-#define write_cp0_page_mask(value)  __dmtc0(value, 5, 0)
+#define read_cp0_page_mask(value)   __mfc0(value, 5, 0)
+#define write_cp0_page_mask(value)  __mtc0(value, 5, 0)
+
+#define read_cp0_page_mask64(value)  __dmfc0(value, 5, 0)
+#define write_cp0_page_mask64(value) __dmtc0(value, 5, 0)
 
 #define read_cp0_entry_lo0(value)   __dmfc0(value, 2, 0)
 #define write_cp0_entry_lo0(value)  __dmtc0(value, 2, 0)
@@ -202,7 +218,14 @@ struct cp0_cause {
             u32 zero0       : 2;
             u32 exc_code    : 5;
             u32 zero1       : 1;
-            u32 ip          : 8;
+            u32 ip0         : 1;
+            u32 ip1         : 1;
+            u32 ip2         : 1;
+            u32 ip3         : 1;
+            u32 ip4         : 1;
+            u32 ip5         : 1;
+            u32 ip6         : 1;
+            u32 ip7         : 1;
             u32 ase         : 2;
             u32 zero2       : 3;
             u32 fdci        : 1;
@@ -337,13 +360,8 @@ struct cp0_config3 {
 struct cp0_config4 {
     union {
         struct {
-            union {
-                struct {
-                    u32 ftlb_sets   : 4;
-                    u32 ftlb_ways   : 4;
-                };
-                u32 mmu_size_ext    : 8;
-            };
+            u32 ftlb_sets   : 4;
+            u32 ftlb_ways   : 4;
             u32 ftlb_page   : 5;
             u32 zero        : 1;
             u32 mmu_ext_type: 2;
@@ -354,6 +372,11 @@ struct cp0_config4 {
             u32 has_config5 : 1;
         };
         
+        struct {
+            u32 mmu_size_ext: 8;
+            u32 other       : 24;
+        };
+        
         u32 value;
     };
 } packedstruct;
@@ -362,6 +385,7 @@ struct cp0_config5 {
     union {
         struct {
             u32 has_nested_fault: 1;
+            u32 zero0           : 1;
             u32 has_ufr         : 1;
             u32 has_mattri_regs : 1;
             u32 has_ll_bit      : 1;
@@ -372,9 +396,9 @@ struct cp0_config5 {
             u32 ena_ufe         : 1;
             u32 no_config2      : 1;
             u32 has_dual_endian : 1;
-            u32 zero0           : 1;
+            u32 zero1           : 1;
             u32 no_wide_llsc    : 1;
-            u32 zero1           : 14;
+            u32 zero2           : 13;
             u32 ena_simd        : 1;
             u32 has_eva         : 1;
             u32 dis_cache_vec   : 1;

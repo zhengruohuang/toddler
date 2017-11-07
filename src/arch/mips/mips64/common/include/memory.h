@@ -46,7 +46,8 @@
 /*
  * MIPS page mask
  */
-#define KERNEL_PAGE_MASK        0x3ffff
+#define KERNEL_PAGE_MASK        0xffff
+#define KERNEL_PAGE_MASK64      0x3ffff
 #define KERNEL_PAGE_MASK_EX     0x3
 
 #define USER_PAGE_MASK          0

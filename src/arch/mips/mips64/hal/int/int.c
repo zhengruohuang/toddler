@@ -205,7 +205,7 @@ void general_except_handler(struct context *context)
         }
         
         // External
-        else if (cause.ip & 0x4) {
+        else if (cause.ip2) {
             vector = INT_VECTOR_EXTERNAL_BASE + i8259_read_irq();
         }
     }

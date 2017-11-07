@@ -29,7 +29,7 @@ static int is_big_endian()
 
 static void copy_to_image(const void *buf, u32 offset, unsigned long size)
 {
-    fseek(image, offset, 0);
+    fseek(image, offset, SEEK_SET);
     fwrite(buf, size, 1, image);
 }
 
@@ -106,7 +106,7 @@ static int gen_image(int argc, char *argv[])
         /* Open the file */
         cur_file_size = 0;
         cur_file = fopen(cur_file_name, "rb");
-        if (NULL == cur_file) {
+        if (!cur_file) {
             printf("Failed!\n");
             return -1;
         }
@@ -135,11 +135,11 @@ static int gen_image(int argc, char *argv[])
         // Done processing current file
         fclose(cur_file);
         
-        // Refine file size: align to 4byte
-        if (cur_file_size % 4) {
-            cur_file_size = cur_file_size >> 2;
+        // Refine file size: align to 8byte
+        if (cur_file_size % 8) {
+            cur_file_size = cur_file_size >> 3;
             cur_file_size++;
-            cur_file_size = cur_file_size << 2;
+            cur_file_size = cur_file_size << 3;
         }
         fat->records[i].length = cur_file_size;
         image_size += cur_file_size;

@@ -69,7 +69,7 @@ ext_per_cpu(ulong, cur_tcb_vaddr);
 
 extern void init_thread_context(struct context *context, ulong entry, ulong param, ulong stack_top, int user_mode);
 extern void set_thread_context_param(struct context *context, ulong param);
-extern u32 asmlinkage save_context(struct context *context);
+extern u32 save_context(struct context *context);
 extern void no_opt switch_context(ulong sched_id, struct context *context,
                                       ulong page_dir_pfn, int user_mode, ulong asid, ulong tcb);
 extern void init_context_mp();

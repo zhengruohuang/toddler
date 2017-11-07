@@ -117,7 +117,7 @@ void tlb_refill_handler(struct context *context)
     // Get kernel/user mode
     int user_mode = *get_per_cpu(int, cur_in_user_mode);
     
-//     kprintf("%s ... ", user_mode ? "user" : "kernel");
+//     kprintf("refill start\n");
     
     // Try refilling TLB
     int invalid = 0;
@@ -127,15 +127,13 @@ void tlb_refill_handler(struct context *context)
         invalid = tlb_refill_kernel(bad_addr);
     }
     
+//     kprintf("refill done\n");
+    
     // Reload TCB to k1
     ulong tcb = *(ulong *)get_per_cpu(ulong, cur_tcb_vaddr);
-    __asm__ __volatile__ (
-        "move   $27, %0;"
-        :
-        : "r" (tcb)
-    );
+    write_k1(tcb);
     
-    kprintf("done\n");
+//     kprintf("int done\n");
     
     // Invalid addr
     if (invalid) {
@@ -145,8 +143,25 @@ void tlb_refill_handler(struct context *context)
 
 static int int_handler_tlb_refill(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
+//     struct cp0_entry_hi hi;
+//     read_cp0_entry_hi(hi.value);
+//     kprintf("ASID: %d\n", hi.asid);
+//     
+//     // Clear EXL bit - so we'll get primariy TLB misses
+//     struct cp0_status status;
+//     read_cp0_status(status.value);
+//     kprintf("exl: %d, erl: %d, ksu: %d\n", status.exl, status.erl, status.ksu);
+//     
+//     // Bad addr
+//     ulong bad_addr = 0;
+//     read_cp0_bad_vaddr(bad_addr);
+//     kprintf("Badr addr @ %lx\n", bad_addr);
+//     
+//     //panic("Should not get a secondary TLB miss!\n");
+//     kprintf("Should not get a secondary TLB miss!\n");
+    
     tlb_refill_handler(context->context);
-    panic("Should not get a secondary TLB miss!\n");
+    
     return 0;
 }
 
@@ -167,15 +182,14 @@ void cache_error_handler(struct context *context)
 void general_except_handler(struct context *context)
 {
 //     kprintf("General exception!\n");
-    int pit_takeover = 0;
-    int pit_pending_irq = 0;
     
     // Check who is causing this interrupt
     struct cp0_cause cause;
     read_cp0_cause(cause.value);
     
-    u32 except_code = cause.exc_code; //(cause >> 2) & 0x1F;
-    //kprintf("\n\n\n\n\n!!!!!!!!!!!!!!\tException code: %d\n", except_code);
+//     kprintf("TI: %d, IP: %d\n", cause.ti, cause.ip);
+    
+    u32 except_code = cause.exc_code;
     
     // Figure out the internal vector number
     u32 vector = INT_VECTOR_DUMMY;
@@ -198,33 +212,6 @@ void general_except_handler(struct context *context)
     
 //     if (vector != 0x8) {
 //         kprintf("Vector: %x\n", vector);
-//     }
-    
-//     // Tell the user
-//     if (vector != INT_VECTOR_LOCAL_TIMER && vector != INT_VECTOR_SYSCALL && vector != 36) {
-//         // Get the bad address
-//         u32 bad_addr = 0;
-//         __asm__ __volatile__ (
-//             "mfc0   %0, $8;"
-//             : "=r" (bad_addr)
-//             :
-//         );
-//         
-//         // Get the bad pc
-//         u32 epc = 0;
-//         __asm__ __volatile__ (
-//             "mfc0   %0, $14;"
-//             : "=r" (epc)
-//             :
-//         );
-//         u32 bad_instr_prev = *(u32 *)(epc - 4);
-//         u32 bad_instr = *(u32 *)epc;
-//         u32 bad_instr_next = *(u32 *)(epc + 4);
-//         
-//         // Delay slot
-//         u32 delay_slot = cause >> 31;
-//         
-//         kprintf("General exception: %d, Vector: %d, Bad PC @ %x (%x %x %x), SP @ %x, Addr @ %x, Delay slot: %x\n", except_code, vector, epc, bad_instr_prev, bad_instr, bad_instr_next, context->sp, bad_addr, delay_slot);
 //     }
     
     // Get the actual interrupt handler
@@ -291,16 +278,13 @@ void general_except_handler(struct context *context)
         hi.asid = 0;
         write_cp0_entry_hi(hi.value);
         
-        // Clear EXL bit - so we'll get primariy correct TLB misses
+        // Clear EXL bit - so we'll get primariy TLB misses
         struct cp0_status status;
         read_cp0_status(status.value);
         status.exl = 0;
         status.erl = 0;
         status.ksu = 0;
         write_cp0_status(status.value);
-        
-        read_cp0_status(status.value);
-        //kprintf("Status: %x\n", status.value);
         
         // Tell HAL we are in kernel
         *get_per_cpu(int, cur_in_user_mode) = 0;
@@ -323,8 +307,6 @@ void init_int()
     struct saved_context *ctxt = get_per_cpu(struct saved_context, cur_context);
     ulong tlb_refill_stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_TLB_REFILL_STACK_TOP_OFFSET - sizeof(struct saved_context);
     ulong kernel_stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_STACK_TOP_OFFSET - sizeof(struct saved_context);
-    
-//     u32 srsctl = 0;
     
     // Set BEV to 1 to enable custom exception handler location
     read_cp0_status(sr.value);
@@ -363,52 +345,10 @@ void init_int()
     kprintf("Per cpu ctxt ptr base @ %p, my ctxt ptr @ %p, ctxt @ %p, TLB stack @ %lx, kernel stack @ %lx\n",
             (void *)per_cpu_context_ptr_base, my_ctxt_ptr, ctxt, tlb_refill_stack_top, kernel_stack_top);
     
-//     // Set
-//     // k0 - base addr of current context
-//     // ctxt->kernel_sp - kernel stack top
-//     __asm__ __volatile__ (
-//         "move $26, %0;"   // k0 ($26) <= ctxt
-//         :
-//         : "r" ((u32)ctxt)
-//     );
-    
-    
-    
     // Register TLB refill general handlers
     set_int_vector(INT_VECTOR_TLB_MISS_READ, int_handler_tlb_refill);
     set_int_vector(INT_VECTOR_TLB_MISS_WRITE, int_handler_tlb_refill);
     
-//     // QEMU doesn't support shadow register... so we can't use it right now
-//     // Obtain old SRSCtl
-//     __asm__ __volatile__ (
-//         "mfc0   %0, $12, 2;"
-//         : "=r" (srsctl)
-//         :
-//     );
-//     
-//     // Make sure there is at least 1 set of shadow registers
-//     if (!(srsctl & 0x3C000000)) {
-//         panic("Need at least 1 set of shadow registers");
-//     }
-//     
-//     // Set ESS to 1
-//     srsctl &= ~0xF000;
-//     srsctl |= 0x1000;
-//     
-//     // Update SRSCtl
-//     __asm__ __volatile__ (
-//         "mtc0   %0, $12, 2;"
-//         "nop;"
-//         :
-//         : "r" (srsctl)
-//     );
-    
-    kprintf("Interrupt base updated, Wrapper @ %p, SR: %p, EBase: %p, Context @ %p, Kernel stack @ %p\n",
-            (void *)(ulong)&int_entry_wrapper_begin, (void *)sr.value, (void *)ebase.value, ctxt, (void *)kernel_stack_top);
-    //while (1);
-    
-//     // Test our handler
-//     volatile u32 *bad_addr = (u32 *)0x4096;
-//     u32 bad_value = *bad_addr;
-//     kprintf("Bad value: %x\n", bad_value);
+    kprintf("Interrupt base updated, Wrapper @ %p, SR: %x, EBase: %lx, Context @ %p, Kernel stack @ %lx\n",
+            &int_entry_wrapper_begin, sr.value, (ulong)ebase.value, ctxt, kernel_stack_top);
 }

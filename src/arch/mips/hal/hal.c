@@ -65,17 +65,13 @@ static void entry_func hal_entry(struct boot_parameters *boot_param)
     start_working();
     
     while (1);
-    
-//     while (1) {
-//         kprintf(".");
-//     }
 }
 
 
 /*
  * This is the entry point of HAL
  */
-void asmlinkage no_opt _start(struct boot_parameters *boot_param)
+void no_opt _start(struct boot_parameters *boot_param)
 {
     switch (boot_param->hal_start_flag) {
     // Start HAL

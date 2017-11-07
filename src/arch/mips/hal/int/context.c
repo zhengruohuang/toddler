@@ -49,7 +49,7 @@ void set_thread_context_param(struct context *context, ulong param)
 /*
  * Save context for interrupt handling
  */
-u32 asmlinkage save_context(struct context *context)
+u32 save_context(struct context *context)
 {
     // Set local interrupt state to disabled
     disable_local_int();
@@ -98,7 +98,7 @@ static void no_opt switch_to(struct context *context, int user_mode, ulong asid)
     hi.asid = asid;
     write_cp0_entry_hi(hi.value);
     
-    // Finally enable local interrupts, since EXL is set, interrupts won't trigger until rfe
+    // Finally enable local interrupts, since EXL is set, interrupts won't trigger until eret
     enable_local_int();
     
     // Restore GPRs
@@ -109,7 +109,7 @@ void no_opt switch_context(ulong sched_id, struct context *context,
                                       ulong page_dir_pfn, int user_mode, ulong asid, ulong tcb)
 {
 //     kprintf("To switch context, PC: %lx, SP: %lx, ASID: %lx, user: %d\n",
-//            context->pc, context->sp, asid, user_mode);
+//           context->pc, context->sp, asid, user_mode);
     
     // Disable local interrupts
     disable_local_int();
@@ -119,22 +119,24 @@ void no_opt switch_context(ulong sched_id, struct context *context,
     memcpy(&per_cpu_context->context, context, sizeof(struct context));
     
     // Load context addr to k0
-    __asm__ __volatile__ (
-        "move   $26, %[ctx];"
-        :
-        : [ctx] "r" ((ulong)per_cpu_context)
-    );
+    write_k0((ulong)per_cpu_context);
+//     __asm__ __volatile__ (
+//         "move   $26, %[ctx];"
+//         :
+//         : [ctx] "r" ((ulong)per_cpu_context)
+//     );
     
     // Set sched id
     *get_per_cpu(ulong, cur_running_sched_id) = sched_id;
     *get_per_cpu(int, cur_in_user_mode) = user_mode;
     
     // Make k1 ponit to TCB
-    __asm__ __volatile__ (
-        "move   $27, %0;"
-        :
-        : "r" (tcb)
-    );
+    write_k1(tcb);
+//     __asm__ __volatile__ (
+//         "move   $27, %0;"
+//         :
+//         : "r" (tcb)
+//     );
     
     *(ulong *)get_per_cpu(ulong, cur_tcb_vaddr) = tcb;
     

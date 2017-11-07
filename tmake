@@ -157,7 +157,6 @@ def do_find_target_dirs(target, cur_path, dirs, dir_map):
     if not subdirs:
         return False
     
-    print(subdirs)
     for d in subdirs:
         next_path = cur_path + d + '/'
         dirs.insert(0, next_path)
@@ -178,7 +177,11 @@ def do_find_target_dirs(target, cur_path, dirs, dir_map):
 def find_target_dirs(target, start_path):
     dirs = []
     dir_map = {}
+    
     do_find_target_dirs(target, start_path, dirs, dir_map)
+    if not len(dirs):
+        panic('Unable to find tmake files for target: {0}'.format(target))
+        
     return dirs, dir_map
 
 # Top level
@@ -220,16 +223,6 @@ inc_dir         = [ src_dir ] + arch_dirs + mach_dirs
 #-------------------------------------------------------------------------------
 # Printing functions
 #-------------------------------------------------------------------------------
-
-#class term_colors:
-    #header = '\033[95m',
-    #blud = '\033[94m',
-    #green = '\033[92m',
-    #warn = '\033[93m',
-    #fail = '\033[91m',
-    #end = '\033[0m',
-    #bold = '\033[1m',
-    #underline = '\033[4m',
 
 print_action_enabled = True
 print_cmd_enabled = False

@@ -50,22 +50,29 @@ struct cp0_status {
             u32 ux      : 1;
             u32 sx      : 1;
             u32 kx      : 1;
-            u32 im      : 8;
-            u32 mid     : 2;
-            u32 zero1   : 1;
+            u32 im0     : 1;
+            u32 im1     : 1;
+            u32 im2     : 1;
+            u32 im3     : 1;
+            u32 im4     : 1;
+            u32 im5     : 1;
+            u32 im6     : 1;
+            u32 im7     : 1;
+            u32 impl    : 2;
+            u32 ase     : 1;
             u32 nmi     : 1;
             u32 sr      : 1;
-            u32 zero2   : 1;
+            u32 ts      : 1;
             u32 bev     : 1;
             u32 px      : 1;
             u32 mx      : 1;
-            u32 zero3   : 1;
+            u32 re      : 1;
             u32 fr      : 1;
             u32 rp      : 1;
             u32 cu0     : 1;
             u32 cu1     : 1;
             u32 cu2     : 1;
-            u32 zero4   : 1;
+            u32 cu3     : 1;
         };
         
         u32 value;
@@ -383,6 +390,23 @@ struct cp0_config5 {
 #define write_cp0_config(idx, value)    __mtc0(value, 16, idx)
 
 #define write_cp0_wired(value)          __mtc0(value, 6, 0)
+
+
+/*
+ * Timer
+ */
+#define read_cp0_count(value)           __mfc0(value, 9, 0)
+#define write_cp0_compare(value)        __mtc0(value, 11, 0)
+
+
+/*
+ * k0/k1
+ */
+#define read_k0(value)      __asm__ __volatile__ ( "move %[reg], $26;" : [reg] "=r" (value) : )
+#define write_k0(value)     __asm__ __volatile__ ( "move $26, %[reg];" : : [reg] "r" (value) )
+
+#define read_k1(value)      __asm__ __volatile__ ( "move %[reg], $27;" : [reg] "=r" (value) : )
+#define write_k1(value)     __asm__ __volatile__ ( "move $27, %[reg];" : : [reg] "r" (value) )
 
 
 #endif

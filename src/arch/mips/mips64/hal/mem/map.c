@@ -146,6 +146,8 @@ int user_indirect_map_array(
     ulong page_dir_pfn, ulong vaddr, ulong paddr, size_t length,
     int exec, int write, int cacheable, int overwrite)
 {
+//     kprintf("User indirect map @ %lx -> %lx, len: %lx\n", vaddr, paddr, length);
+    
     ulong vstart = ALIGN_DOWN(vaddr, PAGE_SIZE);
     ulong pstart = ALIGN_DOWN(paddr, PAGE_SIZE);
     ulong vend = ALIGN_UP(vaddr + length, PAGE_SIZE);

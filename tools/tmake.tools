@@ -4,7 +4,7 @@
 tools_tools = { \
     '.c' : { \
         'exec'  : 'gcc',
-        'flags' : '-m32',
+        'flags' : '',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',

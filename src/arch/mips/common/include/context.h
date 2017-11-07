@@ -1,5 +1,5 @@
-#ifndef __ARCH_MIPS32_COMMON_INCLUDE_CONTEXT__
-#define __ARCH_MIPS32_COMMON_INCLUDE_CONTEXT__
+#ifndef __ARCH_MIPS_COMMON_INCLUDE_CONTEXT__
+#define __ARCH_MIPS_COMMON_INCLUDE_CONTEXT__
 
 
 #include "common/include/data.h"

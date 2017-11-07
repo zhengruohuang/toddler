@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/memory.h"
+#include "common/include/reg.h"
 
 
 no_opt ulong ksys_get_tcb()
@@ -7,11 +8,12 @@ no_opt ulong ksys_get_tcb()
     unsigned long k1 = 0;
     
     // k1 - $27
-    __asm__ __volatile__ (
-        "move   %0, $27;"
-        : "=r" (k1)
-        :
-    );
+    read_k1(k1);
+//     __asm__ __volatile__ (
+//         "move   %0, $27;"
+//         : "=r" (k1)
+//         :
+//     );
     
     // Convert k1 to unmapped address so we don't get TLB miss on this
     k1 = PHYS_TO_KCODE(k1);

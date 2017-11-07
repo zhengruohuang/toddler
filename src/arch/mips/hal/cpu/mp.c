@@ -2,6 +2,7 @@
 #include "common/include/memory.h"
 #include "common/include/memlayout.h"
 #include "common/include/proc.h"
+#include "common/include/reg.h"
 #include "hal/include/print.h"
 #include "hal/include/lib.h"
 #include "hal/include/mem.h"
@@ -21,12 +22,10 @@ ulong tcb_area_size = 0;
 int get_cpu_id()
 {
     u32 cpu_num = 0;
+    struct cp0_ebase ebase;
+    read_cp0_ebase(ebase.value);
     
-    __asm__ __volatile__ (
-        "rdhwr  %0, $0;"
-        :
-        : "r" (cpu_num)
-    );
+    cpu_num = ebase.cpunum;
     
     return (int)cpu_num;
 }

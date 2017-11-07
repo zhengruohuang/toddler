@@ -122,10 +122,12 @@ static void init_cpu()
     reg.kx = 1;
     reg.sx = 1;
     reg.ux = 1;
+    reg.px = 1;
 #endif
     
     // Disable interrupts
     reg.ie = 0;
+    reg.ksu = 0;
     reg.exl = 0;
     reg.erl = 0;
     
@@ -137,6 +139,7 @@ static void init_cpu()
 /*
  * Bootloader arguments
  */
+extern int __end;
 static ulong memory_size;
 
 static ulong coreimg_start_addr = 0;
@@ -174,16 +177,17 @@ static void parse_bootloader_args(ulong kargc, ulong karg_addr, ulong env_addr, 
     lprintf("\tFound rd_start @ %lx, rd_size @ %lx\n", rd_start, rd_size);
     
     // Convert the strings to integer
+    ulong coreimg_default_addr = 0;
     ch = *rd_start;
     while (ch && ch != ' ' && ch != '\t') {
-        coreimg_start_addr <<= 4;
+        coreimg_default_addr <<= 4;
         
         if (ch >= 'a' && ch <= 'f') {
-            coreimg_start_addr += ch - 'a' + 0xa;
+            coreimg_default_addr += ch - 'a' + 0xa;
         } else if (ch >= 'A' && ch <= 'F') {
-            coreimg_start_addr += ch - 'A' + 0xa;
+            coreimg_default_addr += ch - 'A' + 0xa;
         } else {
-            coreimg_start_addr += ch - '0';
+            coreimg_default_addr += ch - '0';
         }
         
         rd_start++;
@@ -199,12 +203,18 @@ static void parse_bootloader_args(ulong kargc, ulong karg_addr, ulong env_addr, 
         ch = *rd_size;
     }
     
-    lprintf("\tCoreimg start: %lx, size: %lx, memory size: %lx\n",
-            coreimg_start_addr, coreimg_size, memory_size);
+    lprintf("\tCoreimg default start addr: %lx, size: %lx, memory size: %lx\n",
+            coreimg_default_addr, coreimg_size, memory_size);
     
-    // Load image
+    // Copy the image to a lower address
+    // FIXME: using __end may not be accurate, need to check this again
+    coreimg_start_addr = (ulong)&__end;
+    coreimg_start_addr = ALIGN_UP(coreimg_start_addr, PAGE_SIZE);
+    
+    memcpy((void *)coreimg_start_addr, (void *)coreimg_default_addr, coreimg_size);
     coreimg = (struct coreimg_fat *)coreimg_start_addr;
-    lprintf("\tCore image loaded @ %x\n", coreimg);
+    
+    lprintf("\tCore image loaded @ %lx\n", coreimg_start_addr);
 }
 
 
@@ -310,6 +320,8 @@ static void find_and_layout(char *name, int bin_type)
         panic();
     }
     
+    //lprintf("Here?\n");
+    
     // Load the file
     u32 start_offset = record->start_offset;
     if (ARCH_BIG_ENDIAN != coreimg->header.big_endian) {
@@ -332,14 +344,17 @@ static void find_and_layout(char *name, int bin_type)
         
         // Zero the memory
         if (header->program_memsz) {
+            lprintf("\tZero memory @ %lx, size: %lx\n", (ulong)header->program_vaddr,
+                    (ulong)header->program_memsz);
             memzero((void *)(ulong)header->program_vaddr, header->program_memsz);
         }
         
         // Copy the program data
         if (header->program_filesz) {
-            lprintf("\tCopy section: %lx -> %lx\n",
+            lprintf("\tCopy section @ %lx -> %lx, size: %lx\n",
                     (ulong)header->program_offset + (ulong)elf_header,
-                    (ulong)header->program_vaddr
+                    (ulong)header->program_vaddr,
+                    (ulong)header->program_filesz
             );
             
             memcpy(
@@ -363,11 +378,14 @@ static void find_and_layout(char *name, int bin_type)
         // Set HAL Entry
         boot_param.hal_entry_addr = elf_header->elf_entry;
         boot_param.hal_vaddr_end = vaddr_end;
+        
+        lprintf("\tHAL entry @ %lx, vaddr end @ %lx\n", boot_param.hal_entry_addr, vaddr_end);
     }
     
     // We just loaded kernel
     else if (bin_type == 2) {
         boot_param.kernel_entry_addr = elf_header->elf_entry;
+        lprintf("\tKernel entry @ %lx\n", boot_param.kernel_entry_addr);
     }
 }
 

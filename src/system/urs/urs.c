@@ -289,6 +289,7 @@ static int dispatch_lookup(struct urs_super *super, unsigned long node_id, unsig
     }
     
     else if (super->ops[op].type == udisp_func) {
+        assert(super->ops[op].func);
         result = super->ops[op].func(super->id, node_id, proc_id, next, is_link, next_id, buf, count, actual);
     }
     
@@ -947,6 +948,8 @@ static struct urs_node *resolve_path(char *path, struct urs_super **real_super, 
 
 unsigned long urs_open_node(char *path, unsigned int flags, unsigned long process_id)
 {
+//     kprintf("Open node @ %s\n", path);
+    
     struct urs_open *o = NULL;
     struct urs_super *super = NULL;
     unsigned long open_dispatch_id = 0;
@@ -969,6 +972,8 @@ unsigned long urs_open_node(char *path, unsigned int flags, unsigned long proces
     o->super = super;
     o->open_dispatch_id = open_dispatch_id;
     hash_insert(open_table, o->path, o);
+    
+    
     
     return o->id;
 }

@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/kdisp.h"
+#include "common/include/reg.h"
 #include "hal/include/cpu.h"
 #include "hal/include/int.h"
 #include "hal/include/kernel.h"
@@ -13,26 +14,20 @@ void kernel_dispatch(struct kernel_dispatch_info *kdi)
     int user_mode_save = *user_mode;
     
     // Save ASID in TLB EntryHi
-    u32 hi = 0;
-    u32 asid = 0;
-    __asm__ __volatile__ (
-        "mfc0   %0, $10;"
-        : "=r" (hi)
-        :
-    );
-    asid = hi & 0xff;
-    hi &= ~0xff;
-    __asm__ __volatile__ (
-        "mtc0   %0, $10;"
-        :
-        : "r" (hi)
-    );
+    struct cp0_entry_hi old_hi, hi;
+    read_cp0_entry_hi(old_hi.value);
+    
+    // Set ASID to 0
+    hi.value = old_hi.value;
+    hi.asid = 0;
+    write_cp0_entry_hi(hi.value);
     
     // Put us in kernel, so the TLB miss handler can correctly refill the entry
     *user_mode = 0;
     
+    // FIXME
     // Enable interrupts
-    //enable_local_int();
+//     enable_local_int();
     
     // Then call kernel dispatcher
     kernel->dispatch(*get_per_cpu(ulong, cur_running_sched_id), kdi);
@@ -41,10 +36,5 @@ void kernel_dispatch(struct kernel_dispatch_info *kdi)
     *user_mode = user_mode_save;
     
     // Restore ASID
-    hi |= asid & 0xff;
-    __asm__ __volatile__ (
-        "mtc0   %0, $10;"
-        :
-        : "r" (hi)
-    );
+    write_cp0_entry_hi(old_hi.value);
 }

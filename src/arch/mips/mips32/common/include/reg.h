@@ -24,6 +24,7 @@
 
 
 /*
+ * FIXME: need to check the MIPS32 manual, the following def is from MIPS64
  * Status
  */
 struct cp0_status {
@@ -36,7 +37,14 @@ struct cp0_status {
             u32 ux      : 1;
             u32 sx      : 1;
             u32 kx      : 1;
-            u32 im      : 8;
+            u32 im0     : 1;
+            u32 im1     : 1;
+            u32 im2     : 1;
+            u32 im3     : 1;
+            u32 im4     : 1;
+            u32 im5     : 1;
+            u32 im6     : 1;
+            u32 im7     : 1;
             u32 mid     : 2;
             u32 zero1   : 1;
             u32 nmi     : 1;
@@ -51,7 +59,7 @@ struct cp0_status {
             u32 cu0     : 1;
             u32 cu1     : 1;
             u32 cu2     : 1;
-            u32 zero4   : 1;
+            u32 cu3     : 1;
         };
         
         u32 value;
@@ -60,6 +68,25 @@ struct cp0_status {
 
 #define read_cp0_status(value)   __mfc0(value, 12, 0)
 #define write_cp0_status(value)  __mtc0(value, 12, 0)
+
+
+/*
+ * Exception
+ */
+struct cp0_ebase {
+    union {
+        struct {
+            u32 cpunum      : 10;
+            u32 zero        : 2;
+            u32 base        : 20;
+        };
+        
+        u32 value;
+    };
+};
+
+#define read_cp0_ebase(value)   __mfc0(value, 15, 1)
+#define write_cp0_ebase(value)  __mtc0(value, 15, 1)
 
 
 /*
@@ -139,6 +166,7 @@ struct cp0_entry_lo {
     };
 } packedstruct;
 
+// FIXME: need to check the MIPS32 manual, the following def is from MIPS64
 struct cp0_page_grain {
     union {
         struct {
@@ -181,6 +209,7 @@ struct cp0_page_grain {
 
 
 /*
+ * FIXME: need to check the MIPS32 manual, the following def is from MIPS64
  * Interrupt
  */
 struct cp0_cause {
@@ -212,6 +241,190 @@ struct cp0_cause {
 
 #define read_cp0_epc(value)     __mfc0(value, 14, 0)
 #define write_cp0_epc(value)    __mtc0(value, 14, 0)
+
+
+/*
+ * FIXME: need to check the MIPS32 manual, the following def is from MIPS64
+ * Processor ID
+ */
+struct cp0_proc_id {
+    union {
+        struct {
+            u32 rev     : 8;
+            u32 proc_id : 8;
+            u32 comp_id : 8;
+            u32 comp_opt: 8;
+        };
+        
+        u32 value;
+    };
+} packedstruct;
+
+#define read_cp0_proc_id(value)   __mfc0(value, 15, 0)
+
+
+/*
+ * FIXME: need to check the MIPS32 manual, the following def is from MIPS64
+ * Config
+ */
+struct cp0_config {
+    union {
+        struct {
+            u32 info        : 31;
+            u32 has_next    : 1;
+        };
+        
+        u32 value;
+    };
+};
+
+struct cp0_config0 {
+    union {
+        struct {
+            u32 kseg0       : 3;
+            u32 virt_icache : 1;
+            u32 zero0       : 3;
+            u32 mmu_type    : 3;
+            u32 arch_rev    : 3;
+            u32 arch_type   : 2;
+            u32 big_endian  : 1;
+            u32 zero1       : 9;
+            u32 fixed_kuseg : 3;
+            u32 fixed_k23   : 3;
+            u32 has_config1 : 1;
+        };
+        
+        u32 value;
+    };
+} packedstruct;
+
+struct cp0_config1 {
+    union {
+        struct {
+            u32 has_fpu     : 1;
+            u32 has_ejtag   : 1;
+            u32 has_mips16  : 1;
+            u32 has_watch   : 1;
+            u32 has_perf    : 1;
+            u32 has_mdmx    : 1;
+            u32 has_cp2     : 1;
+            u32 dcache_assoc: 3;
+            u32 dcache_line : 3;
+            u32 dcache_sets : 3;
+            u32 icache_assoc: 3;
+            u32 icache_line : 3;
+            u32 icache_sets : 3;
+            u32 vtlb_size   : 6;
+            u32 has_config2 : 1;
+        };
+        
+        u32 value;
+    };
+} packedstruct;
+
+struct cp0_config2 {
+    union {
+        struct {
+            u32 l2_assoc    : 4;
+            u32 l2_line     : 4;
+            u32 l2_sets     : 4;
+            u32 l2_status   : 4;
+            u32 l3_assoc    : 4;
+            u32 l3_line     : 4;
+            u32 l3_sets     : 4;
+            u32 l3_status   : 3;
+            u32 has_config3 : 1;
+        };
+        
+        u32 value;
+    };
+} packedstruct;
+
+struct cp0_config3 {
+    union {
+        struct {
+            u32 reserved    : 30;
+            u32 has_big_page: 1;
+            u32 has_config4 : 1;
+        };
+        
+        u32 value;
+    };
+} packedstruct;
+
+struct cp0_config4 {
+    union {
+        struct {
+            union {
+                struct {
+                    u32 ftlb_sets   : 4;
+                    u32 ftlb_ways   : 4;
+                };
+                u32 mmu_size_ext    : 8;
+            };
+            u32 ftlb_page   : 5;
+            u32 zero        : 1;
+            u32 mmu_ext_type: 2;
+            u32 kscr_map    : 8;
+            u32 vtlb_size_ex: 4;
+            u32 has_asid_ex : 1;
+            u32 has_hw_inv  : 2;
+            u32 has_config5 : 1;
+        };
+        
+        u32 value;
+    };
+} packedstruct;
+
+struct cp0_config5 {
+    union {
+        struct {
+            u32 has_nested_fault: 1;
+            u32 has_ufr         : 1;
+            u32 has_mattri_regs : 1;
+            u32 has_ll_bit      : 1;
+            u32 has_mvcp_high   : 1;
+            u32 kern_only_sdbbp : 1;
+            u32 has_virt_proc   : 1;
+            u32 ena_fre         : 1;
+            u32 ena_ufe         : 1;
+            u32 no_config2      : 1;
+            u32 has_dual_endian : 1;
+            u32 zero0           : 1;
+            u32 no_wide_llsc    : 1;
+            u32 zero1           : 14;
+            u32 ena_simd        : 1;
+            u32 has_eva         : 1;
+            u32 dis_cache_vec   : 1;
+            u32 dis_seg_ctrl    : 1;
+            u32 has_config6     : 1;
+        };
+        
+        u32 value;
+    };
+} packedstruct;
+
+#define read_cp0_config(idx, value)     __mfc0(value, 16, idx)
+#define write_cp0_config(idx, value)    __mtc0(value, 16, idx)
+
+#define write_cp0_wired(value)          __mtc0(value, 6, 0)
+
+
+/*
+ * Timer
+ */
+#define read_cp0_count(value)           __mfc0(value, 9, 0)
+#define write_cp0_compare(value)        __mtc0(value, 11, 0)
+
+
+/*
+ * k0/k1
+ */
+#define read_k0(value)      __asm__ __volatile__ ( "move %[reg], $26;" : [reg] "=r" (value) : )
+#define write_k0(value)     __asm__ __volatile__ ( "move $26, %[reg];" : : [reg] "r" (value) )
+
+#define read_k1(value)      __asm__ __volatile__ ( "move %[reg], $27;" : [reg] "=r" (value) : )
+#define write_k1(value)     __asm__ __volatile__ ( "move $27, %[reg];" : : [reg] "r" (value) )
 
 
 #endif

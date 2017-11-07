@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/proc.h"
+#include "common/include/reg.h"
 
 
 no_opt struct thread_control_block *get_tcb()
@@ -7,11 +8,12 @@ no_opt struct thread_control_block *get_tcb()
     unsigned long k1 = 0;
     
     // k1 - $27
-    __asm__ __volatile__ (
-        "move   %0, $27;"
-        : "=r" (k1)
-        :
-    );
+    read_k1(k1);
+//     __asm__ __volatile__ (
+//         "move   %0, $27;"
+//         : "=r" (k1)
+//         :
+//     );
     
     return (struct thread_control_block *)k1;
 }

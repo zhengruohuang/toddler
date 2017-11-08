@@ -79,20 +79,21 @@ The driver process provides several essential device drivers, including keyboard
 |armv7|32|QEMU Integrator/CP, QEMU RealView MP, Raspberry Pi 2|Active|
 |mips32|32|QEMU Malta, Creator CI20|Current|
 |ppc32|32|QEMU Mac99, Mac Mini G4, PowerMac G4|Active|
-|sparcv8|32|SuperSPARC II|Initial|
+|sparcv8|32|QEMU Sum4m SPARCstation 5, QEMU Leon 3|Initial|
 |riscv32|32|QEMU Spike|Planned|
-|m68k|32|M68K|Planned|
-|sh4|32|SuperH|Planned|
-|vax|32|VAX|Planned|
+|m68k|32|QEMU MCF5206EVB|Planned|
+|sh4|32|QEMU Shix Card|Planned|
+|vax|32|VAX Emulator|Planned|
+|or1k|32|QEMU OR1K|Planned|
 |amd64|64|Skylake-based PC|Planned|
 |armv8|64|Raspberry Pi 3|Planned|
-|ppc64|64|PowerMac G5|Planned|
-|mips64|64|Loongson 3 Desktop|Active|
-|sparcv9|64|Sun UltraSPARC II Workstation|Planned|
-|alpha|64|ES40|Planned|
+|ppc64|64|QEMU Mac99, PowerMac G5|Planned|
+|mips64|64|QEMU Malta, Loongson 3 Desktop|Current|
+|sparcv9|64|QEMU Sun4u|Planned|
+|alpha|64|QEMU DP264/Clipper|Planned|
 |riscv64|64|QEMU Spike|Planned|
-|s390|64|S390 Emulator|Planned|
-|ia64|64|Itaium 2|Planned|
+|s390|64|QEMU S390|Planned|
+|ia64|64|Ski|Planned|
 |hppa|64|HP 9000 PA-RISC Workstation|No Plan|
 
 

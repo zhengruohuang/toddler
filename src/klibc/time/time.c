@@ -14,9 +14,13 @@ time_t time()
     
     syscall_time(&high, &low);
     
+#if (ARCH_WIDTH == 64)
+    time = low;
+#else
     time |= high;
     time <<= sizeof(unsigned long) * 8;
     time |= low;
+#endif
     
     return time;
 }

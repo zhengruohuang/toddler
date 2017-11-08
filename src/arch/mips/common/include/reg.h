@@ -1,5 +1,5 @@
-#ifndef __ARCH_MIPS32_COMMON_INCLUDE_REG__
-#define __ARCH_MIPS32_COMMON_INCLUDE_REG__
+#ifndef __ARCH_MIPS_COMMON_INCLUDE_REG__
+#define __ARCH_MIPS_COMMON_INCLUDE_REG__
 
 
 #include "common/include/data.h"
@@ -24,10 +24,17 @@
 
 
 /*
+ * MIP32 and MIPS64 specific register definitions
+ */
+#include "common/include/cp0.h"
+
+
+/*
  * Status
  */
 struct cp0_status {
     union {
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 ie      : 1;
             u32 exl     : 1;
@@ -61,6 +68,52 @@ struct cp0_status {
             u32 cu3     : 1;
         };
         
+        struct {
+            u32 other0  : 8;
+            u32 im      : 8;
+            u32 other1  : 16;
+        };
+#else
+        struct {
+            u32 cu3     : 1;
+            u32 cu2     : 1;
+            u32 cu1     : 1;
+            u32 cu0     : 1;
+            u32 rp      : 1;
+            u32 fr      : 1;
+            u32 re      : 1;
+            u32 mx      : 1;
+            u32 px      : 1;
+            u32 bev     : 1;
+            u32 ts      : 1;
+            u32 sr      : 1;
+            u32 nmi     : 1;
+            u32 ase     : 1;
+            u32 impl    : 2;
+            u32 im7     : 1;
+            u32 im6     : 1;
+            u32 im5     : 1;
+            u32 im4     : 1;
+            u32 im3     : 1;
+            u32 im2     : 1;
+            u32 im1     : 1;
+            u32 im0     : 1;
+            u32 kx      : 1;
+            u32 sx      : 1;
+            u32 ux      : 1;
+            u32 ksu     : 2;
+            u32 erl     : 1;
+            u32 exl     : 1;
+            u32 ie      : 1;
+        };
+        
+        struct {
+            u32 other1  : 16;
+            u32 im      : 8;
+            u32 other0  : 8;
+        };
+#endif
+        
         u32 value;
     };
 };
@@ -74,16 +127,18 @@ struct cp0_status {
  */
 struct cp0_ebase {
     union {
-#if ARCH_LITTLE_ENDIAN
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 cpunum      : 10;
-            u32 zero        : 2;
+            u32 zero        : 1;
+            u32 write_gate  : 1;    // Only valid in MIPS64
             u32 base        : 20;
         };
 #else
         struct {
             u32 base        : 20;
-            u32 zero        : 2;
+            u32 write_gate  : 1;
+            u32 zero        : 1;
             u32 cpunum      : 10;
         };
 #endif
@@ -92,40 +147,16 @@ struct cp0_ebase {
     };
 };
 
-#define read_cp0_ebase(value)   __mfc0(value, 15, 1)
-#define write_cp0_ebase(value)  __mtc0(value, 15, 1)
+#define read_cp0_ebase(value)       __mfc0(value, 15, 1)
+#define write_cp0_ebase(value)      __mtc0(value, 15, 1)
 
 
 /*
  * TLB
  */
-struct cp0_entry_hi {
-    union {
-#if ARCH_LITTLE_ENDIAN
-        struct {
-            u32 asid    : 8;
-            u32 asid_ex : 2;
-            u32 hw_inv  : 1;
-            u32 vpn2_ex : 2;
-            u32 vpn2    : 19;
-        };
-#else
-        struct {
-            u32 vpn2    : 19;
-            u32 vpn2_ex : 2;
-            u32 hw_inv  : 1;
-            u32 asid_ex : 2;
-            u32 asid    : 8;
-        };
-#endif
-        
-        u32 value;
-    };
-} packedstruct;
-
 struct cp0_page_mask {
     union {
-#if ARCH_LITTLE_ENDIAN
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 zero0   : 11;
             u32 mask_ex : 2;
@@ -138,34 +169,6 @@ struct cp0_page_mask {
             u32 mask    : 16;
             u32 mask_ex : 2;
             u32 zero0   : 11;
-        };
-#endif
-        
-        u32 value;
-    };
-} packedstruct;
-
-struct cp0_entry_lo {
-    union {
-#if ARCH_LITTLE_ENDIAN
-        struct {
-            u32 global  : 1;
-            u32 valid   : 1;
-            u32 dirty   : 1;
-            u32 coherent : 3;
-            u32 pfn     : 24;
-            u32 no_exec : 1;
-            u32 no_read : 1;
-        };
-#else
-        struct {
-            u32 no_read : 1;
-            u32 no_exec : 1;
-            u32 pfn     : 24;
-            u32 coherent : 3;
-            u32 dirty   : 1;
-            u32 valid   : 1;
-            u32 global  : 1;
         };
 #endif
         
@@ -175,7 +178,7 @@ struct cp0_entry_lo {
 
 struct cp0_page_grain {
     union {
-#if ARCH_LITTLE_ENDIAN
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 mc_cause    : 5;
             u32 zero0       : 3;
@@ -207,26 +210,16 @@ struct cp0_page_grain {
     };
 } packedstruct;
 
-#define read_cp0_entry_hi(value)    __mfc0(value, 10, 0)
-#define write_cp0_entry_hi(value)   __mtc0(value, 10, 0)
-
 #define read_cp0_page_mask(value)   __mfc0(value, 5, 0)
 #define write_cp0_page_mask(value)  __mtc0(value, 5, 0)
-
-#define read_cp0_entry_lo0(value)   __mfc0(value, 2, 0)
-#define write_cp0_entry_lo0(value)  __mtc0(value, 2, 0)
-
-#define read_cp0_entry_lo1(value)   __mfc0(value, 3, 0)
-#define write_cp0_entry_lo1(value)  __mtc0(value, 3, 0)
 
 #define read_cp0_page_grain(value)  __mfc0(value, 5, 1)
 #define write_cp0_page_grain(value) __mtc0(value, 5, 1)
 
-#define read_cp0_random(value)      __mfc0(value, 1, 0)
-
+#define read_cp0_index(value)       __mfc0(value, 0, 0)
 #define write_cp0_index(value)      __mtc0(value, 0, 0)
 
-#define read_cp0_bad_vaddr(value)   __mfc0(value, 8, 0)
+#define read_cp0_random(value)      __mfc0(value, 1, 0)
 
 
 /*
@@ -234,6 +227,7 @@ struct cp0_page_grain {
  */
 struct cp0_cause {
     union {
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 zero0       : 2;
             u32 exc_code    : 5;
@@ -259,6 +253,44 @@ struct cp0_cause {
             u32 bd          : 1;
         };
         
+        struct {
+            u32 other0      : 8;
+            u32 ip          : 8;
+            u32 other1      : 16;
+        };
+#else
+        struct {
+            u32 bd          : 1;
+            u32 ti          : 1;
+            u32 ce          : 2;
+            u32 dc          : 1;
+            u32 pci         : 1;
+            u32 ase2        : 2;
+            u32 iv          : 1;
+            u32 wp          : 1;
+            u32 fdci        : 1;
+            u32 zero2       : 3;
+            u32 ase         : 2;
+            u32 ip7         : 1;
+            u32 ip6         : 1;
+            u32 ip5         : 1;
+            u32 ip4         : 1;
+            u32 ip3         : 1;
+            u32 ip2         : 1;
+            u32 ip1         : 1;
+            u32 ip0         : 1;
+            u32 zero1       : 1;
+            u32 exc_code    : 5;
+            u32 zero0       : 2;
+        };
+        
+        struct {
+            u32 other1      : 16;
+            u32 ip          : 8;
+            u32 other0      : 8;
+        };
+#endif
+        
         u32 value;
     };
 } packedstruct;
@@ -266,21 +298,27 @@ struct cp0_cause {
 #define read_cp0_cause(value)   __mfc0(value, 13, 0)
 #define write_cp0_cause(value)  __mtc0(value, 13, 0)
 
-#define read_cp0_epc(value)     __mfc0(value, 14, 0)
-#define write_cp0_epc(value)    __mtc0(value, 14, 0)
-
 
 /*
  * Processor ID
  */
 struct cp0_proc_id {
     union {
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 rev     : 8;
             u32 proc_id : 8;
             u32 comp_id : 8;
             u32 comp_opt: 8;
         };
+#else
+        struct {
+            u32 comp_opt: 8;
+            u32 comp_id : 8;
+            u32 proc_id : 8;
+            u32 rev     : 8;
+        };
+#endif
         
         u32 value;
     };
@@ -290,15 +328,21 @@ struct cp0_proc_id {
 
 
 /*
- * FIXME: need to check the MIPS32 manual, the following def is from MIPS64
  * Config
  */
 struct cp0_config {
     union {
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 info        : 31;
             u32 has_next    : 1;
         };
+#else
+        struct {
+            u32 has_next    : 1;
+            u32 info        : 31;
+        };
+#endif
         
         u32 value;
     };
@@ -306,6 +350,7 @@ struct cp0_config {
 
 struct cp0_config0 {
     union {
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 kseg0       : 3;
             u32 virt_icache : 1;
@@ -319,6 +364,21 @@ struct cp0_config0 {
             u32 fixed_k23   : 3;
             u32 has_config1 : 1;
         };
+#else
+        struct {
+            u32 has_config1 : 1;
+            u32 fixed_k23   : 3;
+            u32 fixed_kuseg : 3;
+            u32 zero1       : 9;
+            u32 big_endian  : 1;
+            u32 arch_type   : 2;
+            u32 arch_rev    : 3;
+            u32 mmu_type    : 3;
+            u32 zero0       : 3;
+            u32 virt_icache : 1;
+            u32 kseg0       : 3;
+        };
+#endif
         
         u32 value;
     };
@@ -326,6 +386,7 @@ struct cp0_config0 {
 
 struct cp0_config1 {
     union {
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 has_fpu     : 1;
             u32 has_ejtag   : 1;
@@ -343,6 +404,25 @@ struct cp0_config1 {
             u32 vtlb_size   : 6;
             u32 has_config2 : 1;
         };
+#else
+        struct {
+            u32 has_config2 : 1;
+            u32 vtlb_size   : 6;
+            u32 icache_sets : 3;
+            u32 icache_line : 3;
+            u32 icache_assoc: 3;
+            u32 dcache_sets : 3;
+            u32 dcache_line : 3;
+            u32 dcache_assoc: 3;
+            u32 has_cp2     : 1;
+            u32 has_mdmx    : 1;
+            u32 has_perf    : 1;
+            u32 has_watch   : 1;
+            u32 has_mips16  : 1;
+            u32 has_ejtag   : 1;
+            u32 has_fpu     : 1;
+        };
+#endif
         
         u32 value;
     };
@@ -350,6 +430,7 @@ struct cp0_config1 {
 
 struct cp0_config2 {
     union {
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 l2_assoc    : 4;
             u32 l2_line     : 4;
@@ -361,6 +442,19 @@ struct cp0_config2 {
             u32 l3_status   : 3;
             u32 has_config3 : 1;
         };
+#else
+        struct {
+            u32 has_config3 : 1;
+            u32 l3_status   : 3;
+            u32 l3_sets     : 4;
+            u32 l3_line     : 4;
+            u32 l3_assoc    : 4;
+            u32 l2_status   : 4;
+            u32 l2_sets     : 4;
+            u32 l2_line     : 4;
+            u32 l2_assoc    : 4;
+        };
+#endif
         
         u32 value;
     };
@@ -368,11 +462,19 @@ struct cp0_config2 {
 
 struct cp0_config3 {
     union {
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 reserved    : 30;
             u32 has_big_page: 1;    // Only valid in MIPS64, if set, then page mask becomes 64-bit
             u32 has_config4 : 1;
         };
+#else
+        struct {
+            u32 has_config4 : 1;
+            u32 has_big_page: 1;
+            u32 reserved    : 30;
+        };
+#endif
         
         u32 value;
     };
@@ -380,6 +482,7 @@ struct cp0_config3 {
 
 struct cp0_config4 {
     union {
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 ftlb_sets   : 4;
             u32 ftlb_ways   : 4;
@@ -397,6 +500,25 @@ struct cp0_config4 {
             u32 mmu_size_ext: 8;
             u32 other       : 24;
         };
+#else
+        struct {
+            u32 has_config5 : 1;
+            u32 has_hw_inv  : 2;
+            u32 has_asid_ex : 1;
+            u32 vtlb_size_ex: 4;
+            u32 kscr_map    : 8;
+            u32 mmu_ext_type: 2;
+            u32 zero        : 1;
+            u32 ftlb_page   : 5;
+            u32 ftlb_ways   : 4;
+            u32 ftlb_sets   : 4;
+        };
+        
+        struct {
+            u32 other       : 24;
+            u32 mmu_size_ext: 8;
+        };
+#endif
         
         u32 value;
     };
@@ -404,6 +526,7 @@ struct cp0_config4 {
 
 struct cp0_config5 {
     union {
+#if (ARCH_LITTLE_ENDIAN)
         struct {
             u32 has_nested_fault: 1;
             u32 zero0           : 1;
@@ -426,6 +549,12 @@ struct cp0_config5 {
             u32 dis_seg_ctrl    : 1;
             u32 has_config6     : 1;
         };
+#else
+        struct {
+            u32 has_config6     : 1;
+            u32 other           : 31;
+        };
+#endif
         
         u32 value;
     };

@@ -303,7 +303,10 @@ void general_except_handler(struct context *context)
 void init_int()
 {
     struct cp0_ebase ebase;
+    struct cp0_ebase64 ebase64;
+    ulong ebase_val = 0;
     struct cp0_status sr;
+    
     struct saved_context *ctxt = get_per_cpu(struct saved_context, cur_context);
     ulong tlb_refill_stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_TLB_REFILL_STACK_TOP_OFFSET - sizeof(struct saved_context);
     ulong kernel_stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_STACK_TOP_OFFSET - sizeof(struct saved_context);
@@ -317,14 +320,31 @@ void init_int()
     read_cp0_ebase(ebase.value);
     
 #if (ARCH_WIDTH == 64)
+    // Test write gate
     ebase.write_gate = 1;
     write_cp0_ebase(ebase.value);
-#endif
+    read_cp0_ebase(ebase.value);
     
+    if (ebase.write_gate) {
+        read_cp0_ebase64(ebase64.value);
+        ebase64.base = ((ulong)&int_entry_wrapper_begin) >> 12;
+        write_cp0_ebase64(ebase64.value);
+        read_cp0_ebase64(ebase_val);
+    } else {
+        ulong wrapper_addr = (ulong)&int_entry_wrapper_begin;
+        assert((wrapper_addr >> 32) == 0xfffffffful);
+        
+        ebase.base = ((u32)wrapper_addr) >> 12;
+        write_cp0_ebase(ebase.value);
+        
+        read_cp0_ebase(ebase_val);
+        ebase_val |= 0xfffffffful << 32;
+    }
+#else
     ebase.base = ((ulong)&int_entry_wrapper_begin) >> 12;
     write_cp0_ebase(ebase.value);
-    
-    read_cp0_ebase(ebase.value);
+    read_cp0_ebase(ebase_val);
+#endif
     
     // Initialize context poniter for the assembly handler entry
     int page_count = 8 * num_cpus / PAGE_SIZE;
@@ -350,5 +370,5 @@ void init_int()
     set_int_vector(INT_VECTOR_TLB_MISS_WRITE, int_handler_tlb_refill);
     
     kprintf("Interrupt base updated, Wrapper @ %p, SR: %x, EBase: %lx, Context @ %p, Kernel stack @ %lx\n",
-            &int_entry_wrapper_begin, sr.value, (ulong)ebase.value, ctxt, kernel_stack_top);
+            &int_entry_wrapper_begin, sr.value, ebase_val, ctxt, kernel_stack_top);
 }

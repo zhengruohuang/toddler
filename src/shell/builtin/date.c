@@ -7,13 +7,16 @@
 
 int date(int argc, char **argv)
 {
-    int i;
-    
     time_t t = time();
+    
+#if (ARCH_WIDTH == 64)
+    kprintf("Timestamp: %lu\n",(unsigned long)t);
+#else
     kprintf("Timestamp: %lu%lu\n",
         (unsigned long)(t >> (sizeof(unsigned long) * 8)),
         (unsigned long)t
     );
+#endif
     
     return EOK;
 }

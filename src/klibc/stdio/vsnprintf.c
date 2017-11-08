@@ -320,7 +320,7 @@ int vsnprintf(char *buf, size_t size, char *fmt, va_list ap)
                 break;
             case __FT_STR:
                 if (param_size == 4) {
-                    print_string(buf, size, &cur_index, (char *)arg4);
+                    print_string(buf, size, &cur_index, (char *)(unsigned long)arg4);
                 } else {
                     print_string(buf, size, &cur_index, (char *)(unsigned long)arg8);
                 }

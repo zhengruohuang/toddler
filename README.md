@@ -95,31 +95,3 @@ The driver process provides several essential device drivers, including keyboard
 |s390|64|QEMU S390|Planned|
 |ia64|64|Ski|Planned|
 |hppa|64|HP 9000 PA-RISC Workstation|No Plan|
-
-
-## Development Plan
-
-### Ports
-
-|Time|Event|Arch|Target|Status|
-|---|---|---|---|---|
-|Feb. 2017|A working *modern* kernel and a simple working shell|ia32|Netbust PC|Active|
-|Apr. 2017|A working 32-bit ARMv7 port|armv7|Raspberry Pi 2|Active|
-|May 2017|SMP support for 32-bit ARMv7|armv7|Raspberry Pi 2|Planned|
-|Aug. 2017|A working 32-bit PowerPC port|ppc32|Mac Mini G4|Planned|
-|Sep. 2017|SMP support for 32-bit PowerPC|ppc32|PowerMac G4 Dual|Planned|
-|Late 2017|64-bit Toddler|||Planned|
-
-### Kernel
-
-|Time|Event|Status|
-|----|-----|------|
-|Feb. 2017|Efficient memory management and sophisticated scheduling|Planned|
-|Apr. 2017|Better SMP support|Planned|
-
-### Building system
-
-|Time|Event|Status|
-|----|-----|------|
-|Feb. 2017|Clean up the code, HD image builder|Planned|
-|Apr. 2017|Parallel building|Planned|

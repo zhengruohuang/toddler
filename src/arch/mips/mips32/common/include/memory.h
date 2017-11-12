@@ -33,6 +33,20 @@
 #define ALIGN_DEFAULT   4
 #endif
 
+
+/*
+ * MIPS page mask
+ */
+#define KERNEL_PAGE_MASK        0xffff
+#define KERNEL_PAGE_MASK_EX     0x3
+
+#define USER_PAGE_MASK          0
+#define USER_PAGE_MASK_EX       0x3
+
+#define TLB_PFN_SHIFT_BITS      12
+#define TLB_VPN2_SHIFT_BITS     13
+
+
 /*
  * Addr <--> PFN
  */

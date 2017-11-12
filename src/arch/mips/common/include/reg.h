@@ -583,4 +583,22 @@ struct cp0_config5 {
 #define write_k1(value)     __asm__ __volatile__ ( "move $27, %[reg];" : : [reg] "r" (value) )
 
 
+/*
+ * TLB read and probe
+ */
+// #define write_tlb_indexed()                     \
+//     __asm__ __volatile__ (                      \
+//         "ehb;"      /* clear hazard barrier */  \
+//         "tlbwi;"    /* write indexed entry */   \
+//         : :                                     \
+//     )
+// 
+// #define tlb_probe()         \
+//     __asm__ __volatile__ (  \
+//         "ehb;"              \
+//         "tlbp;"             \
+//         : :                 \
+//     )
+
+
 #endif

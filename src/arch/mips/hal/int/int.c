@@ -1,5 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
+#include "common/include/reg.h"
 #include "hal/include/print.h"
 #include "hal/include/cpu.h"
 #include "hal/include/lib.h"
@@ -34,22 +35,11 @@ void set_local_int_state(int enabled)
 
 int disable_local_int()
 {
-    u32 sr = 0;
+    struct cp0_status sr;
     
-    __asm__ __volatile__ (
-        "mfc0   %0, $12;"
-        : "=r" (sr)
-        :
-    );
-    
-    // Clear global interrupt enable bit
-    sr &= ~0x1;
-    
-    __asm__ __volatile__ (
-        "mtc0   %0, $12;"
-        :
-        : "r" (sr)
-    );
+    read_cp0_status(sr.value);
+    sr.ie = 0;
+    write_cp0_status(sr.value);
     
     int enabled = get_local_int_state();
     set_local_int_state(0);
@@ -59,24 +49,13 @@ int disable_local_int()
 
 void enable_local_int()
 {
-    u32 sr = 0;
+    struct cp0_status sr;
     
     set_local_int_state(1);
     
-    __asm__ __volatile__ (
-        "mfc0   %0, $12;"
-        : "=r" (sr)
-        :
-    );
-    
-    // Set global interrupt enable bit
-    sr |= 0x1;
-    
-    __asm__ __volatile__ (
-        "mtc0   %0, $12;"
-        :
-        : "r" (sr)
-    );
+    read_cp0_status(sr.value);
+    sr.ie = 1;
+    write_cp0_status(sr.value);
 }
 
 void restore_local_int(int enabled)
@@ -129,18 +108,16 @@ void tlb_refill_handler(struct context *context)
 {
     // Get the bad address
     ulong bad_addr = 0;
-    __asm__ __volatile__ (
-        "mfc0   %0, $8;"
-        : "=r" (bad_addr)
-        :
-    );
+    read_cp0_bad_vaddr(bad_addr);
     
-//     kprintf("TLB refill @ %x ... ", bad_addr);
+    save_context(context);
+    
+//     kprintf("TLB refill @ %lx, PC: %lx\n", bad_addr, context->pc);
     
     // Get kernel/user mode
     int user_mode = *get_per_cpu(int, cur_in_user_mode);
     
-//     kprintf("%s ... ", user_mode ? "user" : "kernel");
+//     kprintf("refill start\n");
     
     // Try refilling TLB
     int invalid = 0;
@@ -150,15 +127,13 @@ void tlb_refill_handler(struct context *context)
         invalid = tlb_refill_kernel(bad_addr);
     }
     
+//     kprintf("refill done\n");
+    
     // Reload TCB to k1
     ulong tcb = *(ulong *)get_per_cpu(ulong, cur_tcb_vaddr);
-    __asm__ __volatile__ (
-        "move   $27, %0;"
-        :
-        : "r" (tcb)
-    );
+    write_k1(tcb);
     
-//     kprintf("done\n");
+//     kprintf("int done\n");
     
     // Invalid addr
     if (invalid) {
@@ -168,8 +143,25 @@ void tlb_refill_handler(struct context *context)
 
 static int int_handler_tlb_refill(struct int_context *context, struct kernel_dispatch_info *kdi)
 {
-    panic("Should not get a secondary TLB miss!\n");
+//     struct cp0_entry_hi hi;
+//     read_cp0_entry_hi(hi.value);
+//     kprintf("ASID: %d\n", hi.asid);
+//     
+//     // Clear EXL bit - so we'll get primariy TLB misses
+//     struct cp0_status status;
+//     read_cp0_status(status.value);
+//     kprintf("exl: %d, erl: %d, ksu: %d\n", status.exl, status.erl, status.ksu);
+//     
+//     // Bad addr
+//     ulong bad_addr = 0;
+//     read_cp0_bad_vaddr(bad_addr);
+//     kprintf("Badr addr @ %lx\n", bad_addr);
+//     
+//     //panic("Should not get a secondary TLB miss!\n");
+//     kprintf("Should not get a secondary TLB miss!\n");
+    
     tlb_refill_handler(context->context);
+    
     return 0;
 }
 
@@ -190,19 +182,14 @@ void cache_error_handler(struct context *context)
 void general_except_handler(struct context *context)
 {
 //     kprintf("General exception!\n");
-    int pit_takeover = 0;
-    int pit_pending_irq = 0;
     
     // Check who is causing this interrupt
-    u32 cause = 0;
-    __asm__ __volatile__ (
-        "mfc0   %0, $13;"
-        : "=r" (cause)
-        :
-    );
+    struct cp0_cause cause;
+    read_cp0_cause(cause.value);
     
-    u32 except_code = (cause >> 2) & 0x1F;
-//     kprintf("\tException code: %d\n", except_code);
+//     kprintf("TI: %d, IP: %d\n", cause.ti, cause.ip);
+    
+    u32 except_code = cause.exc_code;
     
     // Figure out the internal vector number
     u32 vector = INT_VECTOR_DUMMY;
@@ -212,42 +199,19 @@ void general_except_handler(struct context *context)
         vector = except_code;
     } else {
         // Interrupt
-        if (cause & 0x40000000) {
+        if (cause.ti) {
             // We do a polling for 8259 to see if there's any pending interrupts
             vector = INT_VECTOR_LOCAL_TIMER;
         }
         
         // External
-        else if (cause & 0x400) {
+        else if (cause.ip2) {
             vector = INT_VECTOR_EXTERNAL_BASE + i8259_read_irq();
         }
     }
     
-//     // Tell the user
-//     if (vector != INT_VECTOR_LOCAL_TIMER && vector != INT_VECTOR_SYSCALL && vector != 36) {
-//         // Get the bad address
-//         u32 bad_addr = 0;
-//         __asm__ __volatile__ (
-//             "mfc0   %0, $8;"
-//             : "=r" (bad_addr)
-//             :
-//         );
-//         
-//         // Get the bad pc
-//         u32 epc = 0;
-//         __asm__ __volatile__ (
-//             "mfc0   %0, $14;"
-//             : "=r" (epc)
-//             :
-//         );
-//         u32 bad_instr_prev = *(u32 *)(epc - 4);
-//         u32 bad_instr = *(u32 *)epc;
-//         u32 bad_instr_next = *(u32 *)(epc + 4);
-//         
-//         // Delay slot
-//         u32 delay_slot = cause >> 31;
-//         
-//         kprintf("General exception: %d, Vector: %d, Bad PC @ %x (%x %x %x), SP @ %x, Addr @ %x, Delay slot: %x\n", except_code, vector, epc, bad_instr_prev, bad_instr, bad_instr_next, context->sp, bad_addr, delay_slot);
+//     if (vector != 0x8) {
+//         kprintf("Vector: %x\n", vector);
 //     }
     
     // Get the actual interrupt handler
@@ -275,7 +239,7 @@ void general_except_handler(struct context *context)
     
     // See if there's any pending IRQs when we don't need to switch to kernel
     if (handle_type == INT_HANDLE_TYPE_TAKEOVER) {
-//         kprintf("Check pending IRQs\n");
+        //kprintf("Check pending IRQs\n");
         int pending_irq = i8259_read_irq();
         if (pending_irq != -1) {
             vector = INT_VECTOR_EXTERNAL_BASE + pending_irq;
@@ -297,42 +261,30 @@ void general_except_handler(struct context *context)
         }
     }
     
-//     kprintf("PC: %x, SP: %x\n", context->pc, context->sp);
-    
-//     kprintf("call kernel: %d\n", call_kernel);
+    //kprintf("PC: %x, SP: %x\n", context->pc, context->sp);
+    //kprintf("call kernel: %d\n", call_kernel);
     
     // Note that if kernel is invoked, it will call sched, then never goes back to this int handler
     handle_type = INT_HANDLE_TYPE_KERNEL;
     if (handle_type == INT_HANDLE_TYPE_KERNEL) {
         // First of all duplicate context since it may get overwritten by a TLB miss handler
-//         kprintf("duplicate context\n");
         struct context dup_ctxt = *context;
         kdispatch.context = &dup_ctxt;
-//         kprintf("duplicate context done, dispatch: %x, num: %x\n", kdispatch.dispatch_type, kdispatch.syscall.num);
+        //kprintf("duplicate context done, dispatch: %x, num: %x\n", kdispatch.dispatch_type, kdispatch.syscall.num);
         
         // Set ASID to 0 - kernel
-        __asm__ __volatile__ (
-            "mtc0   $0, $10;"   // hi
-            :
-            :
-        );
+        struct cp0_entry_hi hi;
+        read_cp0_entry_hi(hi.value);
+        hi.asid = 0;
+        write_cp0_entry_hi(hi.value);
         
-        // Clear EXL bit - so we'll get primariy correct TLB misses
-        u32 sr = 0;
-        __asm__ __volatile__ (
-            "mfc0   %0, $12;"   // hi
-            : "=r" (sr)
-            :
-        );
-        sr &= ~0x18;    // kernel mode
-        sr &= ~0x2;
-        __asm__ __volatile__ (
-            "mtc0   %0, $12;"   // hi
-            :
-            : "r" (sr)
-        );
-        
-//         kprintf("here\n");
+        // Clear EXL bit - so we'll get primariy TLB misses
+        struct cp0_status status;
+        read_cp0_status(status.value);
+        status.exl = 0;
+        status.erl = 0;
+        status.ksu = 0;
+        write_cp0_status(status.value);
         
         // Tell HAL we are in kernel
         *get_per_cpu(int, cur_in_user_mode) = 0;
@@ -350,50 +302,54 @@ void general_except_handler(struct context *context)
  */
 void init_int()
 {
-    ulong ebase = 0;
-    ulong sr = 0;
+#if (ARCH_WIDTH == 64)
+    struct cp0_ebase64 ebase64;
+#endif
+    
+    struct cp0_ebase ebase;
+    ulong ebase_val = 0;
+    struct cp0_status sr;
+    
     struct saved_context *ctxt = get_per_cpu(struct saved_context, cur_context);
-    ulong tlb_refill_stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_TLB_REFILL_STACK_TOP_OFFSET;
-    ulong kernel_stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_STACK_TOP_OFFSET;
+    ulong tlb_refill_stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_TLB_REFILL_STACK_TOP_OFFSET - sizeof(struct saved_context);
+    ulong kernel_stack_top = get_my_cpu_area_start_vaddr() + PER_CPU_STACK_TOP_OFFSET - sizeof(struct saved_context);
     
-//     u32 srsctl = 0;
+    // Set BEV to 1 to enable custom exception handler location
+    read_cp0_status(sr.value);
+    sr.bev = 0;
+    write_cp0_status(sr.value);
     
-    // Obtain old SR
-    __asm__ __volatile__ (
-        "mfc0   %0, $12;"
-        : "=r" (sr)
-        :
-    );
+#if (ARCH_WIDTH == 64)
+    // Read EBase
+    read_cp0_ebase(ebase.value);
     
-    // Set BEV to 0 -> use our custom handlers
-    sr &= ~0x400000;
+    // Test write gate
+    ebase.write_gate = 1;
+    write_cp0_ebase(ebase.value);
+    read_cp0_ebase(ebase.value);
     
-    // Update SR
-    __asm__ __volatile__ (
-        "mtc0   %0, $12;"
-        "nop;"
-        :
-        : "r" (sr)
-    );
-    
-    // Obtain the old ebase
-    __asm__ __volatile__ (
-        "mfc0   %0, $15, 1;"
-        : "=r" (ebase)
-        :
-    );
-    
-    // Clear and set exception base
-    ebase &= ~0x3FFFF000;
-    ebase |= ((ulong)&int_entry_wrapper_begin) & ~0xFFF;
-    
-    // Update ebase
-    __asm__ __volatile__ (
-        "mtc0   %0, $15, 1;"
-        "nop;"
-        :
-        : "r" (ebase)
-    );
+    if (ebase.write_gate) {
+        read_cp0_ebase64(ebase64.value);
+        ebase64.base = ((ulong)&int_entry_wrapper_begin) >> 12;
+        write_cp0_ebase64(ebase64.value);
+        read_cp0_ebase64(ebase_val);
+    } else {
+        ulong wrapper_addr = (ulong)&int_entry_wrapper_begin;
+        assert((wrapper_addr >> 32) == 0xfffffffful);
+        
+        ebase.base = ((u32)wrapper_addr) >> 12;
+        write_cp0_ebase(ebase.value);
+        
+        read_cp0_ebase(ebase_val);
+        ebase_val |= 0xfffffffful << 32;
+    }
+#else
+    // Set EBase
+    read_cp0_ebase(ebase.value);
+    ebase.base = ((ulong)&int_entry_wrapper_begin) >> 12;
+    write_cp0_ebase(ebase.value);
+    read_cp0_ebase(ebase_val);
+#endif
     
     // Initialize context poniter for the assembly handler entry
     int page_count = 8 * num_cpus / PAGE_SIZE;
@@ -411,54 +367,13 @@ void init_int()
     struct saved_context **my_ctxt_ptr = (struct saved_context **)(ulong)(per_cpu_context_ptr_base + 8 * get_cpu_id());
     *my_ctxt_ptr = ctxt;
     
-    kprintf("Per cpu ctxt ptr base @ %p, my ctxt ptr @ %p, ctxt @ %p\n",
-            (void *)per_cpu_context_ptr_base, my_ctxt_ptr, ctxt);
-    
-//     // Set
-//     // k0 - base addr of current context
-//     // ctxt->kernel_sp - kernel stack top
-//     __asm__ __volatile__ (
-//         "move $26, %0;"   // k0 ($26) <= ctxt
-//         :
-//         : "r" ((u32)ctxt)
-//     );
-    
-    
+    kprintf("Per cpu ctxt ptr base @ %p, my ctxt ptr @ %p, ctxt @ %p, TLB stack @ %lx, kernel stack @ %lx\n",
+            (void *)per_cpu_context_ptr_base, my_ctxt_ptr, ctxt, tlb_refill_stack_top, kernel_stack_top);
     
     // Register TLB refill general handlers
     set_int_vector(INT_VECTOR_TLB_MISS_READ, int_handler_tlb_refill);
     set_int_vector(INT_VECTOR_TLB_MISS_WRITE, int_handler_tlb_refill);
     
-//     // QEMU doesn't support shadow register... so we can't use it right now
-//     // Obtain old SRSCtl
-//     __asm__ __volatile__ (
-//         "mfc0   %0, $12, 2;"
-//         : "=r" (srsctl)
-//         :
-//     );
-//     
-//     // Make sure there is at least 1 set of shadow registers
-//     if (!(srsctl & 0x3C000000)) {
-//         panic("Need at least 1 set of shadow registers");
-//     }
-//     
-//     // Set ESS to 1
-//     srsctl &= ~0xF000;
-//     srsctl |= 0x1000;
-//     
-//     // Update SRSCtl
-//     __asm__ __volatile__ (
-//         "mtc0   %0, $12, 2;"
-//         "nop;"
-//         :
-//         : "r" (srsctl)
-//     );
-    
-    kprintf("Interrupt base updated, Wrapper @ %p, SR: %p, EBase: %p, Context @ %p, Kernel stack @ %p\n",
-            (void *)(ulong)&int_entry_wrapper_begin, (void *)sr, (void *)ebase, ctxt, (void *)kernel_stack_top);
-    
-//     // Test our handler
-//     volatile u32 *bad_addr = (u32 *)0x4096;
-//     u32 bad_value = *bad_addr;
-//     kprintf("Bad value: %x\n", bad_value);
+    kprintf("Interrupt base updated, Wrapper @ %p, SR: %x, EBase: %lx, Context @ %p, Kernel stack @ %lx\n",
+            &int_entry_wrapper_begin, sr.value, ebase_val, ctxt, kernel_stack_top);
 }

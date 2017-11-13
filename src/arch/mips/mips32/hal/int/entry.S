@@ -24,6 +24,9 @@ int_entry_wrapper_begin:
  * TLB refill
  */
 tlb_refill_entry:
+    xor k0, k0, k0
+    xor k1, k1, k1
+    
     // Figure out addr of the context struct of this cpu
     la k0, per_cpu_context_ptr_base
     lw k0, 0(k0)
@@ -60,6 +63,9 @@ tlb_refill_entry:
  */
 .align 8
 cache_error_entry:
+    xor k0, k0, k0
+    xor k1, k1, k1
+    
     // Figure out addr of the context struct of this cpu
     la k0, per_cpu_context_ptr_base
     lw k0, 0(k0)
@@ -87,6 +93,9 @@ cache_error_entry:
  */
 .align 7
 general_except_entry:
+    xor k0, k0, k0
+    xor k1, k1, k1
+    
     // Figure out addr of the context struct of this cpu
     la k0, per_cpu_context_ptr_base
     lw k0, 0(k0)
@@ -123,7 +132,7 @@ general_except_entry:
  */
 save_registers_except_ra:
     //sw zero, 0(k0)
-    //sw AT, 4(k0)
+    sw AT, 4(k0)
     sw v0, 8(k0)
     sw v1, 12(k0)
     sw a0, 16(k0)

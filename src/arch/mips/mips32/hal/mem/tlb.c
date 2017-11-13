@@ -22,21 +22,6 @@ static int tlb_entry_count = 0;
 dec_per_cpu(struct page_frame *, cur_page_dir);
 
 
-#define write_tlb_indexed()                     \
-    __asm__ __volatile__ (                      \
-        "ehb;"      /* clear hazard barrier */  \
-        "tlbwi;"    /* write indexed entry */   \
-        : :                                     \
-    )
-
-#define tlb_probe()         \
-    __asm__ __volatile__ (  \
-        "ehb;"              \
-        "tlbp;"             \
-        : :                 \
-    )
-
-
 void write_tlb_entry(int index, int nonstd, ulong hi, ulong pm, ulong lo0, ulong lo1)
 {
     u32 entry_index = index;
@@ -60,7 +45,7 @@ void write_tlb_entry(int index, int nonstd, ulong hi, ulong pm, ulong lo0, ulong
     write_cp0_index(entry_index);
     
     // Apply the changes
-    write_tlb_indexed();
+    do_tlb_write();
 }
 
 void map_tlb_entry_user(int index, ulong asid, ulong vaddr,
@@ -153,7 +138,7 @@ static no_opt int probe_tlb_index(ulong asid, ulong vaddr)
     
     // Write HI and do a TLB probe
     write_cp0_entry_hi(hi.value);
-    tlb_probe();
+    do_tlb_probe();
     read_cp0_index(index);
     
     // Restore old HI
@@ -162,7 +147,7 @@ static no_opt int probe_tlb_index(ulong asid, ulong vaddr)
     return index;
 }
 
-static int tlb_probe_kernel(ulong addr)
+static int probe_tlb_kernel(ulong addr)
 {
     return probe_tlb_index(0, addr);
 }
@@ -189,7 +174,6 @@ int tlb_refill_kernel(ulong addr)
     return 0;
 }
 
-// Note that we are running this function in kernel mode, ASID is already set to be 0
 int tlb_refill_user(ulong addr)
 {
 //     kprintf("User TLB refill @ %x ... ", addr);
@@ -206,11 +190,11 @@ int tlb_refill_user(ulong addr)
     ulong page_addr = (ulong)page;
     
     // First map page dir
-    int dir_index = tlb_probe_kernel(page_addr);
+    int dir_index = probe_tlb_kernel(page_addr);
     if (dir_index < 0) {
         map_tlb_entry_kernel(page_addr);
     }
-    dir_index = tlb_probe_kernel(page_addr);
+    dir_index = probe_tlb_kernel(page_addr);
     assert(dir_index >= 0);
     
     // Access the page dir
@@ -219,11 +203,11 @@ int tlb_refill_user(ulong addr)
     page = (struct page_frame *)page_addr;
     
     // Next map page table
-    int table_index = tlb_probe_kernel(page_addr);
+    int table_index = probe_tlb_kernel(page_addr);
     if (table_index < 0) {
         map_tlb_entry_kernel(page_addr);
     }
-    dir_index = tlb_probe_kernel(page_addr);
+    dir_index = probe_tlb_kernel(page_addr);
     assert(dir_index >= 0);
     
     // Access the page table

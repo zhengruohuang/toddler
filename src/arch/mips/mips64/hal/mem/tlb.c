@@ -24,21 +24,6 @@ static int has_big_page = 0;
 dec_per_cpu(struct page_frame *, cur_page_dir);
 
 
-#define write_tlb_indexed()                     \
-    __asm__ __volatile__ (                      \
-        "ehb;"      /* clear hazard barrier */  \
-        "tlbwi;"    /* write indexed entry */   \
-        : :                                     \
-    )
-
-#define tlb_probe()         \
-    __asm__ __volatile__ (  \
-        "ehb;"              \
-        "tlbp;"             \
-        : :                 \
-    )
-
-
 static void write_tlb_entry(int index, int nonstd, ulong hi, ulong pm, ulong lo0, ulong lo1)
 {
     u32 entry_index = index;
@@ -72,7 +57,7 @@ static void write_tlb_entry(int index, int nonstd, ulong hi, ulong pm, ulong lo0
     }
     
     // Apply the changes
-    write_tlb_indexed();
+    do_tlb_write();
 }
 
 static no_opt int probe_tlb_index(ulong asid, ulong vaddr)
@@ -90,7 +75,7 @@ static no_opt int probe_tlb_index(ulong asid, ulong vaddr)
     
     // Write HI and do a TLB probe
     write_cp0_entry_hi(hi.value);
-    tlb_probe();
+    do_tlb_probe();
     read_cp0_index(index);
     
     // Restore old HI

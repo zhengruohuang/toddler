@@ -120,11 +120,6 @@ void no_opt switch_context(ulong sched_id, struct context *context,
     
     // Load context addr to k0
     write_k0((ulong)per_cpu_context);
-//     __asm__ __volatile__ (
-//         "move   $26, %[ctx];"
-//         :
-//         : [ctx] "r" ((ulong)per_cpu_context)
-//     );
     
     // Set sched id
     *get_per_cpu(ulong, cur_running_sched_id) = sched_id;
@@ -132,11 +127,6 @@ void no_opt switch_context(ulong sched_id, struct context *context,
     
     // Make k1 ponit to TCB
     write_k1(tcb);
-//     __asm__ __volatile__ (
-//         "move   $27, %0;"
-//         :
-//         : "r" (tcb)
-//     );
     
     *(ulong *)get_per_cpu(ulong, cur_tcb_vaddr) = tcb;
     

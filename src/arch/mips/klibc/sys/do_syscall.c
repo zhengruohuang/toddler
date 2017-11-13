@@ -9,11 +9,6 @@ no_opt struct thread_control_block *get_tcb()
     
     // k1 - $27
     read_k1(k1);
-//     __asm__ __volatile__ (
-//         "move   %0, $27;"
-//         : "=r" (k1)
-//         :
-//     );
     
     return (struct thread_control_block *)k1;
 }

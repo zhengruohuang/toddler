@@ -30,7 +30,7 @@ tlb_refill_entry:
     // Figure out addr of the context struct of this cpu
     dla k0, per_cpu_context_ptr_base
     ld k0, 0(k0)
-    dmfc0 k1, $15, 1    // Read EBbase - CP0 reg 15 sel 1
+    mfc0 k1, $15, 1     // Read EBbase - CP0 reg 15 sel 1
     andi k1, k1, 0x3ff  // Get CPU ID
     sll k1, k1, 3       // Calculate offset - cpu_id * 8
     addu k0, k0, k1     // Addr of context - base + offset
@@ -70,7 +70,7 @@ tlb_refill_entry64:
     // Figure out addr of the context struct of this cpu
     dla k0, per_cpu_context_ptr_base
     ld k0, 0(k0)
-    dmfc0 k1, $15, 1    // Read EBbase - CP0 reg 15 sel 1
+    mfc0 k1, $15, 1     // Read EBbase - CP0 reg 15 sel 1
     andi k1, k1, 0x3ff  // Get CPU ID
     sll k1, k1, 3       // Calculate offset - cpu_id * 8
     addu k0, k0, k1     // Addr of context - base + offset
@@ -111,7 +111,7 @@ cache_error_entry:
     // Figure out addr of the context struct of this cpu
     dla k0, per_cpu_context_ptr_base
     ld k0, 0(k0)
-    dmfc0 k1, $15, 1     // Read EBbase - CP0 reg 15 sel 1
+    mfc0 k1, $15, 1     // Read EBbase - CP0 reg 15 sel 1
     andi k1, k1, 0x3ff  // Get CPU ID
     sll k1, k1, 3       // Calculate offset - cpu_id * 8
     addu k0, k0, k1     // Addr of context - base + offset
@@ -141,7 +141,7 @@ general_except_entry:
     // Figure out addr of the context struct of this cpu
     dla k0, per_cpu_context_ptr_base
     ld k0, 0(k0)
-    dmfc0 k1, $15, 1     // Read EBbase - CP0 reg 15 sel 1
+    mfc0 k1, $15, 1     // Read EBbase - CP0 reg 15 sel 1
     andi k1, k1, 0x3ff  // Get CPU ID
     sll k1, k1, 3       // Calculate offset - cpu_id * 8
     addu k0, k0, k1     // Addr of context - base + offset

@@ -586,19 +586,19 @@ struct cp0_config5 {
 /*
  * TLB read and probe
  */
-// #define write_tlb_indexed()                     \
-//     __asm__ __volatile__ (                      \
-//         "ehb;"      /* clear hazard barrier */  \
-//         "tlbwi;"    /* write indexed entry */   \
-//         : :                                     \
-//     )
-// 
-// #define tlb_probe()         \
-//     __asm__ __volatile__ (  \
-//         "ehb;"              \
-//         "tlbp;"             \
-//         : :                 \
-//     )
+#define do_tlb_write()                          \
+    __asm__ __volatile__ (                      \
+        "ehb;"      /* clear hazard barrier */  \
+        "tlbwi;"    /* write indexed entry */   \
+        : :                                     \
+    )
+
+#define do_tlb_probe()      \
+    __asm__ __volatile__ (  \
+        "ehb;"              \
+        "tlbp;"             \
+        : :                 \
+    )
 
 
 #endif

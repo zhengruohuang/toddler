@@ -26,6 +26,8 @@ void kernel_dispatch(struct kernel_dispatch_info *kdi)
     *user_mode = 0;
     
     // FIXME
+    // Maybe interrupts should not be enabled here at all?
+    // We are still using the context-saving stack!
     // Enable interrupts
 //     enable_local_int();
     

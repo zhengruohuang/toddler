@@ -24,6 +24,17 @@ int strcmp(char *s1, char *s2)
     return result;
 }
 
+int strlen(const char *s)
+{
+    int len = 1;
+    
+    while (*s++) {
+        len++;
+    }
+    
+    return len;
+}
+
 
 /*
  * Memory

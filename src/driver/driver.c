@@ -2,6 +2,7 @@
 #include "klibc/include/stdio.h"
 #include "klibc/include/sys.h"
 #include "driver/include/devfs.h"
+#include "driver/include/bus/sysbus.h"
 #include "driver/include/keyboard.h"
 #include "driver/include/console.h"
 
@@ -11,7 +12,11 @@ int main(int argc, char *argv[])
     kprintf("Toddler driver process started!\n");
     
     // Initialize DevFS
+    init_dev_tree();
     init_devfs();
+    
+    // Initialize the system bus
+    init_sysbus();
     
     // Initialize logical drivers
     init_console();

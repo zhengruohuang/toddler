@@ -1,9 +1,19 @@
+#include "common/include/data.h"
+#include "loader/include/print.h"
+
+
+/*
+ * Arch-specific draw char
+ */
+extern void draw_char(char ch);
+
+
 /*
  * Print
  */
 static void print_char(char ch)
 {
-    arch_print_char(ch);
+    draw_char(ch);
 }
 
 static void print_string(char *str)
@@ -16,28 +26,45 @@ static void print_string(char *str)
     }
 }
 
-// static void uint_div(u32 a, u32 b, u32 *qout, u32 *rout)
-// {
-//     u32 q = 0, r = a;
-//     
-//     while (r >= b) {
-//         q++;
-//         r -= b;
-//     }
-//     
-//     if (qout) {
-//         *qout = q;
-//     }
-//     
-//     if (rout) {
-//         *rout = r;
-//     }
-// }
+static void div_u32(u32 a, u32 b, u32 *qout, u32 *rout)
+{
+    u32 q = 0, r = a;
+    
+    while (r >= b) {
+        q++;
+        r -= b;
+    }
+    
+    if (qout) {
+        *qout = q;
+    }
+    
+    if (rout) {
+        *rout = r;
+    }
+}
+
+static void div_u64(u64 a, u64 b, u64 *qout, u64 *rout)
+{
+    u64 q = 0, r = a;
+    
+    while (r >= b) {
+        q++;
+        r -= b;
+    }
+    
+    if (qout) {
+        *qout = q;
+    }
+    
+    if (rout) {
+        *rout = r;
+    }
+}
 
 static void print_num_u32(char fmt, u32 num)
 {
     int i;
-    u32 value;
     int started = 0;
     
     switch (fmt) {
@@ -53,7 +80,7 @@ static void print_num_u32(char fmt, u32 num)
             print_char('0');
         } else {
             for (i = 0; i < sizeof(u32) * 8; i += 4) {
-                value = (num << i) >> 28;
+                u32 value = (num << i) >> 28;
                 if (value) {
                     started = 1;
                 }
@@ -106,6 +133,7 @@ static void print_num_u32(char fmt, u32 num)
 static void print_num_u64(char fmt, u64 num)
 {
     int i;
+    int started = 0;
     
     switch (fmt) {
     case 'b':
@@ -134,7 +162,7 @@ static void print_num_u64(char fmt, u64 num)
         }
         break;
     case 'd':
-        if (num & (0x1ull << 64)) {
+        if (num & (0x1ull << 63)) {
             print_char('-');
             num = ~num + 0x1ull;
         }
@@ -154,8 +182,7 @@ static void print_num_u64(char fmt, u64 num)
             u64 q, r;
             
             for (i = 0; i < digits; i++) {
-                // FIXME
-                //div_u64(num, dividers[i], &q, &r);
+                div_u64(num, dividers[i], &q, &r);
                 
                 if (q) {
                     started = 1;

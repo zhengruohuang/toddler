@@ -128,7 +128,7 @@ host_os = platform.platform()
 #-------------------------------------------------------------------------------
 
 target_arch = 'ia32'
-target_platform = 'generic'
+target_mach = 'generic'
 target_suffix = ''
 
 # Parse the target cmd
@@ -137,11 +137,11 @@ for argv in sys.argv:
         parts = split(argv, '=')
         parts = split(parts[1], '-')
         target_arch = parts[0]
-        target_platform = parts[1]
+        target_mach = parts[1]
         if len(parts) >= 3:
             target_suffix = parts[2]
 
-target_name = target_arch + '_' + target_platform
+target_name = target_arch + '_' + target_mach
 if target_suffix != '':
     target_name += '_' + target_suffix
 
@@ -152,20 +152,21 @@ if target_suffix != '':
 # Path
 #-------------------------------------------------------------------------------
 
-def do_find_target_dirs(target, cur_path, dirs, dir_map):
+def do_find_target_dirs(target, cur_path, dirs, names, dir_map):
     subdirs = get_subdir(cur_path)
     if not subdirs:
         return False
     
     for d in subdirs:
         next_path = cur_path + d + '/'
-        dirs.insert(0, next_path)
+        dirs.append(next_path)
+        names.append(d)
         dir_map[d] = next_path
         
         if d == target:
             return True
         else:
-            found = do_find_target_dirs(target, next_path, dirs, dir_map)
+            found = do_find_target_dirs(target, next_path, dirs, names, dir_map)
             if found:
                 return True
             else:
@@ -176,25 +177,32 @@ def do_find_target_dirs(target, cur_path, dirs, dir_map):
 
 def find_target_dirs(target, start_path):
     dirs = []
+    names = []
     dir_map = {}
-    do_find_target_dirs(target, start_path, dirs, dir_map)
-    return dirs, dir_map
+    do_find_target_dirs(target, start_path, dirs, names, dir_map)
+    return dirs, names, dir_map
+
 
 # Top level
 cur_dir         = os.path.dirname(os.path.realpath(__file__))
 project_dir     = cur_dir + '/'
 
 # Source
-src_dir                 = project_dir + 'src/'
-arch_dirs, arch_dir_map = find_target_dirs(target_arch, src_dir + 'arch/')
-mach_dirs, mach_dir_map = find_target_dirs(target_platform, src_dir + 'mach/')
+src_dir         = project_dir + 'src/'
+arch_dirs, arch_names, arch_dir_map \
+                = find_target_dirs(target_arch, src_dir + 'arch/')
+mach_dirs, mach_names, mach_dir_map \
+                = find_target_dirs(target_mach, src_dir + 'mach/')
 
-# See if the target arch exists
+# See if the target arch and mach exists
 if not len(arch_dirs):
-    panic('Unable to find tmake files for target: {0}'.format(target_arch))
+    panic('Unable to find target architecture: {0}'.format(target_arch))
 
-arch_dir        = arch_dirs[0]
-platform_dir    = arch_dir + target_platform + '/'
+if not len(mach_dirs):
+    panic('Unable to find target machine: {0}'.format(target_mach))
+
+arch_dir        = arch_dirs[-1]
+mach_dir        = mach_dirs[-1]
 
 # Target
 target_all_dir  = project_dir + 'target/'
@@ -491,7 +499,8 @@ def get_dep_list(src_name, obj_name, ext_dep, tools):
 def get_obj_name(src_name):
     obj_name = ''
     
-    replace_paths = [ src_dir, tools_src_dir ] + arch_dirs + mach_dirs
+    replace_paths = [ src_dir, tools_src_dir ] + arch_dirs + mach_dirs + \
+        [ d + m + '/' for d in arch_dirs for m in mach_names ]
     replace_paths = sorted(replace_paths, key=len, reverse=True)
     
     found = False
@@ -838,6 +847,36 @@ def compile_files(files, ext_dep = None, tools = None):
 # Public interface for other supportive operations
 #-------------------------------------------------------------------------------
 
+def get_all_arch_and_mach_files(subdir, ext):
+    files = []
+    
+    # Standalone arch files
+    for d in arch_dirs:
+        files += get_all_files(d + subdir, ext)
+        
+        # Arch-specific machine files
+        for m in mach_names:
+            files += get_all_files(d + m + '/' + subdir, ext)
+    
+    # Standalone machine files
+    for d in mach_dirs:
+        files += get_all_files(d + subdir, ext)
+    
+    return files
+
+def find_deepest_arch_file(match):
+    for d in arch_dirs:
+        for m in mach_names:
+            fname = d + m + '/' + match
+            if os.path.exists(fname):
+                return fname
+        
+        fname = d + match
+        if os.path.exists(fname):
+            return fname
+    
+    return None
+
 def gen_bin(src_name, target_name, tools):
     if not need_build(src_name, target_name):
         return
@@ -989,7 +1028,7 @@ for argv in sys.argv:
         target_arch = parts[1]
     elif 'machine' in argv:
         parts = split(argv, '=')
-        target_platform = parts[1]
+        target_mach = parts[1]
     elif 'suffix' in argv:
         parts = split(argv, '=')
         target_suffix = parts[1]
@@ -997,7 +1036,7 @@ for argv in sys.argv:
 # Host and target info
 print_info('host', 'Architecture: {0}, OS: {1}'.format(host_arch, host_os))
 print_info('target', 'Architecture: {0}, machine: {1}, suffix: {2}'.format(
-    target_arch, target_platform,
+    target_arch, target_mach,
     'N/A' if target_suffix == '' else target_suffix)
 )
 

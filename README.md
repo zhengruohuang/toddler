@@ -38,10 +38,10 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 Tmake supports *actions*. To specify actions, use ```./tmake <actions>```.  
 For example, ```./tmake clean build``` will clean up existing object and binary files, then start a new build.
 
-### Specifying a Specific Target
+### Specifying Targets
 
 Tmake supports multiple targets. In order to build for a specific target, use ```./tmake target=<arch-machine>[-suffix]```.  
-Note that *arch* and *machine* fields are required by tmake, and *suffix* is optional. However, the actual implemention of a specific target may require the user supply a value for *suffix*.
+Note that *arch* and *machine* fields are required by Tmake, and *suffix* is optional. However, the actual implemention of a specific target may require the user supply a value for *suffix*.
 
 For example, ```./tmake target=ia32-pc-bios``` will build Toddler for a BIOS-based IA32 PC system; ```./tmake target=armv7-rpi2``` will build Toddler for Raspberry Pi 2.
 

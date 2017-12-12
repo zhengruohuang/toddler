@@ -1,0 +1,151 @@
+#!/usr/bin/python
+
+
+global_tools = {
+    '.c' : {
+        'exec'  : 'sparc64-linux-gnu-gcc',
+        'flags' : '-c -g -nostdlib -fno-builtin -nostartfiles -fno-stack-protector -fno-pic -mcpu=v8 -m32 -O2',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-MM __src__ > __dep__',
+    },
+
+    '.S' : {
+        'exec'  : 'sparc64-linux-gnu-gcc',
+        'flags' : '-c -nostdlib -fno-builtin -nostartfiles -fno-stack-protector -fno-pic -mcpu=v8 -m32 -O0',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-M __src__ > __dep__',
+    },
+    
+    'ld' : {
+        'exec'  : 'sparc64-linux-gnu-ld',
+        'flags' : '-s --no-undefined -mcpu=v8 -melf32_sparc',
+        'script': '-T __script__',
+        'obj'   : '-o __target__ __obj__',
+    },
+    
+    'ar' : {
+        'exec'  : 'sparc64-linux-gnu-ar',
+        'flags' : 'crD',
+        'obj'   : '__target__ __obj__',
+    },
+    
+    'strip' : {
+        'exec'  : 'sparc64-linux-gnu-strip',
+        'flags' : '',
+        'obj'   : '__target__',
+    },
+    
+    'gen_bin' : {
+        'exec'  : 'sparc64-linux-gnu-objcopy',
+        'flags' : '-O binary',
+        'obj'   : '__src__ __target__',
+    },
+}
+
+def build_loader():
+    print_info('loader', 'Building loader')
+    
+    loader_files = get_all_files(src_dir + 'loader/', [ '.c' ])
+    loader_files += get_all_arch_and_mach_files('loader/', [ '.S', '.c' ])
+    loader_ld = find_deepest_arch_file('loader/loader.ld')
+    
+    assert(len(loader_files))
+    assert(loader_ld)
+    
+    build_files(
+        files = loader_files,
+        target_name = bin_dir + 'tdlrldr.elf',
+        ext_dep = [ loader_ld ],
+        ext_flags = { 'ld/script' : loader_ld },
+    )
+    
+def build_hal():
+    print_info('hal', 'Building HAL')
+    
+    hal_files = get_all_files(src_dir + 'hal/', [ '.c' ])
+    hal_files += get_all_arch_and_mach_files('hal/', [ '.S', '.c' ])
+    hal_ld = find_deepest_arch_file('hal/hal.ld')
+    
+    assert(len(hal_files))
+    assert(hal_ld)
+    
+    build_files(
+        hal_files,
+        bin_dir + 'tdlrhal.bin',
+        ext_dep = [ hal_ld ],
+        ext_flags = { 'ld/script' : hal_ld },
+    )
+    
+def build_arch():
+    # Build loader
+    if 'build_loader' in arch_funcs:
+        arch_funcs['build_loader']()
+    
+    # Build HAL
+    if 'build_hal' in arch_funcs:
+        arch_funcs['build_hal']()
+    
+def build_disk():
+    print_info('floppyimg', 'Building floppy image')
+
+def qemu8():
+    print_info('emulator', 'Starting SMP QEMU')
+    
+    loader_name = bin_dir + 'tdlrldr.elf'
+    coreimg_name = loader_name
+    
+    # Compose the cmd
+    cmd = 'qemu-system-sparc' + \
+        ' -m 128 -M SS-10' + \
+        ' -nographic -serial mon:stdio' + \
+        ' -smp cores=4' + \
+        ' -kernel ' + loader_name + \
+        ' -initrd ' + coreimg_name
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def qemu():
+    print_info('emulator', 'Starting QEMU')
+    
+    loader_name = bin_dir + 'tdlrldr.elf'
+    #coreimg_name = bin_dir + 'tdlrldr.elf'
+    coreimg_name = bin_dir + 'tdlrcore.img'
+    
+    # Compose the cmd
+    cmd = 'qemu-system-sparc' + \
+        ' -m 128' + \
+        ' -nographic -serial mon:stdio' + \
+        ' -kernel ' + loader_name + \
+        ' -initrd ' + coreimg_name
+    
+    #' -nographic -serial mon:stdio' + \
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def start_emu():
+    emu_type = 'qemu'
+    if emu_type in arch_funcs:
+        arch_funcs[emu_type]()
+    
+
+# Setup global tools
+arch_tools['global_tools'] = global_tools
+
+# Setup callback functions
+arch_funcs['build_loader'] = build_loader
+arch_funcs['build_hal'] = build_hal
+
+arch_funcs['build_arch'] = build_arch
+arch_funcs['build_disk'] = build_disk
+
+arch_funcs['qemu'] = qemu
+arch_funcs['qemu8'] = qemu8
+arch_funcs['start_emu'] = start_emu

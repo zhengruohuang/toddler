@@ -7,20 +7,20 @@
 Toddler was originally a half-hobby and half-research project developed during summer and winter breaks when I was in college.
 The original Toddler was designed for small-scale multi-processor IA32 systems.
 The most outstanding feature was the practical lock-free techniques used for syncronization.
-However, it was overly designed for both hardware-related and regular OS components.
+However, the old Toddler was overly designed for both hardware-related and regular OS components.
 Then it finally became impractical to continue the development.
 The final Toddler was able to create and run user processes and threads, as well as accepting keyboard inputs,
 though a shell was not implemented or ported.
 
 The new Toddler, on the other hand, is designed with a completely different goal.
 Alghough it is still a hobby project, it aims to provide a fully usable microkernel and a complete OS environment for multiple architectures and platforms.
-The lock-free idea has been abandoned since it created too much unnecessary complexity.
+The lock-free idea is abandoned since it created too much unnecessary complexity.
 
 ## Building Toddler
 
-Toddler has its own building system written in Python: tmake. tmake takes care of file dependancies and provides a series of primitives such as _compile_, _link_, _build_, and etc. tmake scripts (also in Python) then use the primitives to construct the building procedure.
+Toddler has its own building system written in Python: _Tmake_. Tmake takes care of file dependancies and provides a series of primitives such as _compile_, _link_, _build_, and etc. Tmake scripts (also in Python) then use the primitives to construct the building procedure.
 
-Python is required for all targets; GCC and Binutils are required for each different target; NASM is required for x86 (ia32 and amd64) targets. Note that your toolchain may also require the corresponding libc6 development package. QEMU is also required if you want to test Toddler.
+Python is required for all targets; GCC and Binutils are required for both host and target architectures; NASM is required for x86 (ia32 and amd64) targets. The default emulator (QEMU/SIMH/Ski) is also required if you want to test Toddler.
 
 Once all the packages are installed, fetch the source code.
 ```bash
@@ -35,12 +35,12 @@ The two steps can be combined by typing ```./tmake all```, or simply ```./tmake`
 
 ### Specifying Actions
 
-tmake supports *actions*. To specify actions, use ```./tmake <actions>```.  
+Tmake supports *actions*. To specify actions, use ```./tmake <actions>```.  
 For example, ```./tmake clean build``` will clean up existing object and binary files, then start a new build.
 
-### Specifying a Different Target
+### Specifying a Specific Target
 
-tmake supports multiple targets. In order to build for a specific target, use ```./tmake target=<arch-machine>[-suffix]```.  
+Tmake supports multiple targets. In order to build for a specific target, use ```./tmake target=<arch-machine>[-suffix]```.  
 Note that *arch* and *machine* fields are required by tmake, and *suffix* is optional. However, the actual implemention of a specific target may require the user supply a value for *suffix*.
 
 For example, ```./tmake target=ia32-pc-bios``` will build Toddler for a BIOS-based IA32 PC system; ```./tmake target=armv7-rpi2``` will build Toddler for Raspberry Pi 2.
@@ -53,7 +53,7 @@ Invalid combinations of fields may fail to compile or even damage your device.
 ### Hardware Abstraction Layer
 
 The hardware abstraction layer (HAL) provides an abstraction of each processor model and basic IO devices. It exports a series of functions and constants to kernel.
-HAL is mapped to the highest 4MB of all processes except the kernel process.
+HAL is mapped to the highest 4MB of all processes including the kernel process.
 
 ### The kernel Process
 
@@ -76,21 +76,21 @@ The driver process provides several essential device drivers, including keyboard
 |Architecture|Width|Target Machine|Status|
 |---|---|---|---|
 |ia32|32|NetBurst-based PC|Current|
-|armv7|32|QEMU Integrator/CP, QEMU RealView MP, Raspberry Pi 2|Active|
+|armv7|32|Raspberry Pi 2|Active|
 |mips32|32|QEMU Malta, Creator CI20|Current|
 |ppc32|32|QEMU Mac99, Mac Mini G4, PowerMac G4|Active|
-|sparcv8|32|QEMU Sum4m SPARCstation 5, QEMU Leon 3|Initial|
+|sparcv8|32|QEMU Sum4m SPARCstation 10, QEMU Leon 3|Active|
 |riscv32|32|QEMU Spike|Planned|
 |m68k|32|QEMU MCF5206EVB|Planned|
 |sh4|32|QEMU Shix Card|Planned|
-|vax|32|VAX Emulator|Planned|
+|vax|32|SIMH VAX|Planned|
 |or1k|32|QEMU OR1K|Planned|
 |amd64|64|Skylake-based PC|Planned|
 |armv8|64|Raspberry Pi 3|Planned|
 |ppc64|64|QEMU Mac99, PowerMac G5|Planned|
 |mips64|64|QEMU Malta, Loongson 3 Desktop|Current|
 |sparcv9|64|QEMU Sun4u|Planned|
-|alpha|64|QEMU DP264/Clipper|Planned|
+|alpha|64|QEMU DP264/Clipper|Initial|
 |riscv64|64|QEMU Spike|Planned|
 |s390|64|QEMU S390|Planned|
 |ia64|64|Ski|Planned|

@@ -171,6 +171,7 @@ def do_find_target_dirs(target, cur_path, dirs, names, dir_map):
                 return True
             else:
                 dirs.remove(next_path)
+                names.remove(d)
                 del dir_map[d]
     
     return False

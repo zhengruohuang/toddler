@@ -122,7 +122,7 @@ static void black_screen()
 }
 
 
-void fb_draw_char(char ch)
+void fb_draw_char_ppc(char ch)
 {
     if (!fb) {
         return;

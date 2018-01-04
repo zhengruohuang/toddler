@@ -10,7 +10,7 @@ static int is_graphic = 0;
 void draw_char(char ch)
 {
     if (is_graphic) {
-        fb_draw_char(ch);
+        fb_draw_char_ppc(ch);
     } else {
         escc_draw_char(ch);
     }

@@ -18,7 +18,7 @@ extern void init_ofw();
 /*
  * Frame buffer
  */
-extern void fb_draw_char(char ch);
+extern void fb_draw_char_ppc(char ch);
 extern void init_fb();
 
 

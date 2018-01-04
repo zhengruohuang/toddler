@@ -1,7 +1,4 @@
 #include "common/include/data.h"
-#include "hal/include/lib.h"
-#include "hal/include/percpu.h"
-#include "hal/include/int.h"
 #include "hal/include/debug.h"
 #include "hal/include/vector.h"
 

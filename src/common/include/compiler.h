@@ -23,6 +23,14 @@
 #endif
 #endif
 
+#ifndef weak_func
+#define weak_func __attribute__((weak))
+#endif
+
+#ifndef weak_alias
+#define weak_alias(f) __attribute__((weak, alias(#f)))
+#endif
+
 #ifndef entry_func
 #define entry_func  __attribute__((section("entry")))
 #endif

@@ -19,7 +19,11 @@ _start:
     //mrc p15, 0, r0, c0, c0, 5     // R0 = Multiprocessor Affinity Register (MPIDR)
     //ands r0, #3                   // R0 = CPU ID (Bits 0..1)
     //bne core_wait                 // IF (CPU ID != 0) Branch To Infinite Loop (Core ID 1..3)
-
+    
+    //mov r0, #0x40000000
+    //b .
+    //nop
+    
     // Enable FP
     mrc p15, 0, r1, c1, c0, #2      // r1 = Access Control Register
     orr r1, r1, #(0xf << 20)        // enable full access for p10,11
@@ -38,7 +42,7 @@ _start:
     
     // Go to C!
     ldr sp, =0x8000         // Setup the stack
-    b main                  // Call main
+    b loader_entry          // Call loader_entry
  
     // Should never reach here
 halt:

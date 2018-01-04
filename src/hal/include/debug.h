@@ -4,7 +4,12 @@
 
 #include "common/include/data.h"
 #include "hal/include/print.h"
-#include "hal/include/lib.h"
+
+
+/*
+ * Arch-specific halt
+ */
+extern void halt();
 
 
 /*

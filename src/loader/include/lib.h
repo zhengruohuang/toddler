@@ -39,6 +39,7 @@ extern void div_uint(uint dividend, uint divisor, uint *quo_out, uint *rem_out);
 /*
  * String
  */
+extern int strcmp2(char *src, char *dest, int len);
 extern int strcmp(char *s1, char *s2);
 extern int strlen(const char *s);
 

@@ -2,11 +2,20 @@
 #include "common/include/memory.h"
 #include "common/include/memlayout.h"
 #include "hal/include/print.h"
-#include "hal/include/lib.h"
-#include "hal/include/cpu.h"
+#include "hal/include/debug.h"
+#include "hal/include/bit.h"
 
 
 static int cur_per_cpu_offset = 0;
+
+
+/*
+ * Arch-specific get_my_cpu_area_start_vaddr
+ */
+weak_func ulong get_my_cpu_area_start_vaddr()
+{
+    return 0;
+}
 
 
 static void init_per_cpu_var(int *offset, size_t size)

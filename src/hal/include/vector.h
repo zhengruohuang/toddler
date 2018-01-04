@@ -1,5 +1,5 @@
-#ifndef __HAL_INCLUDE_INT__
-#define __HAL_INCLUDE_INT__
+#ifndef __HAL_INCLUDE_VECTOR__
+#define __HAL_INCLUDE_VECTOR__
 
 
 #include "common/include/data.h"

@@ -4,6 +4,21 @@
 /*
  * String
  */
+int strcmp2(char *src, char *dest, int len)
+{
+    int i;
+    
+    for (i = 0; i < len; i++) {
+        if (src[i] != dest[i]) {
+            return 1;
+        } else if (src[i] == 0) {
+            return 0;
+        }
+    }
+    
+    return 0;
+}
+
 int strcmp(char *s1, char *s2)
 {
     int result = 0;

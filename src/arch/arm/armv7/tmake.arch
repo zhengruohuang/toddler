@@ -1,0 +1,182 @@
+#!/usr/bin/python
+
+
+global_tools = { \
+    '.c' : { \
+        'exec'  : 'arm-none-eabi-gcc',
+        'flags' : '-c -g -nostdlib -fno-builtin -fno-stack-protector -O2 -mfpu=neon-vfpv4 -mfloat-abi=hard -march=armv7-a -mtune=cortex-a7',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-MM __src__ > __dep__',
+    },
+
+    '.S' : { \
+        'exec'  : 'arm-none-eabi-gcc',
+        'flags' : '-c -nostdlib -fno-builtin -fno-stack-protector -O2 -mfpu=neon-vfpv4 -mfloat-abi=hard -march=armv7-a -mtune=cortex-a7',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-M __src__ > __dep__',
+    },
+    
+    # GCC must be used as the linker in order to correctly link libgcc
+    # The command used for compiling must be passed to the linker
+    'ld' : { \
+        'exec'  : 'arm-none-eabi-gcc',
+        'flags' : '-s -nostdlib -fno-builtin -fno-stack-protector -O2 -mfpu=neon-vfpv4 -mfloat-abi=hard -march=armv7-a -mtune=cortex-a7',
+        'script': '-T __script__',
+        'obj'   : '-o __target__ __obj__ -lgcc',
+    },
+    
+    'ar' : { \
+        'exec'  : 'arm-none-eabi-ar',
+        'flags' : 'crD',
+        'obj'   : '__target__ __obj__',
+    },
+    
+    'strip' : { \
+        'exec'  : 'arm-none-eabi-strip',
+        'flags' : '',
+        'obj'   : '__target__',
+    },
+    
+    'gen_bin' : { \
+        'exec'  : 'arm-none-eabi-objcopy',
+        'flags' : '-O binary',
+        'obj'   : '__src__ __target__',
+    },
+}
+
+
+def build_loader():
+    print_info('loader', 'Building loader')
+    
+    loader_files = get_all_files(src_dir + 'loader/', [ '.c' ])
+    loader_files += get_all_arch_and_mach_files('loader/', [ '.S', '.c' ])
+    loader_ld = find_deepest_arch_file('loader/loader.ld')
+    
+    assert(len(loader_files))
+    assert(loader_ld)
+    
+    build_files(
+        files = loader_files,
+        target_name = obj_dir + 'loader/loader.elf',
+        ext_dep = [ loader_ld ],
+        ext_flags = { 'ld/script' : loader_ld },
+    )
+    
+    gen_bin(
+        src_name = obj_dir + 'loader/loader.elf',
+        target_name = bin_dir + 'tdlrldr.bin',
+        tools = arch_tools['global_tools']
+    )
+    
+def build_hal():
+    print_info('hal', 'Building HAL')
+    
+    hal_files = get_all_files(src_dir + 'hal/', [ '.c' ])
+    hal_files += get_all_arch_and_mach_files('hal/', [ '.S', '.c' ])
+    hal_ld = find_deepest_arch_file('hal/hal.ld')
+    
+    assert(len(hal_files))
+    assert(hal_ld)
+    
+    build_files(
+        hal_files,
+        bin_dir + 'tdlrhal.bin',
+        ext_dep = [ hal_ld ],
+        ext_flags = { 'ld/script' : hal_ld },
+    )
+        
+def build_arch():
+    # Build loader
+    if 'build_loader' in arch_funcs:
+        arch_funcs['build_loader']()
+    
+    # Build HAL
+    if 'build_hal' in arch_funcs:
+        arch_funcs['build_hal']()
+    
+def build_disk():
+    print_info('kernelimg', 'Building unfied kernel image = loader + coreimg')
+    
+    cat_files(
+        files = [ bin_dir + 'tdlrldr.bin', bin_dir + 'tdlrcore.img' ],
+        target_name = bin_dir + 'toddler.img'
+    )
+    
+def qemu8():
+    print_info('emulator', 'Starting SMP QEMU')
+    
+    loader_name = bin_dir + 'tdlrldr.bin'
+    coreimg_name = bin_dir + 'tdlrcore.img'
+    coreimg_name = loader_name
+    
+    # Compose the cmd
+    cmd = 'qemu-system-arm' + \
+        ' -cpu cortex-a7 -M raspi2 -m 512' + \
+        ' -nographic -serial mon:stdio' + \
+        ' -smp cores=4' + \
+        ' -kernel ' + loader_name + \
+        ' -initrd ' + coreimg_name
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def qemu_serial():
+    print_info('emulator', 'Starting QEMU')
+    
+    loader_name = bin_dir + 'tdlrldr.bin'
+    coreimg_name = bin_dir + 'tdlrcore.img'
+    coreimg_name = loader_name
+    
+    # Compose the cmd
+    cmd = 'qemu-system-arm' + \
+        ' -cpu cortex-a7 -M raspi2 -m 512' + \
+        ' -nographic -serial mon:stdio' + \
+        ' -kernel ' + loader_name + \
+        ' -initrd ' + coreimg_name
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def qemu():
+    print_info('emulator', 'Starting QEMU')
+    
+    #loader_name = bin_dir + 'tdlrldr.bin'
+    #coreimg_name = bin_dir + 'tdlrcore.img'
+    #coreimg_name = loader_name
+    kernel_name = bin_dir + 'toddler.img'
+    
+    # Compose the cmd
+    cmd = 'qemu-system-arm' + \
+        ' -cpu cortex-a7 -M raspi2 -m 512' + \
+        ' -kernel ' + kernel_name
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def start_emu():
+    emu_type = 'qemu'
+    if emu_type in arch_funcs:
+        arch_funcs[emu_type]()
+    
+
+# Setup global tools
+arch_tools['global_tools'] = global_tools
+
+# Setup callback functions
+arch_funcs['build_arch'] = build_arch
+arch_funcs['build_disk'] = build_disk
+
+arch_funcs['build_loader'] = build_loader
+arch_funcs['build_hal'] = build_hal
+
+arch_funcs['qemu'] = qemu
+arch_funcs['qemu8'] = qemu8
+arch_funcs['qemu_serial'] = qemu_serial
+arch_funcs['start_emu'] = start_emu

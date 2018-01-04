@@ -923,7 +923,7 @@ def strip_target(target_name, tools):
     # Update record
     record_update(target_name)
 
-def cat_files(files, target_name, tools):
+def cat_files(files, target_name, tools = None):
     recat = False
     for f in files:
         if need_build(f, target_name):
@@ -954,7 +954,7 @@ def cat_files(files, target_name, tools):
     # Update record
     record_update(target_name)
         
-def remove_files(files, tools):
+def remove_files(files, tools = None):
     rel_files = []
     for f in files:
         rel_files.append(relative_path(f))

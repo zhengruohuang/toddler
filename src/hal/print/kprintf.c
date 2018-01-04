@@ -1,5 +1,4 @@
 #include "common/include/data.h"
-#include "hal/include/periph.h"
 #include "hal/include/print.h"
 
 
@@ -26,6 +25,15 @@ typedef __builtin_va_list   va_list;
 #define __FT_CHAR       8
 #define __FT_STR        9
 #define __FT_PERCENT    10
+
+
+/*
+ * Arch-specific draw char
+ */
+weak_func void draw_char(char c)
+{
+    // Just a place holder
+}
 
 
 /*

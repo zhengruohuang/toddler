@@ -85,6 +85,8 @@ static int user_indirect_map(
 //     disable_local_int();
 //     panic("User indirect map!\n");
     
+    int i;
+    
     // L1 table
     volatile struct l1table *l1tab = (struct l1table *)PFN_TO_ADDR(page_dir_pfn);
     int index = GET_L1PTE_INDEX(vaddr);
@@ -124,7 +126,12 @@ static int user_indirect_map(
             l2tab->value_l2pte[index].user_write = write;
             l2tab->value_l2pte[index].user_access = 1;    // User read
             l2tab->value_l2pte[index].cache_inner = cacheable ? 0x3 : 0;  // Cacheable, write-back, write-allocate
-        } else  if (
+            
+            // Make dups
+            for (i = 0; i < 3; i++) {
+                l2tab->value_l2pte_dup[i][index].value = l2tab->value_l2pte[index].value;
+            }
+        } else if (
             l2tab->value_l2pte[index].no_exec != !exec ||
             l2tab->value_l2pte[index].user_write != write ||
             l2tab->value_l2pte[index].cache_inner != (cacheable ? 0x3 : 0)
@@ -137,11 +144,15 @@ static int user_indirect_map(
     else {
         l2tab->value_l2pte[index].present = 1;
         l2tab->value_l2pte[index].pfn = ADDR_TO_PFN(paddr);
-        
         l2tab->value_l2pte[index].no_exec = !exec;
         l2tab->value_l2pte[index].user_write = write;
         l2tab->value_l2pte[index].user_access = 1;    // User read
         l2tab->value_l2pte[index].cache_inner = cacheable ? 0x3 : 0;  // Cacheable, write-back, write-allocate
+        
+        // Make dups
+        for (i = 0; i < 3; i++) {
+            l2tab->value_l2pte_dup[i][index].value = l2tab->value_l2pte[index].value;
+        }
     }
     
     return 1;
@@ -256,8 +267,8 @@ void kernel_map_per_cpu_area(ulong vstart, ulong pstart, ulong size)
         int l1index = GET_L1PTE_INDEX(vaddr);
         volatile struct l2table *l2tab = NULL;
         
-        kprintf("Mapping vaddr @ %lx, paddr @ %lx\n", vaddr, paddr);
-        kprintf("L1table index: %d\n", l1index);
+//         kprintf("Mapping vaddr @ %lx, paddr @ %lx\n", vaddr, paddr);
+//         kprintf("L1table index: %d\n", l1index);
         
         if (kernel_l1table->value_l1pte[l1index].present) {
             assert(!kernel_l1table->value_l1section[l1index].present);
@@ -268,14 +279,14 @@ void kernel_map_per_cpu_area(ulong vstart, ulong pstart, ulong size)
             assert(kernel_l1table->value_l1section[l1index].present);
             ulong sec_pfn = ADDR_TO_PFN(SFN_TO_ADDR((ulong)kernel_l1table->value_l1section[l1index].sfn));
             
-            kprintf("sec seq @ %x\n", kernel_l1table->value_l1section[l1index].sfn);
-            kprintf("sec pfn @ %lx\n", sec_pfn);
+//             kprintf("sec seq @ %x\n", kernel_l1table->value_l1section[l1index].sfn);
+//             kprintf("sec pfn @ %lx\n", sec_pfn);
             
             // Allocate a new page for the L2 table
             ulong l2tab_pfn = palloc(1);
             l2tab = (struct l2table *)(PFN_TO_ADDR(l2tab_pfn));
             
-            kprintf("L2Tab allocated @ PFN %lx, @ %p\n", l2tab_pfn, l2tab);
+//             kprintf("L2Tab allocated @ PFN %lx, @ %p\n", l2tab_pfn, l2tab);
             
             kernel_l1table->value_l1pte[l1index].value = 0;
             kernel_l1table->value_l1pte[l1index].present = 1;
@@ -302,7 +313,7 @@ void kernel_map_per_cpu_area(ulong vstart, ulong pstart, ulong size)
         assert(l2tab->value_l2pte[l2index].present);
         l2tab->value_l2pte[l2index].pfn = (u32)ADDR_TO_PFN(paddr);
         
-        kprintf("L2 table @ %p, index: %d, pfn: %x\n", l2tab, l2index, l2tab->value_l2pte[l2index].pfn);
+//         kprintf("L2 table @ %p, index: %d, pfn: %x\n", l2tab, l2index, l2tab->value_l2pte[l2index].pfn);
         
         for (j = 0; j < 3; j++) {
             l2tab->value_l2pte_dup[j][l2index].value = l2tab->value_l2pte[l2index].value;

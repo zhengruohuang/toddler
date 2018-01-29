@@ -231,6 +231,9 @@ void init_int()
 {
     // Copy the vectors to the target address
     void *vec_target = (void *)0xffff0000ul;
+    kprintf("Copy interrupt vectors @ %p -> %p\n",
+        int_entry_wrapper_begin, vec_target);
+    
     memcpy(vec_target, int_entry_wrapper_begin,
            (ulong)int_entry_wrapper_end - (ulong)int_entry_wrapper_begin);
     
@@ -243,6 +246,12 @@ void init_int()
     // Register the dummy handler
     set_int_vector(INT_VECTOR_DUMMY, int_handler_dummy);
     
+    u32 cpu_num = 0;
+    read_cpu_id(cpu_num);
+    cpu_num &= 0x3;
+    kprintf("My CPU id: %d\n", cpu_num);
+    
+    // Set up stack top for context saving
     ulong stack_top = get_my_cpu_area_start_vaddr() +
         PER_CPU_STACK_TOP_OFFSET - sizeof(struct context);
     
@@ -253,6 +262,7 @@ void init_int()
     ulong *cur_stack_top = get_per_cpu(ulong, cur_interrupt_stack_top);
     *cur_stack_top = stack_top;
     
+    // Set up stack for each different mode
     kprintf("Set exception handler stack @ %lx\n", stack_top);
     
     ulong saved_sp, saved_lr;
@@ -293,4 +303,64 @@ void init_int()
     );
     
 //     while (1);
+}
+
+void init_int_mp()
+{
+    // Enable high addr vector
+    struct sys_ctrl_reg sys_ctrl;
+    read_sys_ctrl(sys_ctrl.value);
+    sys_ctrl.high_except_vec = 1;
+    write_sys_ctrl(sys_ctrl.value);
+    
+    // Set up stack top for context saving
+    ulong stack_top = get_my_cpu_area_start_vaddr() +
+        PER_CPU_STACK_TOP_OFFSET - sizeof(struct context);
+    
+    // Align the stack to 16B
+    stack_top = ALIGN_DOWN(stack_top, 16);
+    
+    // Remember the stack top
+    ulong *cur_stack_top = get_per_cpu(ulong, cur_interrupt_stack_top);
+    *cur_stack_top = stack_top;
+    
+    // Set up stack for each different mode
+    kprintf("Set exception handler stack @ %lx\n", stack_top);
+    
+    ulong saved_sp, saved_lr;
+    __asm__ __volatile__ (
+        // Save current sp and lr
+        "mov %[saved_sp], sp;"
+        "mov %[saved_lr], lr;"
+        
+        // SVC
+        "cpsid aif, #0x13;"
+        "mov sp, %[stack];"
+        
+        // UNDEF
+        "cpsid aif, #0x1b;"
+        "mov sp, %[stack];"
+        
+        // ABT
+        "cpsid aif, #0x17;"
+        "mov sp, %[stack];"
+        
+        // IRQ
+        "cpsid aif, #0x12;"
+        "mov sp, %[stack];"
+        
+        // FIQ
+        "cpsid aif, #0x11;"
+        "mov sp, %[stack];"
+        
+        // Move to System mode
+        "cpsid aif, #0x1f;"
+        
+        // Restore saved sp and lr
+        "mov sp, %[saved_sp];"
+        "mov lr, %[saved_lr];"
+        
+        : [saved_sp] "=&r" (saved_sp), [saved_lr] "=&r" (saved_lr)
+        : [stack] "r" (stack_top)
+    );
 }

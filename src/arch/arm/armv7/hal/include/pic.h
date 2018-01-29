@@ -11,13 +11,15 @@
  */
 extern int is_generic_timer_asserted();
 extern void start_generic_timer();
-extern void init_generic_timer();
 
+extern void init_generic_timer();
+extern void init_generic_timer_mp();
 
 /*
  * Start working
  */
 extern void start_working();
+extern void start_working_mp();
+
 
 #endif
-

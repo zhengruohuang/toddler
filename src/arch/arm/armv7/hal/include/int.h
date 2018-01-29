@@ -14,6 +14,7 @@
 ext_per_cpu(ulong, cur_interrupt_stack_top);
 
 extern void init_int();
+extern void init_int_mp();
 
 extern int get_local_int_state();
 extern void set_local_int_state(int enabled);

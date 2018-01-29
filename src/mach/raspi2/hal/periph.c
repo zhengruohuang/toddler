@@ -563,5 +563,10 @@ int periph_get_fiq_vector()
  */
 int periph_detect_num_cpus()
 {
-    return 1;
+    return 4;
+}
+
+void periph_waekup_cpu(int cpu_id, ulong entry)
+{
+    *(volatile u32 *)(ulong)(0x4000008C + 0x10 * cpu_id) = (u32)entry;
 }

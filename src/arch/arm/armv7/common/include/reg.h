@@ -197,7 +197,6 @@ struct sys_ctrl_reg {
 #define inv_tlb_asid(asid)  __mcr(0, p15, 0, 2, c8, c7)
 
 
-
 /*
  * Processor status
  */
@@ -246,5 +245,12 @@ struct proc_status_reg {
 
 #define read_generic_timer_phys_compare(hi, lo)  __mrrc(lo, hi, p15, 2, c14)
 #define write_generic_timer_phys_compare(hi, lo) __mcrr(lo, hi, p15, 2, c14)
+
+
+/*
+ * MP CPU ID
+ */
+#define read_cpu_id(value)     __mrc(value, p15, 0, 5, c0, c0)
+
 
 #endif

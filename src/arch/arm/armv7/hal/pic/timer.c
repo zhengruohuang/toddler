@@ -79,3 +79,15 @@ void init_generic_timer()
     
     kprintf("Timer freq @ %uHz, step set @ %u\n", freq, timer_step);
 }
+
+void init_generic_timer_mp()
+{
+    u32 freq = 0;
+    read_generic_timer_freq(freq);
+    assert(freq);
+    
+    // 10 times per second
+    timer_step = freq / 100;
+    
+    kprintf("Timer freq @ %uHz, step set @ %u\n", freq, timer_step);
+}

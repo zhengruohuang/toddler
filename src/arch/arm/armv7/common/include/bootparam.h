@@ -21,12 +21,12 @@ struct boot_parameters {
     u32 boot_dev_info;
     
     // Loader
-    ulong loader_func_type_ptr;
+    ulong loader_func_type;
     
     // AP starter
-    ulong ap_entry_addr;
-    ulong ap_l1table_ptr;
-    ulong ap_stack_top_ptr;
+    ulong ap_entry;
+    ulong ap_page_dir;
+    ulong ap_stack_top;
     
     // Paging
     ulong hal_page_dir;

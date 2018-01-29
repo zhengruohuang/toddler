@@ -7,7 +7,7 @@
 
 
 .global _start
-.global full_membar
+.global _start_ap
 
 
 // r15 -> should begin execution at 0x8000.
@@ -47,5 +47,14 @@ _start:
     b loader_entry          // Call loader_entry
  
     // Should never reach here
-halt:
-    b halt
+    b .
+    nop
+
+
+_start_ap:
+    ldr sp, =0x8000         // Setup the stack
+    b loader_ap_entry       // Call loader_entry
+    
+    // Should never reach here
+    b .
+    nop

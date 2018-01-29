@@ -171,8 +171,9 @@ static void parse_atags(ulong base)
 #define HAL_AREA_SIZE           0x100000
 #define USEABLE_AREA_BASE_PADDR 0x200000
 
+extern void _start_ap();
 
-static struct boot_parameters boot_param;
+struct boot_parameters boot_param;
 
 static void build_bootparam()
 {
@@ -183,12 +184,12 @@ static void build_bootparam()
     boot_param.boot_dev_info = 0;
     
     // Loader func
-    boot_param.loader_func_type_ptr = 0;
+    boot_param.loader_func_type = 0;
     
     // AP starter
-    boot_param.ap_entry_addr = 0;
-    boot_param.ap_l1table_ptr = 0;
-    boot_param.ap_stack_top_ptr = 0;
+    boot_param.ap_entry = (ulong)_start_ap;
+    boot_param.ap_page_dir = HAL_AREA_BASE_PADDR + HAL_L1TABLE_OFFSET;
+    boot_param.ap_stack_top = 0;
     
     // HAL & kernel
     boot_param.hal_start_flag = 0;
@@ -374,12 +375,30 @@ static void (*hal_entry)();
 
 static void jump_to_hal()
 {
+    lprintf("Starting HAL ... @ %p\n", boot_param.hal_entry_addr);
     
-    void (*hal_entry)();
-    hal_entry = (void *)boot_param.hal_entry_addr;
+    __asm__ __volatile__ (
+        // Move to System mode
+        "cpsid aif, #0x1f;"
+        
+        // Set up stack top
+        "mov sp, %[stack];"
+        
+        // Pass the argument
+        "mov r0, %[bp];"
+        
+        // Call C
+        "mov pc, %[hal];"
+        :
+        : [stack] "r" (HAL_STACK_TOP_VADDR), [bp] "r" (&boot_param), [hal] "r" (boot_param.hal_entry_addr)
+        : "sp", "r0", "memory"
+    );
     
-    lprintf("Starting HAL ... @ %p\n", hal_entry);
-    hal_entry(&boot_param);
+//     void (*hal_entry)();
+//     hal_entry = (void *)boot_param.hal_entry_addr;
+//     
+//     lprintf("Starting HAL ... @ %p\n", hal_entry);
+//     hal_entry(&boot_param);
 }
 
 

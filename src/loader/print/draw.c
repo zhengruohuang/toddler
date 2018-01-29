@@ -21,6 +21,9 @@ void init_framebuffer_draw(void *f, int w, int h, int d, int p)
     height = h;
     depth = d;
     pitch = p;
+    
+    chars_per_row = width / FONT_WIDTH;
+    chars_per_col = height / FONT_HEIGHT;
 }
 
 static void draw_char(char ch, int line, int col)

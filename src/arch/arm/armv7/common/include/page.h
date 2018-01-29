@@ -42,13 +42,20 @@
  */
 
 struct l1pte {
-    u32     present         : 1;
-    u32     reserved1       : 2;
-    u32     non_secure      : 1;
-    u32     reserved2       : 1;
-    u32     domain          : 4;
-    u32     reserved3       : 1;
-    u32     pfn             : 20;
+    union {
+        u32         value;
+        
+        struct {
+            u32     present         : 1;
+            u32     reserved1       : 2;
+            u32     non_secure      : 1;
+            u32     reserved2       : 1;
+            u32     domain          : 4;
+            u32     reserved3       : 1;
+            u32     pfn_ext         : 2;
+            u32     pfn             : 20;
+        };
+    };
 } packedstruct;
 
 struct l1section {
@@ -59,7 +66,7 @@ struct l1section {
             u32     reserved1       : 1;
             u32     present         : 1;
             u32     cache_inner     : 2;    // c, b
-            u32     non_exec        : 1;
+            u32     no_exec         : 1;
             u32     domain          : 4;
             u32     reserved2       : 1;
             u32     user_write      : 1;    // AP[0]
@@ -71,23 +78,29 @@ struct l1section {
             u32     non_global      : 1;
             u32     reserved3       : 1;
             u32     non_secure      : 1;
-            u32     pfn             : 12;
+            u32     sfn             : 12;
         };
     };
 } packedstruct;
 
 struct l2pte {
-    u32     non_exec        : 1;
-    u32     present         : 1;
-    u32     cache_inner     : 2;    // c, b
-    u32     user_write      : 1;    // AP[0]
-    u32     user_access     : 1;    // AP[1]
-    u32     cache_outer     : 2;    // TEX[1:0]
-    u32     cacheable       : 1;    // TEX[2]
-    u32     read_only       : 1;    // AP[2]    for both user and kernel
-    u32     shareable       : 1;
-    u32     non_global      : 1;
-    u32     pfn             : 20;
+    union {
+        u32         value;
+        
+        struct {
+            u32     no_exec         : 1;
+            u32     present         : 1;
+            u32     cache_inner     : 2;    // c, b
+            u32     user_write      : 1;    // AP[0]
+            u32     user_access     : 1;    // AP[1]
+            u32     cache_outer     : 2;    // TEX[1:0]
+            u32     cacheable       : 1;    // TEX[2]
+            u32     read_only       : 1;    // AP[2]    for both user and kernel
+            u32     shareable       : 1;
+            u32     non_global      : 1;
+            u32     pfn             : 20;
+        };
+    };
 } packedstruct;
 
 struct page_frame {
@@ -114,7 +127,7 @@ struct l2table {
         
         struct {
             struct l2pte value_l2pte[256];
-            struct l2pte value_l2pte_dup1[3][256];
+            struct l2pte value_l2pte_dup[3][256];
         };
     };
 } packedstruct;

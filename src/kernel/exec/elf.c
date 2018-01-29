@@ -100,8 +100,8 @@ int load_elf_exec(
     // Get entry point
     entry = elf_header->elf_entry;
     
-    kprintf("\t\t\tEntry @ %p\n", (void *)entry);
-    kprintf("\t\t\tVaddr start @ %p, end @ %p\n", (void *)vaddr_start, (void *)vaddr_end);
+    kprintf("\t\tEntry @ %p\n", (void *)entry);
+    kprintf("\t\tVaddr start @ %p, end @ %p\n", (void *)vaddr_start, (void *)vaddr_end);
     
     // Done
     *entry_out = entry;

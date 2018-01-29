@@ -24,15 +24,6 @@ void init_bcm2835_timer(ulong bcm2835_base)
     timer = (void *)(bcm2835_base + BCM2835_TIMER_BASE);
 }
 
-void bcm2835_delay(int d)
-{
-    const u32 clo = timer->counter_lo;
-    u32 c = clo;
-    do {
-        c = timer->counter_lo;
-    } while (c && c - clo < (u32)d);
-}
-
 u64 bcm2835_timer_read()
 {
     u32 hi = timer->counter_hi;
@@ -43,4 +34,13 @@ u64 bcm2835_timer_read()
     
     u64 t = ((u64)hi << 32) | (u64)lo;
     return t;
+}
+
+void bcm2835_delay(u32 d)
+{
+    const u64 cmp = bcm2835_timer_read() + (u64)d;
+    u64 cur = 0;
+    do {
+        cur = bcm2835_timer_read();
+    } while (cur && cur < cmp);
 }

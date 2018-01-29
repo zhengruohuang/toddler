@@ -76,16 +76,25 @@ static void update_cursor()
             of_src = offset_src;
             of_dest = offset_dest;
             
-            for (x = 0; x < width; x++) {
-                for (d = 0; d < depth; d++) {
-                    fb[of_dest + d] = fb[of_src + d];
-                }
-                
-                of_src += depth;
-                of_dest += depth;
-            }
+            memcpy((void *)(fb + of_dest), (void *)(fb + of_src), pitch);
+            
+//             for (x = 0; x < width; x++) {
+//                 for (d = 0; d < depth; d++) {
+//                     fb[of_dest + d] = fb[of_src + d];
+//                 }
+//                 
+//                 of_src += depth;
+//                 of_dest += depth;
+//             }
             
             offset_src += pitch;
+            offset_dest += pitch;
+        }
+        
+        move_y = height - FONT_HEIGHT;
+        offset_dest = move_y * pitch;
+        for (y = move_y; y < height; y++) {
+            memzero((void *)fb + offset_dest, pitch);
             offset_dest += pitch;
         }
         
@@ -121,6 +130,9 @@ void init_fb_draw_char(void *f, int w, int h, int d, int p)
     height = h;
     depth = d;
     pitch = p;
+    
+    chars_per_row = width / FONT_WIDTH;
+    chars_per_col = height / FONT_HEIGHT;
     
     clear_screen();
 }

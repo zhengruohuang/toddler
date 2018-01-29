@@ -22,6 +22,7 @@ void kernel_dispatch(struct kernel_dispatch_info *kdi)
     hi.asid = 0;
     write_cp0_entry_hi(hi.value);
     
+    // FIXME: this has been set in the general int handler
     // Put us in kernel, so the TLB miss handler can correctly refill the entry
     *user_mode = 0;
     

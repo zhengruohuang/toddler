@@ -4,7 +4,7 @@
 global_tools = { \
     '.c' : { \
         'exec'  : 'arm-none-eabi-gcc',
-        'flags' : '-c -g -nostdlib -fno-builtin -fno-stack-protector -O2 -mfpu=neon-vfpv4 -mfloat-abi=hard -march=armv7-a -mtune=cortex-a7',
+        'flags' : '-c -g -nostdlib -fno-builtin -fno-stack-protector -O2 -mfloat-abi=soft -march=armv7-a -mtune=cortex-a7',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
@@ -13,7 +13,7 @@ global_tools = { \
 
     '.S' : { \
         'exec'  : 'arm-none-eabi-gcc',
-        'flags' : '-c -nostdlib -fno-builtin -fno-stack-protector -O2 -mfpu=neon-vfpv4 -mfloat-abi=hard -march=armv7-a -mtune=cortex-a7',
+        'flags' : '-c -nostdlib -fno-builtin -fno-stack-protector -O2 -mfloat-abi=soft -march=armv7-a -mtune=cortex-a7',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
@@ -24,7 +24,7 @@ global_tools = { \
     # The command used for compiling must be passed to the linker
     'ld' : { \
         'exec'  : 'arm-none-eabi-gcc',
-        'flags' : '-s -nostdlib -fno-builtin -fno-stack-protector -O2 -mfpu=neon-vfpv4 -mfloat-abi=hard -march=armv7-a -mtune=cortex-a7',
+        'flags' : '-s -nostdlib -fno-builtin -fno-stack-protector -O2 -mfloat-abi=soft -march=armv7-a -mtune=cortex-a7',
         'script': '-T __script__',
         'obj'   : '-o __target__ __obj__ -lgcc',
     },
@@ -125,19 +125,17 @@ def qemu8():
     code = exec_cmd(cmd)
     assert(code == 0)
     
-def qemu_serial():
+def qemu_gui():
     print_info('emulator', 'Starting QEMU')
     
-    loader_name = bin_dir + 'tdlrldr.bin'
-    coreimg_name = bin_dir + 'tdlrcore.img'
-    coreimg_name = loader_name
+    kernel_name = bin_dir + 'toddler.img'
     
     # Compose the cmd
     cmd = 'qemu-system-arm' + \
         ' -cpu cortex-a7 -M raspi2 -m 512' + \
-        ' -nographic -serial mon:stdio' + \
-        ' -kernel ' + loader_name + \
-        ' -initrd ' + coreimg_name
+        ' -serial mon:stdio' + \
+        ' -kernel ' + kernel_name + \
+        ' -append "screen=fb"'
     
     # Execute the cmd
     code = exec_cmd(cmd)
@@ -146,15 +144,14 @@ def qemu_serial():
 def qemu():
     print_info('emulator', 'Starting QEMU')
     
-    #loader_name = bin_dir + 'tdlrldr.bin'
-    #coreimg_name = bin_dir + 'tdlrcore.img'
-    #coreimg_name = loader_name
     kernel_name = bin_dir + 'toddler.img'
     
     # Compose the cmd
     cmd = 'qemu-system-arm' + \
-        ' -cpu cortex-a7 -M raspi2 -m 512' + \
-        ' -kernel ' + kernel_name
+        ' -cpu cortex-a7 -M raspi2 -m 512 -smp 4' + \
+        ' -nographic -serial mon:stdio' + \
+        ' -kernel ' + kernel_name + \
+        ' -append "screen=pl011"'
     
     # Execute the cmd
     code = exec_cmd(cmd)
@@ -178,5 +175,5 @@ arch_funcs['build_hal'] = build_hal
 
 arch_funcs['qemu'] = qemu
 arch_funcs['qemu8'] = qemu8
-arch_funcs['qemu_serial'] = qemu_serial
+arch_funcs['qemu_gui'] = qemu_gui
 arch_funcs['start_emu'] = start_emu

@@ -94,4 +94,4 @@ The driver process provides several essential device drivers, including keyboard
 |riscv64|64|QEMU Spike|Planned|
 |s390|64|QEMU S390|Planned|
 |ia64|64|Ski|Planned|
-|hppa|64|HP 9000 PA-RISC Workstation|No Plan|
+|hppa|64|HP 9000 PA-RISC Workstation|Planned|

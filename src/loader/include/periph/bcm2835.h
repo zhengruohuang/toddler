@@ -15,7 +15,7 @@ extern void init_bcm2835(ulong bcm2835_base, ulong bcm2835_end);
  * Timer
  */
 void init_bcm2835_timer(ulong bcm2835_base);
-extern void bcm2835_delay(int d);
+extern void bcm2835_delay(u32 d);
 extern u64 bcm2835_timer_read();
 
 
@@ -101,6 +101,7 @@ enum bcm2835_gpio_value {
 extern void init_bcm2835_gpio(ulong bcm2835_base);
 
 extern void bcm2835_gpio_enable_uart();
+extern void bcm2835_gpio_enable_pl011();
 
 extern void bcm2835_gpio_led_set();
 extern void bcm2835_gpio_led_clear();
@@ -120,6 +121,14 @@ extern void bcm2835_gpio_led_clear();
 extern void init_bcm2835_uart(ulong bcm2835_base);
 extern u8 bcm2835_uart_read();
 extern void bcm2835_uart_write(u8 ch);
+
+
+/*
+ * PL011
+ */
+extern void init_bcm2835_pl011(ulong bcm2835_base);
+extern u8 bcm2835_pl011_read();
+extern void bcm2835_pl011_write(u8 ch);
 
 
 /*

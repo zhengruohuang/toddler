@@ -84,7 +84,7 @@ static void init_kexp()
 /*
  * This is the entry point of Kernel
  */
-void asmlinkage _start(struct hal_exports *hal_exp)
+void asmlinkage entry_func _start(struct hal_exports *hal_exp)
 {
     hal = hal_exp;
     kprintf("We are in the kernel!\n");

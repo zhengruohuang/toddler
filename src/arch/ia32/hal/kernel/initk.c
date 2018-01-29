@@ -67,6 +67,7 @@ void init_kernel()
     hexp->get_paddr = wrap_get_paddr;
     
     // Address space
+    hexp->user_page_dir_page_count = 1;
     hexp->vaddr_space_end = USER_VADDR_SPACE_END;
     hexp->init_addr_space = wrap_init_addr_space;
     

@@ -28,6 +28,12 @@ struct boot_parameters {
     ulong ap_l1table_ptr;
     ulong ap_stack_top_ptr;
     
+    // Paging
+    ulong hal_page_dir;
+    
+    // Core image
+    ulong coreimg_load_addr;
+    
     // HAL
     u32 hal_start_flag;
     ulong hal_entry_addr;
@@ -49,6 +55,7 @@ struct boot_parameters {
     
     // Address where free memory starts
     ulong free_addr_start;
+    ulong free_pfn_start;
         
     // Memory size
     u64 mem_size;

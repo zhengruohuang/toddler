@@ -44,6 +44,7 @@ int get_next_mem_zone(struct kernel_mem_zone *cur)
     return 0;
 }
 
+// FIXME: u32 -> ulong
 void init_kmem_zone()
 {
     int i;

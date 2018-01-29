@@ -197,7 +197,7 @@ void bcm2835_gpio_set_pud(const int pin, const int pud)
 
 
 /*
- * UART
+ * UART & PL011
  */
 #define RPI_V2_GPIO_P1_08   14  // Version 2, Pin P1-08, defaults to ALT function 0 PL011_TXD
 #define RPI_V2_GPIO_P1_10   15  // Version 2, Pin P1-10, defaults to ALT function 0 PL011_RXD
@@ -208,6 +208,17 @@ void bcm2835_gpio_enable_uart()
     gpio_set_pin_func(BCM2835_GPIO_PIN14, BCM2835_FUNC_ALT5);
     gpio_set_pin_func(BCM2835_GPIO_PIN15, BCM2835_FUNC_ALT5);
     
+    // Disable pull-up/down
+    bcm2835_gpio_set_pud(RPI_V2_GPIO_P1_08, BCM2835_GPIO_PUD_OFF);
+    bcm2835_gpio_set_pud(RPI_V2_GPIO_P1_10, BCM2835_GPIO_PUD_OFF);
+}
+
+void bcm2835_gpio_enable_pl011()
+{
+    // Set the GPI0 pins to the Alt 0 function to enable PL011 access on them
+    gpio_set_pin_func(RPI_V2_GPIO_P1_08, BCM2835_FUNC_ALT0);    // PL011_TXD
+    gpio_set_pin_func(RPI_V2_GPIO_P1_10, BCM2835_FUNC_ALT0);    // PL011_RXD
+
     // Disable pull-up/down
     bcm2835_gpio_set_pud(RPI_V2_GPIO_P1_08, BCM2835_GPIO_PUD_OFF);
     bcm2835_gpio_set_pud(RPI_V2_GPIO_P1_10, BCM2835_GPIO_PUD_OFF);

@@ -80,6 +80,7 @@ struct hal_exports {
     //                           ulong *entry_out, ulong *vaddr_start_out, ulong *vaddr_end_out);
     
     // Address space
+    int user_page_dir_page_count;
     ulong vaddr_space_end;
     void (*init_addr_space)(ulong page_dir_pfn);
     

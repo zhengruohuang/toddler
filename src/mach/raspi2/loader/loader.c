@@ -4,9 +4,11 @@
 #include "common/include/coreimg.h"
 #include "common/include/bootparam.h"
 #include "common/include/page.h"
+#include "common/include/reg.h"
 #include "common/include/elf32.h"
 #include "loader/include/print.h"
 #include "loader/include/lib.h"
+#include "loader/include/cmdline.h"
 #include "loader/include/exec.h"
 #include "loader/include/periph/bcm2835.h"
 
@@ -54,10 +56,110 @@ void init_periph()
 
 void draw_char(char ch)
 {
+    bcm2835_pl011_write(ch);
     if (fb_enabled) {
         framebuffer_draw_char(ch);
-    } else {
-        bcm2835_uart_write(ch);
+    }
+}
+
+
+/*
+ * ATAGS
+ */
+struct atag {
+    u32 size;
+    u32 tag;
+    
+    union {
+        // 0x54410001
+        struct {
+            u32 flags;          // bit 0 = read-only
+            u32 pagesize;       // systems page size (usually 4k)
+            u32 rootdev;        // root device number
+        } core;
+        
+        // 0x54410002
+        struct {
+            u32 size;           // size of the area
+            u32 start;          // physical start address
+        } mem;
+        
+        // 0x54410002
+        char cmdline[1];        // minimum size
+        
+        // 0x54410003
+        struct {
+            u8 x, y;            // width and height
+            u16 page;
+            u8 mode, cols;
+            u16 ega_bx;
+            u8 lines, is_vga;
+            u16 points;
+        } video_test;
+        
+        // 0x54420004
+        struct {
+            u32 flags;          // bit 0 = load, bit 1 = prompt
+            u32 size;           // decompressed ramdisk size in _kilo_ bytes
+            u32 start;          // starting block of floppy-based RAM disk image
+        } ramdisk;
+        
+        // 0x54420005
+        struct {
+            u32 start;          // physical start address
+            u32 size;           // size of compressed ramdisk image in bytes
+        } initrd2;
+        
+        // 0x54420006
+        struct {
+            u32 low;
+            u32 high;
+        } serial;
+        
+        // 0x54410007
+        u32 rev;
+
+        // 0x54410008
+        struct {
+            u16 width, height, depth, line_len;
+            u32 base, size;
+            u8 red_size, red_pos, green_size, green_pos, blue_size, blue_pos;
+            u8 rsvd_size, rsvd_pos;
+        } fb;
+    };
+} packedstruct;
+
+static void parse_atags(ulong base)
+{
+    struct atag *cur = (struct atag *)base;
+    if (!base) {
+        return;
+    }
+    
+    lprintf("ARM boot tags: ATAGS @ %lx\n", base);
+    
+    while (cur && cur->tag) {
+        switch (cur->tag) {
+        case 0x54410001u:
+            lprintf("Core flags: %x, page size: %x, root dev: %x\n",
+                cur->core.flags, cur->core.pagesize, cur->core.rootdev
+            );
+            break;
+        case 0x54410002u:
+            lprintf("Physical memory start @ %x, size: %x\n",
+                cur->mem.start, cur->mem.size
+            );
+            break;
+        case 0x54410009u:
+            parse_cmdline(cur->cmdline, (cur->size - 2) * sizeof(u32));
+            break;
+        default:
+            break;
+        }
+        
+        // Move to next tag
+        base += cur->size * sizeof(u32);
+        cur = (struct atag *)base;
     }
 }
 
@@ -96,7 +198,9 @@ static void build_bootparam()
     boot_param.kernel_entry_addr = 0;
     
     // Memory map
+    boot_param.hal_page_dir = HAL_AREA_BASE_PADDR + HAL_L1TABLE_OFFSET;
     boot_param.free_addr_start = 2 * 1024 * 1024;
+    boot_param.free_pfn_start = ADDR_TO_PFN(boot_param.free_addr_start);
     boot_param.mem_size = (u64)0x40000000ull;
     
     // Memory zones
@@ -133,8 +237,9 @@ static void build_bootparam()
 
 static void build_bootparam_screen()
 {
+    if (fb_enabled && check_cmdline("screen", "fb")) {
     // Init draw char
-    if (bcm2835_is_framebuffer_avail()) {
+//     if (fb_enabled) {
         void *f;
         int w, h, d, p;
         bcm2835_get_framebuffer_info(&f, &w, &h, &d, &p);
@@ -145,6 +250,8 @@ static void build_bootparam_screen()
         boot_param.res_y = h;
         boot_param.bytes_per_pixel = d;
         boot_param.bytes_per_line = p;
+    } else {
+        boot_param.video_mode = VIDEO_UART;
     }
 }
 
@@ -153,7 +260,7 @@ static void build_bootparam_screen()
  * Paging
  */
 #define DRAM_PADDR_START    0x0
-#define DRAM_PADDR_END      0x40000000 //PERIPHERAL_BASE
+#define DRAM_PADDR_END      BCM2835_BASE //0x40000000
 
 static void setup_paging()
 {
@@ -169,7 +276,7 @@ static void setup_paging()
         page_table->value_l1section[i].present = 1;
         page_table->value_l1section[i].user_write = 1;      // AP[1:0] = 01
         page_table->value_l1section[i].user_access = 0;     // Kernel RW, user no access
-        page_table->value_l1section[i].pfn = i;
+        page_table->value_l1section[i].sfn = i;
     }
     
     // Enable cache for DRAM
@@ -180,39 +287,61 @@ static void setup_paging()
     
     // Map the highest 1MB (HAL + kernel) to physical 1MB to 2MB
     page_table->value_l1section[4095].cache_inner = 0x3;
-    page_table->value_l1section[4095].pfn = HAL_AREA_BASE_PADDR >> 20;
+    page_table->value_l1section[4095].sfn = HAL_AREA_BASE_PADDR >> 20;
     
     // Copy the page table address to cp15
-    __asm__ __volatile__ (
-        "mcr p15, 0, %0, c2, c0, 0;"
-        :
-        : "r" (page_table)
-        : "memory"
-    );
+    write_trans_tab_base0(page_table);
+//     __asm__ __volatile__ (
+//         "mcr p15, 0, %0, c2, c0, 0;"
+//         :
+//         : "r" (page_table)
+//         : "memory"
+//     );
     
-    // Set the access control to all-supervisor
-    __asm__ __volatile__ (
-        "mcr p15, 0, %0, c3, c0, 0"
-        :
-        : "r" (~0x0)
-    );
+    // Enable permission check for domain0
+    struct domain_access_ctrl_reg domain;
+    read_domain_access_ctrl(domain.value);
+    domain.domain0 = 0x1;
+    write_domain_access_ctrl(domain.value);
+    
+//     __asm__ __volatile__ (
+//         "mcr p15, 0, %0, c3, c0, 0"
+//         :
+//         : "r" (~0x0)
+//     );
 
     // Enable the MMU
-    __asm__ __volatile__ (
-        "mrc p15, 0, %0, c1, c0, 0"
-        : "=r" (reg)
-        :
-        : "cc"
-    );
+    struct sys_ctrl_reg sys_ctrl;
+    read_sys_ctrl(sys_ctrl.value);
+    sys_ctrl.mmu_enabled = 1;
+    write_sys_ctrl(sys_ctrl.value);
     
-    reg |= 0x1;
+//     __asm__ __volatile__ (
+//         "mrc p15, 0, %0, c1, c0, 0"
+//         : "=r" (reg)
+//         :
+//         : "cc"
+//     );
+//     
+//     reg |= 0x1;
+//     
+//     __asm__ __volatile__ (
+//         "mcr p15, 0, %0, c1, c0, 0"
+//         :
+//         : "r" (reg)
+//         : "cc"
+//     );
     
-    __asm__ __volatile__ (
-        "mcr p15, 0, %0, c1, c0, 0"
-        :
-        : "r" (reg)
-        : "cc"
-    );
+    // Caches
+    lprintf("Dcache: %d\n", sys_ctrl.dcache_enabled);
+//     while (1);
+    
+//     // Check current mode
+//     struct proc_status_reg status;
+//     read_current_proc_status(status.value);
+//     lprintf("Current mode: %x\n", status.mode);
+//     
+//     panic();
     
     lprintf("Done!\n");
 }
@@ -231,6 +360,8 @@ static void init_coreimg()
 {
     coreimg = (void *)&__end;
     
+    boot_param.coreimg_load_addr = (ulong)coreimg;
+    
     lprintf("BSS start @ %p, end @ %p, program end @ %p, coreimg @ %p\n",
             &__bss_start, &__bss_end, &__end, coreimg);
 }
@@ -243,6 +374,7 @@ static void (*hal_entry)();
 
 static void jump_to_hal()
 {
+    
     void (*hal_entry)();
     hal_entry = (void *)boot_param.hal_entry_addr;
     
@@ -261,6 +393,9 @@ void loader_entry(unsigned long r0, unsigned long r1, unsigned long atags)
     
     lprintf("Welcome to Toddler!\n");
     lprintf("Loader arguments r0: %x, r1: %x, atags: %x\n", r0, r1, atags);
+    
+    parse_atags(atags);
+//     stop(0);
     
     build_bootparam();
     build_bootparam_screen();

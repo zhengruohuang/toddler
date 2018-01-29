@@ -3,6 +3,7 @@
 
 
 #include "common/include/data.h"
+#include "common/include/bootparam.h"
 
 
 /*

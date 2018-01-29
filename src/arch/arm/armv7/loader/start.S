@@ -24,7 +24,7 @@ _start:
     //b .
     //nop
     
-    // Enable FP
+/*    // Enable FP
     mrc p15, 0, r1, c1, c0, #2      // r1 = Access Control Register
     orr r1, r1, #(0xf << 20)        // enable full access for p10,11
     mcr p15, #0, r1, c1, c0, #2     // ccess Control Register = r1
@@ -38,7 +38,9 @@ _start:
     orr r0, #SCTLR_ENABLE_BRANCH_PREDICTION     // Enable caches and branch prediction
     orr r0, #SCTLR_ENABLE_DATA_CACHE
     orr r0, #SCTLR_ENABLE_INSTRUCTION_CACHE
-    mcr p15, 0, r0, c1, c0, 0                   // System Control Register = R0
+    mcr p15, 0, r0, c1, c0, 0                   // System Control Register = R0*/
+    
+    // Caches shouldn't be enabled at this point
     
     // Go to C!
     ldr sp, =0x8000         // Setup the stack

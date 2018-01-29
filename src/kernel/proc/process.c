@@ -64,7 +64,7 @@ struct process *create_process(
     if (type == process_kernel) {
         p->page_dir_pfn = hal->kernel_page_dir_pfn;
     } else {
-        p->page_dir_pfn = palloc(1);
+        p->page_dir_pfn = palloc(hal->user_page_dir_page_count);
     }
     assert(p->page_dir_pfn);
     

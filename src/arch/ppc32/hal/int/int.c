@@ -2,6 +2,7 @@
 #include "common/include/memlayout.h"
 #include "common/include/context.h"
 #include "hal/include/print.h"
+#include "hal/include/string.h"
 #include "hal/include/debug.h"
 #include "hal/include/mem.h"
 #include "hal/include/cpu.h"

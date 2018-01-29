@@ -11,7 +11,8 @@ void init_bcm2835(ulong bcm2835_base, ulong bcm2835_end)
     init_bcm2835_timer(bcm2835_base);
     init_bcm2835_mailbox(bcm2835_base);
     init_bcm2835_gpio(bcm2835_base);
-    init_bcm2835_uart(bcm2835_base);
+//     init_bcm2835_uart(bcm2835_base);
+    init_bcm2835_pl011(bcm2835_base);
     init_bcm2835_led();
     init_bcm2835_framebuffer(bcm2835_end);
     

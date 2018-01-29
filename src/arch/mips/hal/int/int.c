@@ -80,6 +80,7 @@ void init_int_state_mp()
     set_local_int_state(0);
 }
 
+// FIXME: nobody called this?
 void init_int_state()
 {
     set_local_int_state(0);

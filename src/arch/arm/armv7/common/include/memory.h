@@ -13,13 +13,10 @@
 #define PAGE_BITS   12
 #endif
 
-#ifndef PAGE_ENTRY_COUNT
-#define PAGE_ENTRY_COUNT    1024
-#endif
-
 #ifndef PAGE_LEVELS
 #define PAGE_LEVELS 2
 #endif
+
 
 #ifndef ALIGN_MIN
 #define ALIGN_MIN   1
@@ -33,6 +30,7 @@
 #define ALIGN_DEFAULT   4
 #endif
 
+
 #ifndef PFN_TO_ADDR
 #define PFN_TO_ADDR(pfn)        ((pfn) << 12)
 #endif
@@ -41,16 +39,36 @@
 #define ADDR_TO_PFN(addr)       ((addr) >> 12)
 #endif
 
+
+#ifndef SFN_TO_ADDR
+#define SFN_TO_ADDR(pfn)        ((pfn) << 20)
+#endif
+
+#ifndef ADDR_TO_SFN
+#define ADDR_TO_SFN(addr)       ((addr) >> 20)
+#endif
+
+
+
+#ifndef L1TABLE_ENTRY_COUNT
+#define L1TABLE_ENTRY_COUNT     4096
+#endif
+
+#ifndef L2TABLE_ENTRY_COUNT
+#define L2TABLE_ENTRY_COUNT     256
+#endif
+
+
 #ifndef GET_L1PTE_INDEX
-#define GET_L1PTE_INDEX(addr)   ((addr) >> 22)
+#define GET_L1PTE_INDEX(addr)   ((addr) >> 20)
 #endif
 
 #ifndef GET_L2PTE_INDEX
-#define GET_L2PTE_INDEX(addr)   (((addr) << 10) >> 22)
+#define GET_L2PTE_INDEX(addr)   (((addr) >> 12) & 0xfful)
 #endif
 
 #ifndef GET_PAGE_OFFSET
-#define GET_PAGE_OFFSET(addr)   (((addr) << 20) >> 20)
+#define GET_PAGE_OFFSET(addr)   ((addr) & 0xffful)
 #endif
 
 

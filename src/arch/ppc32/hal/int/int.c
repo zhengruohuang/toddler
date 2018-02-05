@@ -11,18 +11,13 @@
 #include "hal/include/int.h"
 #include "hal/include/vector.h"
 #include "hal/include/vecnum.h"
+#include "hal/include/periph.h"
 
 
 /*
  * Context saving
  */
 #define PER_CPU_CONTEXT_OFFSET  (PER_CPU_STACK_TOP_OFFSET - sizeof(struct context))
-
-
-/*
- * Start working
- */
-volatile int work_started = 0;
 
 
 /*
@@ -124,23 +119,6 @@ void restore_local_int(int enabled)
 
 
 /*
- * Start working
- */
-void start_working()
-{
-    work_started = 1;
-    
-    __asm__ __volatile__
-    (
-        "sync;"
-    );
-    
-    enable_local_int();
-}
-
-
-
-/*
  * Interrupt handlers
  */
 static int int_handler_dummy(struct int_context *context, struct kernel_dispatch_info *kdi)
@@ -170,11 +148,22 @@ void general_except_handler()
     );
     context = (struct context *)(get_my_cpu_area_start_vaddr() + PER_CPU_CONTEXT_OFFSET);
     
-//     kprintf("Vector: %p, Context @ %p, PC: %p, SP: %p, SRR1: %p\n",
-//         (void *)vector, context,
-//         (void *)(ulong)context->pc, (void *)(ulong)context->r1,
-//         (void *)(ulong)context->msr
-//     );
+//     if (vector != 0xb) {
+//         kprintf("Vector: %p, Context @ %p, PC: %p, SP: %p, SRR1: %p\n",
+//             (void *)vector, context,
+//             (void *)(ulong)context->pc, (void *)(ulong)context->r1,
+//             (void *)(ulong)context->msr
+//         );
+//     }
+    
+    // Figure out the real vector
+    switch (vector) {
+    case INT_VECTOR_EXTERNAL:
+        vector = pic_get_vector();
+        break;
+    default:
+        break;
+    }
     
     // Get handler
     int_handler handler = get_int_handler(vector);

@@ -9,6 +9,7 @@
 
 #define INT_VECTOR_DSI              3
 #define INT_VECTOR_ISI              4
+#define INT_VECTOR_EXTERNAL         5
 #define INT_VECTOR_PROGRAM          7
 #define INT_VECTOR_DECREMENTER      10
 #define INT_VECTOR_SYSCALL          11

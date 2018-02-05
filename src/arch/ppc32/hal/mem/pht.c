@@ -161,7 +161,7 @@ static struct pht_entry *evict_pht_entry(ulong asid, ulong vaddr, int *group, in
 {
     /*
         lock(PTE)
-        PTE[V] ← 0      // (other fields don’t matter)
+        PTE[V] <- 0      // (other fields don’t matter)
         sync            // ensure update completed
         tlbie(old_EA)   // invalidate old translation
         eieio           // order tlbie before tlbsync
@@ -209,7 +209,7 @@ static struct pht_entry *evict_pht_entry(ulong asid, ulong vaddr, int *group, in
                     : "cc"
                 );
                 
-                //warn("PHT entry evicted @ %p\n", (void *)vaddr);
+//                 warn("PHT entry evicted @ %p\n", (void *)vaddr);
                 return entry;
             }
         }
@@ -223,9 +223,9 @@ void fill_pht_by_page(ulong asid, ulong vaddr, ulong ppfn, ulong count, int io, 
 {
     /*
         lock(PTE)
-        PTE[RPN,R,C,WIMG,PP] ← new values
+        PTE[RPN,R,C,WIMG,PP] <- new values
         eieio //order 1st PTE update before 2nd
-        PTE[VSID,H,API,V] ← new values (V = 1)
+        PTE[VSID,H,API,V] <- new values (V = 1)
         sync // ensure updates completed
         unlock(PTE)
      */
@@ -332,8 +332,8 @@ void fill_pht_by_addr(ulong asid, ulong vaddr, ulong paddr, ulong size, int io, 
     ulong pages = (vend - vstart) >> PAGE_BITS;
     
 //     if (asid) {
-//         kprintf("To fill vstart @ %p, vend @ %p, ppfn @ %p, pages: %d\n",
-//             (void *)vstart, (void *)vend, (void *)ppfn, (int)pages);
+//         kprintf("To fill vaddr @ %lx, size: %lx, vstart @ %lx, vend @ %lx, ppfn @ %lx, pages: %lx\n",
+//             vaddr, size, vstart, vend, ppfn, pages);
 //     }
     fill_pht_by_page(asid, vstart, ppfn, pages, io, priority);
 }

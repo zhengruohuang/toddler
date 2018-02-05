@@ -1,7 +1,6 @@
 #include "common/include/data.h"
 #include "common/include/memlayout.h"
 #include "common/include/memory.h"
-#include "common/include/page.h"
 #include "hal/include/bootparam.h"
 #include "hal/include/bit.h"
 #include "hal/include/string.h"
@@ -92,7 +91,7 @@ static int user_indirect_map(
     int index = GET_L1PTE_INDEX(vaddr);
     
     if (!l1tab->value_u32[index]) {
-        ulong alloc_pfn = kernel->palloc(1);;
+        ulong alloc_pfn = kernel->palloc(1);
         if (!alloc_pfn) {
             return 0;
         }

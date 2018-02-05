@@ -157,7 +157,7 @@ int hashtable_insert(hashtable_t *l, ulong key, void *n)
     hashtable_bucket_t *bucket = &l->buckets[hash];
     
     // Lock the table
-    spin_lock_int(&l->lock);;
+    spin_lock_int(&l->lock);
     
     // Insert into the proper position
     cur = bucket->head;

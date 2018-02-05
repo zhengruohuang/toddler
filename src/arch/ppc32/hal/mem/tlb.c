@@ -26,6 +26,10 @@ void invalidate_tlb_array(ulong asid, ulong vaddr, size_t size)
     ulong vend = ALIGN_UP(vaddr + size, PAGE_SIZE);
     ulong page_count = (vend - vstart) >> PAGE_BITS;
     
+//     kprintf("Invalidate TLB array, vaddr @ %lx, size: %lx, vstart @ %lx, vend @ %lx, pages: %lx\n",
+//         vaddr, size, vstart, vend, page_count
+//     );
+    
     ulong i;
     ulong vcur = vstart;
     for (i = 0; i < page_count; i++) {

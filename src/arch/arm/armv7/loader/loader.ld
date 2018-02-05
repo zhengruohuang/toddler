@@ -1,9 +1,15 @@
 ENTRY(_start)
 
+
+/*
+ * QEMU loads the image to 0x10000, while a real RPi 2 load the image to 0x8000
+ */
+__LOADER_BASE = 0x10000;
+
+
 SECTIONS
 {
-    /* QEMU loads the image to 0x10000, while a real RPi 2 load the image to 0x8000 */
-    . = 0x10000;
+    . = __LOADER_BASE;
     __start = .;
     
     __text_start = .;

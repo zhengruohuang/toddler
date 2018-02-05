@@ -76,22 +76,22 @@ The driver process provides several essential device drivers, including keyboard
 |Architecture|Width|Target Machine|Status|
 |---|---|---|---|
 |ia32|32|NetBurst-based PC|Current|
-|armv7|32|Raspberry Pi 2, QEMU Raspi2|Current|
-|mips32|32|QEMU Malta, Creator CI20|Current|
-|ppc32|32|QEMU Mac99, Mac Mini G4, PowerMac G4|Active|
-|sparcv8|32|QEMU Sum4m SPARCstation 10, QEMU Leon 3|Active|
-|riscv32|32|QEMU Spike|Planned|
-|m68k|32|QEMU MCF5206EVB|Planned|
-|sh4|32|QEMU Shix Card|Planned|
+|armv7|32|Raspberry Pi 2, QEMU raspi2|Current|
+|mips32|32|Creator CI20, QEMU malta|Current|
+|ppc32|32|Mac Mini G4, PowerMac G4, QEMU g3beige, QEMU mac99|Current|
+|sparcv8|32|QEMU sum4m SPARCstation 10, QEMU Leon-3|Active|
+|riscv32|32|Spike|Planned|
+|m68k|32|QEMU mcf5208evb|Planned|
+|sh4|32|QEMU shix|Planned|
 |vax|32|SIMH VAX|Planned|
-|or1k|32|QEMU OR1K|Planned|
+|or1k|32|QEMU or1k-sim|Planned|
 |amd64|64|Skylake-based PC|Planned|
-|armv8|64|Raspberry Pi 3, QEMU Raspi2|Planned|
-|ppc64|64|QEMU Mac99, PowerMac G5|Planned|
-|mips64|64|QEMU Malta, Loongson 3 Desktop|Current|
-|sparcv9|64|QEMU Sun4u|Planned|
-|alpha|64|QEMU DP264/Clipper|Initial|
-|riscv64|64|QEMU Spike|Planned|
-|s390|64|QEMU S390|Planned|
+|armv8|64|Raspberry Pi 3, QEMU raspi2, QEMU virt|Planned|
+|ppc64|64|PowerMac G5, QEMU mac99|Planned|
+|mips64|64|Loongson 3 Desktop, QEMU malta|Current|
+|sparcv9|64|QEMU sun4u|Planned|
+|alpha|64|QEMU clipper|Initial|
+|riscv64|64|Spike|Planned|
+|s390|64|QEMU s390x|Planned|
 |ia64|64|Ski|Planned|
-|hppa|64|HP 9000 PA-RISC Workstation, QEMU|Planned|
+|hppa|64|HP 9000 PA-RISC Workstation, QEMU hppa-generic|Planned|

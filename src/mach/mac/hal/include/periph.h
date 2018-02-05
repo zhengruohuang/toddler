@@ -3,6 +3,7 @@
 
 
 #include "common/include/ofw.h"
+#include "hal/include/vector.h"
 
 
 /*
@@ -26,7 +27,18 @@ extern void init_fb();
  * ESCC serial controller
  */
 extern void escc_draw_char(char ch);
+extern void start_escc();
 extern void init_escc();
+
+
+/*
+ * Heathrow PIC
+ */
+extern void heathrow_pic_eoi(int wired);
+extern int heathrow_pic_register_wired(int wired, int_handler handler);
+extern int heathrow_pic_get_vector();
+extern void start_heathrow_pic();
+extern void init_heathrow_pic();
 
 
 /*
@@ -34,6 +46,17 @@ extern void init_escc();
  */
 extern void draw_char(char ch);
 extern void init_print();
+
+
+/*
+ * Top level
+ */
+extern void init_periph();
+extern void start_periph();
+
+extern int pic_get_vector();
+extern void pic_eoi(int wired);
+extern int pic_register_wired(int wired, int_handler handler);
 
 
 #endif

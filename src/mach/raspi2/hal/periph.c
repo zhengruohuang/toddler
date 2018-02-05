@@ -2,16 +2,13 @@
 #include "common/include/bootparam.h"
 #include "hal/include/bootparam.h"
 #include "hal/include/fb.h"
+#include "hal/include/print.h"
 #include "hal/include/vector.h"
 #include "hal/include/vecnum.h"
-
-#include "common/include/reg.h"
 
 
 #define BCM2835_BASE            0x3f000000ul
 #define BCM2836_LOCAL_BASE      0x40000000ul
-
-extern void kprintf(char *fmt, ...);
 
 
 /*
@@ -417,14 +414,14 @@ static int bcm2835_pl011_int_handler(struct int_context *context, struct kernel_
     while (bcm2835_pl011_received()) {
         byte = (ulong)bcm2835_pl011_read();
         switch (byte) {
-            case 0x7f:
-                byte = '\b';
-                break;
-            case '\r':
-                byte = '\n';
-                break;
-            default:
-                break;
+        case 0x7f:
+            byte = '\b';
+            break;
+        case '\r':
+            byte = '\n';
+            break;
+        default:
+            break;
         }
         
         data <<= 8;
@@ -546,6 +543,11 @@ int periph_get_irq_vector()
 {
     int vector = int_ctrl_get_pending_vector();
     return vector;
+}
+
+weak_func int is_generic_timer_asserted()
+{
+    return 0;
 }
 
 int periph_get_fiq_vector()

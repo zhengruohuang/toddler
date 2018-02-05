@@ -55,6 +55,9 @@ struct boot_parameters {
         };
     };
     
+    // Interrupt controller info
+    ulong int_ctrl_addr;
+    
     // Pageing
     ulong pht_addr;
     ulong attri_addr;

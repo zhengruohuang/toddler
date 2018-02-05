@@ -678,7 +678,7 @@ static int dispatch_remove(struct urs_super *super, unsigned long node_id, int e
         msg_param_value(s, (unsigned long)erase);
         
         r = syscall_request();
-        result = (int)r->params[r->param_count - 1].value;;
+        result = (int)r->params[r->param_count - 1].value;
     }
     
     else {

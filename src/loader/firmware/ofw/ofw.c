@@ -1,7 +1,7 @@
 #include "common/include/data.h"
 #include "common/include/ofw.h"
-#include "loader/ofw.h"
-#include "loader/mempool.h"
+#include "loader/include/mempool.h"
+#include "loader/include/firmware/ofw.h"
 
 
 /*
@@ -48,6 +48,25 @@ static void memcpy(void *dest, const void *src, int count)
     for (i = 0; i < count; i++) {
         *(d++) = *(s++);
     }
+}
+
+static int memcmp(void *src1, void *src2, size_t len)
+{
+    u8 *cmp1 = (u8 *)src1;
+    u8 *cmp2 = (u8 *)src2;
+    
+    ulong i;
+    int result = 0;
+    
+    for (i = 0; i < len; i++) {
+        if (cmp1[i] > cmp2[i]) {
+            return 1;
+        } else if (cmp1[i] < cmp2[i]) {
+            return -1;
+        }
+    }
+    
+    return result;
 }
 
 static int strcmp(const char *s1, const char *s2)
@@ -116,6 +135,15 @@ static ofw_arg_t ofw_call(const char *service, const int nargs, const int nret, 
 /*
  * Print
  */
+void draw_char(char ch)
+{
+    if (ofw_stdout == 0) {
+        return;
+    }
+    
+    ofw_call("write", 3, 1, NULL, ofw_stdout, &ch, 1);
+}
+
 static void ofw_putchar(const char ch)
 {
     if (ofw_stdout == 0) {
@@ -365,6 +393,53 @@ void *ofw_translate(void *virt)
 
 
 /*
+ * Mac-IO
+ */
+static char ofw_find_macio_name_buf[OFW_TREE_PROPERTY_MAX_VALUELEN];
+
+static ofw_phandle_t ofw_find_macio(ofw_phandle_t current, int level)
+{
+    while (current && current != (ofw_phandle_t)-1) {
+        int ret = (int)ofw_get_prop(current, "name", ofw_find_macio_name_buf,
+                                    OFW_TREE_PROPERTY_MAX_VALUELEN);
+        if (ret > 0 && !memcmp(ofw_find_macio_name_buf, "mac-io", 6)) {
+            return current;
+        }
+        
+        // Recursively process the potential child node.
+        ofw_phandle_t child = ofw_get_child_node(current);
+        if (child && child != (ofw_phandle_t)-1) {
+            ofw_phandle_t macio = ofw_find_macio(child, level + 1);
+            if (macio) {
+                return macio;
+            }
+        }
+        
+        // Iteratively process the next peer node
+        current = ofw_get_peer_node(current);
+    }
+    
+    return 0;
+}
+
+static ulong ofw_find_macio_base()
+{
+    ofw_phandle_t macio = ofw_find_macio(ofw_root, 0);
+    if (!macio || macio == (ofw_phandle_t)-1) {
+        return 0;
+    }
+    
+    struct ofw_pci_reg assigned_addrs;
+    int ret = (int)ofw_get_prop(macio, "assigned-addresses", &assigned_addrs, sizeof(struct ofw_pci_reg));
+    if (ret <= 0) {
+        return 0;
+    }
+    
+    return (ulong)assigned_addrs.addr;
+}
+
+
+/*
  * Screen
  */
 int ofw_screen_is_graphic()
@@ -443,34 +518,22 @@ void ofw_escc_info(void **addr)
         serial_offset[0] = 0;
     }
     
-    // Find PCI node
-    ofw_phandle_t child = ofw_get_child_node(ofw_root);
-    while (child && child != (ofw_phandle_t)-1) {
-        // Get device type
-        char devt[OFW_TREE_PROPERTY_MAX_VALUELEN];
-        int ret = (int)ofw_get_prop(child, "device_type", devt, OFW_TREE_PROPERTY_MAX_VALUELEN);
-        if (ret > 0 && devt[0] == 'p' && devt[1] == 'c' && devt[2] == 'i') {
-            break;
-        }
-        
-        // Move to next node
-        child = ofw_get_peer_node(child);
-    }
-    
-    // Find PCI base address
-    ofw_prop_t pci_base[2];
-    pci_base[0] = 0;
-    if (child && child != (ofw_phandle_t)-1) {
-        ofw_get_prop(child, "reg", pci_base, sizeof(pci_base));
-    }
-    
-    void *serial_addr = (void *)pci_base[0] + serial_offset[0];
+    void *serial_addr = (void *)(ofw_find_macio_base() + (ulong)serial_offset[0]);
     serial_addr = ofw_translate(serial_addr);
     
     // Return
     if (addr) {
         *addr = serial_addr;
     }
+}
+
+
+/*
+ * Interrupt controller
+ */
+ulong ofw_find_int_ctrl_base()
+{
+    return ofw_find_macio_base();
 }
 
 

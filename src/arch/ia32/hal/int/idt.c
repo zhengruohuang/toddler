@@ -110,7 +110,7 @@ void init_idt()
     
     // Initialize the paremter of IDTR
     int_idt.idtr_value.base = (u32)(&int_idt.entries);
-    int_idt.idtr_value.limit = sizeof(struct idt_gate) * IDT_ENTRY_COUNT - 1;;
+    int_idt.idtr_value.limit = sizeof(struct idt_gate) * IDT_ENTRY_COUNT - 1;
     
     kprintf(" Done!\n");
     

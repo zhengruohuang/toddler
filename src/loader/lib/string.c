@@ -64,7 +64,6 @@ void memcpy(void *dest, void *src, size_t count)
     for (i = 0; i < count; i++) {
         d[i] = s[i];
     }
-    
 }
 
 void memset(void *src, int value, size_t size)
@@ -75,7 +74,6 @@ void memset(void *src, int value, size_t size)
     for (i = 0; i < size; i++) {
         ptr[i] = (u8)value;
     }
-    
 }
 
 void memzero(void *src, size_t size)
@@ -86,7 +84,6 @@ void memzero(void *src, size_t size)
     for (i = 0; i < size; i++) {
         ptr[i] = (u8)0x0;
     }
-    
 }
 
 int memcmp(void *src1, void *src2, size_t len)

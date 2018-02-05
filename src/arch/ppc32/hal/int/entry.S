@@ -22,7 +22,7 @@
 __int_entry_wrapper_begin:
 reserved0_entry:
     mtsprg1 r0
-    li r0, 0x0
+    li r0, INT_VECTOR_DUMMY
     mtsprg2 r0
     mfsprg1 r0
     
@@ -31,12 +31,22 @@ reserved0_entry:
 
 .align 8
 system_reset_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 machine_check_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
@@ -61,12 +71,22 @@ isi_entry:
 
 .align 8
 external_interrupt_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_EXTERNAL
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 alignment_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
@@ -81,7 +101,12 @@ program_entry:
 
 .align 8
 fp_unavail_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
@@ -96,12 +121,22 @@ dec_entry:
 
 .align 8
 reserved1_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 reserved2_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
@@ -116,53 +151,104 @@ syscall_entry:
 
 .align 8
 trace_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 fp_assist_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 perf_mon_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 vector_unvail_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 itlb_miss_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 dtlb_miss_load_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 dtlb_miss_store_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 breakpoint_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 system_mgmt_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
 
 .align 8
 vector_assist_entry:
-    b .
+    mtsprg1 r0
+    li r0, INT_VECTOR_DUMMY
+    mtsprg2 r0
+    mfsprg1 r0
+    
+    b save_registers
     nop
+
 
 /*
  * Save registers

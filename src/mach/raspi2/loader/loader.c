@@ -3,13 +3,13 @@
 #include "common/include/memlayout.h"
 #include "common/include/coreimg.h"
 #include "common/include/bootparam.h"
-#include "common/include/page.h"
 #include "common/include/reg.h"
 #include "common/include/elf32.h"
 #include "loader/include/print.h"
 #include "loader/include/lib.h"
 #include "loader/include/cmdline.h"
 #include "loader/include/exec.h"
+#include "loader/include/setup.h"
 #include "loader/include/periph/bcm2835.h"
 
 
@@ -173,7 +173,7 @@ static void parse_atags(ulong base)
 
 extern void _start_ap();
 
-struct boot_parameters boot_param;
+static struct boot_parameters boot_param;
 
 static void build_bootparam()
 {
@@ -263,88 +263,33 @@ static void build_bootparam_screen()
 #define DRAM_PADDR_START    0x0
 #define DRAM_PADDR_END      BCM2835_BASE //0x40000000
 
-static void setup_paging()
+static void setup_mm()
 {
-    int i;
-    u32 reg = 0;
-    volatile struct l1table *page_table = (volatile struct l1table *)(HAL_AREA_BASE_PADDR + HAL_L1TABLE_OFFSET);
-    lprintf("Setup paging @ %p ... ", page_table);
+    ulong kernel_page_dir = HAL_AREA_BASE_PADDR + HAL_L1TABLE_OFFSET;
     
-    // Set up an 1 to 1 mapping for all 4GB, rw for everyone
-    // Note that each entry maps 1MB, and there are 4K entries -> 16KB L1 page table
-    for (i = 0; i < 4096; i++) {
-        page_table->value_l1section[i].value = 0;
-        page_table->value_l1section[i].present = 1;
-        page_table->value_l1section[i].user_write = 1;      // AP[1:0] = 01
-        page_table->value_l1section[i].user_access = 0;     // Kernel RW, user no access
-        page_table->value_l1section[i].sfn = i;
-    }
+    lprintf("Enable MMU, kernel page dir @ %lx\n", kernel_page_dir);
+    setup_paging(kernel_page_dir, DRAM_PADDR_START, DRAM_PADDR_END, HAL_AREA_BASE_PADDR);
+    enable_mmu(kernel_page_dir);
     
-    // Enable cache for DRAM
-    for (i = DRAM_PADDR_START >> 20; i < (DRAM_PADDR_END >> 20); i++) {
-        // TEX[2:0]:C:B = 000:1:1   Cacheable, write-back, write-allocate
-        page_table->value_l1section[i].cache_inner = 0x3;
-    }
+    lprintf("Enable caches\n");
+    enable_caches();
     
-    // Map the highest 1MB (HAL + kernel) to physical 1MB to 2MB
-    page_table->value_l1section[4095].cache_inner = 0x3;
-    page_table->value_l1section[4095].sfn = HAL_AREA_BASE_PADDR >> 20;
-    
-    // Copy the page table address to cp15
-    write_trans_tab_base0(page_table);
-//     __asm__ __volatile__ (
-//         "mcr p15, 0, %0, c2, c0, 0;"
-//         :
-//         : "r" (page_table)
-//         : "memory"
-//     );
-    
-    // Enable permission check for domain0
-    struct domain_access_ctrl_reg domain;
-    read_domain_access_ctrl(domain.value);
-    domain.domain0 = 0x1;
-    write_domain_access_ctrl(domain.value);
-    
-//     __asm__ __volatile__ (
-//         "mcr p15, 0, %0, c3, c0, 0"
-//         :
-//         : "r" (~0x0)
-//     );
+    lprintf("Enable branch predictor\n");
+    enable_bpred();
+}
 
-    // Enable the MMU
-    struct sys_ctrl_reg sys_ctrl;
-    read_sys_ctrl(sys_ctrl.value);
-    sys_ctrl.mmu_enabled = 1;
-    write_sys_ctrl(sys_ctrl.value);
+static void setup_mm_ap()
+{
+    ulong page_dir = boot_param.ap_page_dir;
     
-//     __asm__ __volatile__ (
-//         "mrc p15, 0, %0, c1, c0, 0"
-//         : "=r" (reg)
-//         :
-//         : "cc"
-//     );
-//     
-//     reg |= 0x1;
-//     
-//     __asm__ __volatile__ (
-//         "mcr p15, 0, %0, c1, c0, 0"
-//         :
-//         : "r" (reg)
-//         : "cc"
-//     );
+    lprintf("Setup paging @ %lx ... ", page_dir);
+    enable_mmu(page_dir);
     
-    // Caches
-    lprintf("Dcache: %d\n", sys_ctrl.dcache_enabled);
-//     while (1);
+    lprintf("Enable caches\n");
+    enable_caches();
     
-//     // Check current mode
-//     struct proc_status_reg status;
-//     read_current_proc_status(status.value);
-//     lprintf("Current mode: %x\n", status.mode);
-//     
-//     panic();
-    
-    lprintf("Done!\n");
+    lprintf("Enable branch predictor\n");
+    enable_bpred();
 }
 
 
@@ -371,34 +316,18 @@ static void init_coreimg()
 /*
  * Jump to HAL!
  */
-static void (*hal_entry)();
-
 static void jump_to_hal()
 {
-    lprintf("Starting HAL ... @ %p\n", boot_param.hal_entry_addr);
+    lprintf("Starting HAL @ %p\n", boot_param.hal_entry_addr);
     
-    __asm__ __volatile__ (
-        // Move to System mode
-        "cpsid aif, #0x1f;"
-        
-        // Set up stack top
-        "mov sp, %[stack];"
-        
-        // Pass the argument
-        "mov r0, %[bp];"
-        
-        // Call C
-        "mov pc, %[hal];"
-        :
-        : [stack] "r" (HAL_STACK_TOP_VADDR), [bp] "r" (&boot_param), [hal] "r" (boot_param.hal_entry_addr)
-        : "sp", "r0", "memory"
-    );
+    call_hal_entry(boot_param.hal_entry_addr, HAL_STACK_TOP_VADDR, (ulong)&boot_param);
+}
+
+static void jump_to_hal_ap()
+{
+    lprintf("Jump to HAL @ %p\n", boot_param.hal_entry_addr);
     
-//     void (*hal_entry)();
-//     hal_entry = (void *)boot_param.hal_entry_addr;
-//     
-//     lprintf("Starting HAL ... @ %p\n", hal_entry);
-//     hal_entry(&boot_param);
+    call_hal_entry(boot_param.hal_entry_addr, boot_param.ap_stack_top, (ulong)&boot_param);
 }
 
 
@@ -414,17 +343,29 @@ void loader_entry(unsigned long r0, unsigned long r1, unsigned long atags)
     lprintf("Loader arguments r0: %x, r1: %x, atags: %x\n", r0, r1, atags);
     
     parse_atags(atags);
-//     stop(0);
     
     build_bootparam();
     build_bootparam_screen();
     
-    setup_paging();
+    setup_mm();
     
     init_coreimg();
     load_images(coreimg, &boot_param, 0, 0);
     
     jump_to_hal();
+    
+    while (1) {
+        lprintf("Should never arrive here!\n");
+        panic();
+    }
+}
+
+void loader_ap_entry()
+{
+    lprintf("AP started!\n");
+    
+    setup_mm_ap();
+    jump_to_hal_ap();
     
     while (1) {
         lprintf("Should never arrive here!\n");

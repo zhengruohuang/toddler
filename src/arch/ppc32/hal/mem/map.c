@@ -90,7 +90,7 @@ static int user_indirect_map(
     int index = GET_PDE_INDEX(vaddr);
     
     if (!page->value_u32[index]) {
-        ulong alloc_pfn = kernel->palloc(1);;
+        ulong alloc_pfn = kernel->palloc(1);
         if (!alloc_pfn) {
             return 0;
         }

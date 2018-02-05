@@ -69,7 +69,8 @@ static void do_shrink_heap(struct process *p, ulong amount)
     }
     
     // TLB shootdown
-    trigger_tlb_shootdown(p->asid, PFN_TO_ADDR((new_vpfn + 1)), PAGE_SIZE * (int)(old_vpfn - new_vpfn));
+//     panic("To shrink heap, old: %lx, new: %lx\n", old_vpfn, new_vpfn);
+    trigger_tlb_shootdown(p->asid, PFN_TO_ADDR((new_vpfn)), (old_vpfn - new_vpfn) << PAGE_BITS /* PAGE_SIZE * (int)(old_vpfn - new_vpfn)*/);
     
     p->memory.heap_end -= amount;
 }

@@ -4,7 +4,7 @@
 global_tools = { \
     '.c' : { \
         'exec'  : 'arm-none-eabi-gcc',
-        'flags' : '-c -g -nostdlib -fno-builtin -fno-stack-protector -O2 -mfloat-abi=soft -march=armv7-a -mtune=cortex-a7',
+        'flags' : '-c -g -nostdlib -fno-builtin -fno-stack-protector -O2 -mfloat-abi=soft -march=armv7-a',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
@@ -13,7 +13,7 @@ global_tools = { \
 
     '.S' : { \
         'exec'  : 'arm-none-eabi-gcc',
-        'flags' : '-c -nostdlib -fno-builtin -fno-stack-protector -O2 -mfloat-abi=soft -march=armv7-a -mtune=cortex-a7',
+        'flags' : '-c -nostdlib -fno-builtin -fno-stack-protector -O2 -mfloat-abi=soft -march=armv7-a',
         'inc'   : '-I__inc__',
         'direct': '__src__',
         'obj'   : '-o __obj__ __src__',
@@ -24,7 +24,7 @@ global_tools = { \
     # The command used for compiling must be passed to the linker
     'ld' : { \
         'exec'  : 'arm-none-eabi-gcc',
-        'flags' : '-s -nostdlib -fno-builtin -fno-stack-protector -O2 -mfloat-abi=soft -march=armv7-a -mtune=cortex-a7',
+        'flags' : '-s -nostdlib -fno-builtin -fno-stack-protector -O2 -mfloat-abi=soft -march=armv7-a',
         'script': '-T __script__',
         'obj'   : '-o __target__ __obj__ -lgcc',
     },

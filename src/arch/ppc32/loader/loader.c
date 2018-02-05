@@ -4,8 +4,8 @@
 #include "common/include/bootparam.h"
 #include "common/include/coreimg.h"
 #include "common/include/elf32.h"
-#include "loader/ofw.h"
-#include "loader/mempool.h"
+#include "loader/include/mempool.h"
+#include "loader/include/firmware/ofw.h"
 
 
 /*
@@ -202,8 +202,17 @@ static void detect_screen()
             screen.fb_addr, ofw_translate(screen.fb_addr), screen.width, screen.height, screen.depth, screen.bpl
         );
     } else {
-        //ofw_escc_info(&screen.serial_addr);
-        screen.serial_addr = (void *)0x80013020;
+        ofw_escc_info(&screen.serial_addr);
+        
+        // For G4
+//         screen.serial_addr = (void *)0x80013020ul;
+        
+        // For G3
+//         screen.serial_addr = (void *)0x81093020ul;
+        
+//         ulong macio_base = ofw_get_macio_base();
+//         ofw_printf("Mac-IO @ %p\n", macio_base);
+        
         ofw_printf("\tESCC serial controller @ %p -> %p\n",
             screen.serial_addr, ofw_translate(screen.serial_addr)
         );
@@ -253,6 +262,9 @@ static void build_bootparam()
         boot_param->video_mode = VIDEO_SERIAL;
         boot_param->serial_addr = (ulong)screen.serial_addr;
     }
+    
+    // Interrupt
+    boot_param->int_ctrl_addr = ofw_find_int_ctrl_base();
     
     // Core image
     boot_param->coreimg_load_addr = (ulong)coreimg_phys;
@@ -601,6 +613,9 @@ static void init_page_table()
     } else {
         pht_fill((ulong)screen.serial_addr, PAGE_SIZE, 1);
     }
+    
+    // Interrupt controller
+    pht_fill(ofw_find_int_ctrl_base(), PAGE_SIZE, 1);
 }
 
 

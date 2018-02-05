@@ -22,8 +22,11 @@ void entry_func hal_entry(struct boot_parameters *boot_param)
     init_map();
     init_kalloc();
     
+    // Init Periph
+    init_periph();
+    
     // Init OFW
-    init_ofw();
+//     init_ofw();
     
     // Init CPU
     init_cpuid();
@@ -44,6 +47,7 @@ void entry_func hal_entry(struct boot_parameters *boot_param)
     init_decrementer();
     
     // Start working
+    kprintf("Will start working!\n");
     start_working();
     
     // Should not reach here

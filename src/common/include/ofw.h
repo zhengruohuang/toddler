@@ -24,9 +24,26 @@ struct ofw_args {
     ofw_arg_t nargs;                // Number of in arguments
     ofw_arg_t nret;                 // Number of out arguments
     ofw_arg_t args[MAX_OFW_ARGS];   // List of arguments
-};
+} packedstruct;
 
 typedef ofw_arg_t (*ofw_entry_t)(struct ofw_args *args);
+
+
+/*
+ * PCI node data types
+ */
+struct ofw_pci_reg {
+    u32 space;
+    u64 addr;
+    u64 size;
+} packedstruct;
+
+struct ofw_pci_range {
+    u32 space;
+    u64 child_base;
+    u64 parent_base;
+    u64 size;
+} packedstruct;
 
 
 /*

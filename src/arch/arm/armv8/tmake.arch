@@ -1,0 +1,162 @@
+#!/usr/bin/python
+
+
+global_tools = { \
+    '.c' : { \
+        'exec'  : 'aarch64-linux-gnu-gcc',
+        'flags' : '-c -g -nostdlib -fno-builtin -fno-stack-protector -O2 -march=armv8-a -mgeneral-regs-only',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-MM __src__ > __dep__',
+    },
+
+    '.S' : { \
+        'exec'  : 'aarch64-linux-gnu-gcc',
+        'flags' : '-c -nostdlib -fno-builtin -fno-stack-protector -O2 -march=armv8-a -mgeneral-regs-only',
+        'inc'   : '-I__inc__',
+        'direct': '__src__',
+        'obj'   : '-o __obj__ __src__',
+        'dep'   : '-M __src__ > __dep__',
+    },
+    
+    # GCC must be used as the linker in order to correctly link libgcc
+    # The command used for compiling must be passed to the linker
+    'ld' : { \
+        'exec'  : 'aarch64-linux-gnu-gcc',
+        'flags' : '-s -nostdlib -fno-builtin -fno-stack-protector -O2 -march=armv8-a -mgeneral-regs-only',
+        'script': '-T __script__',
+        'obj'   : '-o __target__ __obj__ -lgcc',
+    },
+    
+    'ar' : { \
+        'exec'  : 'aarch64-linux-gnu-ar',
+        'flags' : 'crD',
+        'obj'   : '__target__ __obj__',
+    },
+    
+    'strip' : { \
+        'exec'  : 'aarch64-linux-gnu-strip',
+        'flags' : '',
+        'obj'   : '__target__',
+    },
+    
+    'gen_bin' : { \
+        'exec'  : 'aarch64-linux-gnu-objcopy',
+        'flags' : '-O binary',
+        'obj'   : '__src__ __target__',
+    },
+}
+
+
+def build_loader():
+    print_info('loader', 'Building loader')
+    
+    loader_files = get_all_files(src_dir + 'loader/', [ '.c' ])
+    loader_files += get_all_arch_and_mach_files('loader/', [ '.S', '.c' ])
+    loader_ld = find_deepest_arch_file('loader/loader.ld')
+    
+    assert(len(loader_files))
+    assert(loader_ld)
+    
+    build_files(
+        files = loader_files,
+        target_name = obj_dir + 'loader/loader.elf',
+        ext_dep = [ loader_ld ],
+        ext_flags = { 'ld/script' : loader_ld },
+    )
+    
+    gen_bin(
+        src_name = obj_dir + 'loader/loader.elf',
+        target_name = bin_dir + 'tdlrldr.bin',
+        tools = arch_tools['global_tools']
+    )
+    
+def build_hal():
+    print_info('hal', 'Building HAL')
+    
+    hal_files = get_all_files(src_dir + 'hal/', [ '.c' ])
+    hal_files += get_all_arch_and_mach_files('hal/', [ '.S', '.c' ])
+    hal_ld = find_deepest_arch_file('hal/hal.ld')
+    
+    assert(len(hal_files))
+    assert(hal_ld)
+    
+    build_files(
+        hal_files,
+        bin_dir + 'tdlrhal.bin',
+        ext_dep = [ hal_ld ],
+        ext_flags = { 'ld/script' : hal_ld },
+    )
+        
+def build_arch():
+    # Build loader
+    if 'build_loader' in arch_funcs:
+        arch_funcs['build_loader']()
+    
+    # Build HAL
+    if 'build_hal' in arch_funcs:
+        arch_funcs['build_hal']()
+    
+def build_disk():
+    print_info('kernelimg', 'Building unfied kernel image = loader + coreimg')
+    
+    cat_files(
+        files = [ bin_dir + 'tdlrldr.bin', bin_dir + 'tdlrcore.img' ],
+        target_name = bin_dir + 'toddler.img'
+    )
+    
+def qemu_gui():
+    print_info('emulator', 'Starting QEMU')
+    
+    kernel_name = bin_dir + 'toddler.img'
+    
+    # Compose the cmd
+    cmd = 'qemu-system-aarch64' + \
+        ' -M raspi2 -cpu cortex-a53 -m 512' + \
+        ' -serial mon:stdio' + \
+        ' -smp 4' + \
+        ' -kernel ' + kernel_name + \
+        ' -append "screen=fb"'
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def qemu():
+    print_info('emulator', 'Starting QEMU')
+    
+    kernel_name = bin_dir + 'toddler.img'
+    
+    # Compose the cmd
+    cmd = 'qemu-system-aarch64' + \
+        ' -M virt -cpu cortex-a57 -m 512' + \
+        ' -nographic -serial mon:stdio' + \
+        ' -kernel ' + kernel_name + \
+        ' -append "screen=pl011"'
+    
+    print_info('emulator', cmd)
+    
+    # Execute the cmd
+    code = exec_cmd(cmd)
+    assert(code == 0)
+    
+def start_emu():
+    emu_type = 'qemu'
+    if emu_type in arch_funcs:
+        arch_funcs[emu_type]()
+    
+
+# Setup global tools
+arch_tools['global_tools'] = global_tools
+
+# Setup callback functions
+arch_funcs['build_arch'] = build_arch
+arch_funcs['build_disk'] = build_disk
+
+arch_funcs['build_loader'] = build_loader
+arch_funcs['build_hal'] = build_hal
+
+arch_funcs['qemu'] = qemu
+arch_funcs['qemu_gui'] = qemu_gui
+arch_funcs['start_emu'] = start_emu

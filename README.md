@@ -86,7 +86,7 @@ The driver process provides several essential device drivers, including keyboard
 |vax|32|SIMH VAX|Planned|
 |or1k|32|QEMU or1k-sim|Planned|
 |amd64|64|Skylake-based PC|Planned|
-|armv8|64|Raspberry Pi 3, QEMU raspi2, QEMU virt|Planned|
+|armv8|64|Raspberry Pi 3, QEMU virt|Active|
 |ppc64|64|PowerMac G5, QEMU mac99|Planned|
 |mips64|64|Loongson 3 Desktop, QEMU malta|Current|
 |sparcv9|64|QEMU sun4u|Planned|

@@ -28,24 +28,24 @@ git clone https://github.com/zhengruohuang/toddler.git
 cd toddler
 ```
 
-Type ```./tmake build``` to build Toddler. Once done, it generates disk images in ```target/``` directory.  
-If QEMU is installed for the target architecture, simply type ```./tmake qemu``` to start QEMU with default parameters.
+Type `./tmake build` to build Toddler. Once done, it generates disk images in `target/` directory.
+If QEMU is installed for the target architecture, simply type `./tmake qemu` to start QEMU with default parameters.
 
-The two steps can be combined by typing ```./tmake all```, or simply ```./tmake```.
+The two steps can be combined by typing `./tmake all`, or simply `./tmake`.
 
 ### Specifying Actions
 
-Tmake supports *actions*. To specify actions, use ```./tmake <actions>```.  
-For example, ```./tmake clean build``` will clean up existing object and binary files, then start a new build.
+Tmake supports *actions*. To specify actions, use `./tmake <actions>`.
+For example, `./tmake clean build` will clean up existing object and binary files, then start a new build.
 
 ### Specifying Targets
 
-Tmake supports multiple targets. In order to build for a specific target, use ```./tmake target=<arch-machine>[-suffix]```.  
+Tmake supports multiple targets. In order to build for a specific target, use `./tmake target=<arch-machine>[-suffix]`.
 Note that *arch* and *machine* fields are required by Tmake, and *suffix* is optional. However, the actual implemention of a specific target may require the user supply a value for *suffix*.
 
-For example, ```./tmake target=ia32-pc-bios``` will build Toddler for a BIOS-based IA32 PC system; ```./tmake target=armv7-rpi2``` will build Toddler for Raspberry Pi 2.
+For example, `./tmake target=ia32-pc-bios` will build Toddler for a BIOS-based IA32 PC system; `./tmake target=armv7-rpi2` will build Toddler for Raspberry Pi 2.
 
-Also note that you may not arbitrarily mix *arch* and *machine* fields. For example, ```target=ia32-rpi2``` is invalid.  
+Also note that you may not arbitrarily mix *arch* and *machine* fields. For example, `target=ia32-rpi2` is invalid.
 Invalid combinations of fields may fail to compile or even damage your device.
 
 ## Architecture
@@ -89,7 +89,7 @@ The driver process provides several essential device drivers, including keyboard
 |armv8|64|Raspberry Pi 3, QEMU virt|Active|
 |ppc64|64|PowerMac G5, QEMU mac99|Planned|
 |mips64|64|Loongson 3 Desktop, QEMU malta|Current|
-|sparcv9|64|QEMU sun4u|Planned|
+|sparcv9|64|QEMU sun4u|Initial|
 |alpha|64|QEMU clipper|Initial|
 |riscv64|64|Spike|Planned|
 |s390|64|QEMU s390x|Planned|

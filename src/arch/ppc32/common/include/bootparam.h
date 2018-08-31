@@ -56,6 +56,7 @@ struct boot_parameters {
     };
     
     // Interrupt controller info
+    int has_openpic;
     ulong int_ctrl_addr;
     
     // Pageing

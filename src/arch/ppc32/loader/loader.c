@@ -264,6 +264,7 @@ static void build_bootparam()
     }
     
     // Interrupt
+    boot_param->has_openpic = ofw_has_openpic();
     boot_param->int_ctrl_addr = ofw_find_int_ctrl_base();
     
     // Core image
@@ -615,7 +616,13 @@ static void init_page_table()
     }
     
     // Interrupt controller
-    pht_fill(ofw_find_int_ctrl_base(), PAGE_SIZE, 1);
+    if (ofw_has_openpic()) {
+        // OpenPIC
+        pht_fill(ofw_find_int_ctrl_base(), 0x40000ul, 1);
+    } else {
+        // Heathrow
+        pht_fill(ofw_find_int_ctrl_base(), PAGE_SIZE, 1);
+    }
 }
 
 

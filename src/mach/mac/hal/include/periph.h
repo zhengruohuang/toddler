@@ -42,6 +42,16 @@ extern void init_heathrow_pic();
 
 
 /*
+ * OpenPIC
+ */
+extern void openpic_eoi(int wired);
+extern int openpic_register_wired(int wired, int_handler handler);
+extern int openpic_get_vector();
+extern void start_openpic();
+extern void init_openpic();
+
+
+/*
  * Print
  */
 extern void draw_char(char ch);

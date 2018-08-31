@@ -84,7 +84,10 @@
 #define	CR_ABORT	0x18	/* Send Abort. */
 #define	CR_RSTXSI	0x10	/* Reset Ext/Status Int. */
 
+// 23 for heathrow, 37 for openpic
+// #define PIC_WIRED_VECTOR    37
 
+static int escc_wired_int_vector;
 static volatile u8 *escc_ctrl;
 static volatile u8 *escc_data;
 
@@ -189,7 +192,7 @@ static int escc_int_handler(struct int_context *context, struct kernel_dispatch_
     ctrl_write(WR_CR, CR_RSTIUS);
     
     // EOI
-    pic_eoi(23);
+    pic_eoi(escc_wired_int_vector);
     
     return INT_HANDLE_TYPE_KERNEL;
 }
@@ -210,7 +213,7 @@ void start_escc()
     ctrl_write(WR_MIC, MIC_NV | MIC_MIE);
     
     // Register the handler
-    pic_register_wired(23, escc_int_handler);
+    pic_register_wired(escc_wired_int_vector, escc_int_handler);
 }
 
 void init_escc()
@@ -218,6 +221,12 @@ void init_escc()
     struct boot_parameters *bp = get_bootparam();
     if (bp->video_mode != VIDEO_SERIAL) {
         return;
+    }
+    
+    if (bp->has_openpic) {
+        escc_wired_int_vector = 37;
+    } else {
+        escc_wired_int_vector = 23;
     }
     
     // We'll skip the complex initialization procedure

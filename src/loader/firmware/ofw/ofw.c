@@ -438,6 +438,47 @@ static ulong ofw_find_macio_base()
     return (ulong)assigned_addrs.addr;
 }
 
+static ofw_phandle_t ofw_find_openpic(ofw_phandle_t current, int level)
+{
+    while (current && current != (ofw_phandle_t)-1) {
+        int ret = (int)ofw_get_prop(current, "name", ofw_find_macio_name_buf,
+                                    OFW_TREE_PROPERTY_MAX_VALUELEN);
+        if (ret > 0 && !memcmp(ofw_find_macio_name_buf, "interrupt-controller", 20)) {
+            return current;
+        }
+        
+        // Recursively process the potential child node.
+        ofw_phandle_t child = ofw_get_child_node(current);
+        if (child && child != (ofw_phandle_t)-1) {
+            ofw_phandle_t openpic = ofw_find_openpic(child, level + 1);
+            if (openpic) {
+                return openpic;
+            }
+        }
+        
+        // Iteratively process the next peer node
+        current = ofw_get_peer_node(current);
+    }
+    
+    return 0;
+}
+
+static ulong ofw_find_openpic_offset()
+{
+    ofw_phandle_t openpic = ofw_find_openpic(ofw_root, 0);
+    if (!openpic || openpic == (ofw_phandle_t)-1) {
+        return 0;
+    }
+    
+    ofw_prop_t offset[2];
+    int ret = (int)ofw_get_prop(openpic, "reg", offset, sizeof(offset));
+    if (ret <= 0) {
+        return 0;
+    }
+    
+    return (ulong)offset[0];
+}
+
 
 /*
  * Screen
@@ -531,9 +572,18 @@ void ofw_escc_info(void **addr)
 /*
  * Interrupt controller
  */
+int ofw_has_openpic()
+{
+    return ofw_find_openpic_offset() ? 1 : 0;
+}
+
 ulong ofw_find_int_ctrl_base()
 {
-    return ofw_find_macio_base();
+    ulong base = ofw_find_macio_base();
+    if (ofw_has_openpic()) {
+        base += ofw_find_openpic_offset();
+    }
+    return base;
 }
 
 

@@ -1,7 +1,7 @@
-# Toddler
-
-I have stopped maintaining this respository.
+## I have stopped maintaining this respository
 See https://github.com/zhengruohuang/toddler-ng for the next generation Toddler!
+
+# Toddler
 
 ![Screenshot](https://cloud.githubusercontent.com/assets/17039006/21021636/5c26c944-bd47-11e6-809f-3e02bd932b64.png)
 
